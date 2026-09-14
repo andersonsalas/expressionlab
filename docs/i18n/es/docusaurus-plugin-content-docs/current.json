@@ -1,6 +1,6 @@
 {
   "version.label": {
-    "message": "0.0.1-alpha",
+    "message": "0.0.2-alpha",
     "description": "The label for version current"
   },
   "sidebar.docsSidebar.category.Getting Started": {
