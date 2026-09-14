@@ -1,0 +1,79 @@
+.el-toggler {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	width: 50px;
+	height: 26px;
+	background-color: #fff;
+	border: 1px solid #aaa;
+	border-radius: 13px !important;
+	cursor: pointer;
+	padding: 2px;
+	transition: all 0.2s ease;
+	box-sizing: border-box;
+	appearance: none;
+	outline: none;
+
+	.el-toggler-thumb {
+		width: 20px;
+		height: 20px;
+		background-color: #555;
+		border-radius: 50%;
+		transition: transform 0.2s ease, background-color 0.2s ease;
+		z-index: 2;
+		transform: translateX(0);
+	}
+
+	.el-toggler-icon {
+		position: absolute;
+		width: 14px;
+		height: 14px;
+		color: #999;
+		z-index: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		right: 8px;
+	}
+
+	&.is-on {
+		background-color: $wordpress-primary;
+
+		/* specific blue color */
+		border-color: $wordpress-primary-700;
+
+		.el-toggler-thumb {
+			transform: translateX(24px);
+			background-color: #fff;
+		}
+
+		.el-toggler-icon {
+			left: 8px;
+			right: auto;
+		}
+	}
+
+	&.is-locked {
+		background-color: #f0f0f0;
+		border-color: #bbb;
+		cursor: not-allowed;
+
+		.el-toggler-thumb {
+			background-color: #aaa;
+		}
+	}
+
+	&.is-locked.is-on {
+		background-color: $wordpress-primary;
+		border-color: $wordpress-primary-700;
+
+		.el-toggler-thumb {
+			transform: translateX(24px);
+			background-color: #fff;
+		}
+
+		.el-toggler-icon {
+			color: #fff;
+		}
+	}
+}

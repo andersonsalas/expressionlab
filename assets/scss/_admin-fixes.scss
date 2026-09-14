@@ -1,0 +1,141 @@
+html:has(body.expressionlab-admin-page),
+body.expressionlab-admin-page {
+	height: 100%;
+	overflow: hidden !important;
+}
+
+body.expressionlab-admin-page {
+	#poststuff {
+		padding-top: 0;
+	}
+
+	#wpwrap {
+		height: 100%;
+		overflow: hidden;
+	}
+
+	#wpcontent {
+		height: 100%;
+		padding: 0 !important;
+		overflow: hidden;
+		margin-left: 160px;
+	}
+
+	#wpbody {
+		height: 100%;
+	}
+
+	#wpbody-content {
+		height: 100%;
+		padding: 0 !important;
+		float: none;
+
+		.wp-header-end {
+			display: none;
+		}
+
+		& > .wrap {
+			height: 100%;
+			margin: 0 !important;
+			padding: 0 !important;
+		}
+	}
+
+	#wpfooter {
+		display: none;
+	}
+
+	#adminmenuwrap {
+		max-height: calc(100vh - 32px);
+		overflow: hidden auto;
+
+		@media (width <= 782px) {
+			max-height: calc(100vh - 46px);
+		}
+	}
+
+	#adminmenu a.wp-has-current-submenu::after, 
+	#adminmenu > li.current > a.current::after {
+		border-right-color: white !important;
+	}
+
+	@media only screen and (width <= 960px) {
+		&.auto-fold #wpcontent,
+		&.auto-fold #wpfooter {
+			margin-left: 36px;
+		}
+	}
+
+	&.folded #wpcontent,
+	&.folded #wpfooter {
+		margin-left: 36px;
+	}
+
+	@media (width <= 782px) {
+		#wpcontent,
+		#wpfooter {
+			margin-left: 0;
+		}
+	}
+}
+
+#wpadminbar #wp-admin-bar-expressionlab-debug-badge {
+	margin-left: 8px;
+}
+
+#wpadminbar #wp-admin-bar-expressionlab-debug-badge > .ab-item {
+	background-color: #d97706 !important;
+	color: #fff !important;
+	font-weight: 600;
+	font-size: 11px;
+	height: 22px;
+	line-height: 22px;
+	margin-top: 5px;
+	padding: 0 10px;
+	border-radius: 11px;
+	box-shadow: 0 1px 2px rgb(0 0 0 / 20%);
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	cursor: default;
+}
+
+#wpadminbar #wp-admin-bar-expressionlab-debug-badge:hover *,
+#wpadminbar #wp-admin-bar-expressionlab-debug-badge .ab-item:focus .ab-label,
+#wpadminbar #wp-admin-bar-expressionlab-debug-badge .ab-item:focus .ab-icon::before,
+#wpadminbar #wp-admin-bar-expressionlab-debug-badge a:focus,
+#wpadminbar #wp-admin-bar-expressionlab-debug-badge a:active,
+#wpadminbar #wp-admin-bar-expressionlab-debug-badge:hover *::before {
+	color: #fff !important;
+}
+
+#wpadminbar #wp-admin-bar-expressionlab-debug-badge > .ab-item:hover,
+#wpadminbar #wp-admin-bar-expressionlab-debug-badge > .ab-item:focus {
+	background-color: #b45309 !important;
+}
+
+#wpadminbar #wp-admin-bar-expressionlab-debug-badge .dashicons-warning {
+	font-size: 14px;
+	width: 14px;
+	height: 14px;
+	line-height: 14px;
+	color: #fff !important;
+	margin-top: -6px;
+}
+
+@media screen and (max-width <= 782px) {
+	#wpadminbar #wp-admin-bar-expressionlab-debug-badge > .ab-item {
+		height: 30px;
+		line-height: 30px;
+		margin-top: 8px;
+		font-size: 12px;
+		padding: 0 12px;
+	}
+
+	#wpadminbar #wp-admin-bar-expressionlab-debug-badge .dashicons-warning {
+		font-size: 16px;
+		width: 16px;
+		height: 16px;
+		line-height: 16px;
+	}
+}

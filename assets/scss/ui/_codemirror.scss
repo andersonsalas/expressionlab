@@ -1,0 +1,575 @@
+// stylelint-disable selector-class-pattern
+
+@use '../variables' as vars;
+
+.cm-editor {
+	background: transparent !important;
+	border: none;
+	margin-top: 3px;
+
+	&.cm-focused {
+		outline: none;
+		box-shadow: none !important;
+	}
+
+	&::placeholder {
+		color: #999 !important;
+		opacity: 1 !important;
+		content: 'Type your code here...';
+	}
+
+	.cm-scroller {
+		font-size: vars.$font-monospace-size;
+		background: transparent !important;
+	}
+
+	.cm-content {
+		background: transparent !important;
+		padding: 0;
+	}
+
+	.cm-gutters {
+		display: none;
+		background: transparent !important;
+		border: none;
+	}
+
+	.cm-activeLine,
+	.cm-activeLineGutter {
+		background: transparent !important;
+	}
+
+	.cm-line {
+		padding: 0 2px 0 0;
+		font-family: vars.$font-family-monospace;
+		line-height: 19px !important;
+	}
+}
+
+.cm-tooltip {
+	padding: 1px;
+	border-radius: 0;
+	box-shadow: none;
+}
+
+.cm-tooltip-autocomplete {
+	font-size: 14px;
+
+	> ul > li {
+		margin-bottom: 0;
+
+		&[aria-selected="true"] {
+			background-color: vars.$wordpress-primary;
+			color: white;
+			border-radius: 0;
+		}
+	}
+}
+
+.cm-completionInfo.cm-completionInfo-right {
+	margin-top: -3px;
+	padding: 6px;
+	min-height: 23px;
+	font-family: vars.$font-family-sans;
+	word-wrap: break-word;
+	max-width: 540px !important;
+	white-space: normal !important;
+
+	span,
+	p {
+		font-size: 14px;
+	}
+}
+
+.cm-completionIcon-function::after,
+.cm-completionIcon-method::after {
+	font-family: codicon, monospace !important;
+	display: inline-block;
+	text-decoration: none;
+	text-rendering: auto;
+	text-align: center;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	user-select: none;
+	content: "\ea8c" !important;
+	vertical-align: middle;
+}
+
+.cm-completionIcon-constant::after {
+	font-family: codicon, monospace !important;
+	display: inline-block;
+	text-decoration: none;
+	text-rendering: auto;
+	text-align: center;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	user-select: none;
+	content: "\eb5d" !important;
+	vertical-align: middle;
+}
+
+.cm-completionIcon-property::after {
+	font-family: codicon, monospace !important;
+	display: inline-block;
+	text-decoration: none;
+	text-rendering: auto;
+	text-align: center;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	user-select: none;
+	content: "\eb65" !important;
+	vertical-align: middle;
+}
+
+.cm-completionIcon-keyword::after {
+	font-family: codicon, monospace !important;
+	display: inline-block;
+	text-decoration: none;
+	text-rendering: auto;
+	text-align: center;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	user-select: none;
+	content: "\eb62" !important;
+	vertical-align: middle;
+}
+
+.cm-tooltip-autocomplete .cm-completionIcon {
+	width: 14px;
+	font-family: codicon, monospace !important;
+	display: inline-block;
+	text-decoration: none;
+	text-rendering: auto;
+	text-align: center;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	user-select: none;
+	vertical-align: middle;
+	font-size: 16px;
+	margin-top: -4px;
+	opacity: 1 !important;
+	line-height: 1;
+}
+
+.cm-tooltip-autocomplete .cm-completionInfo .signature {
+	background: none !important;
+}
+
+.cm-tooltip-autocomplete > ul > li[aria-selected="true"] .cm-completionIcon {
+	color: white !important;
+}
+
+.cm-tooltip-autocomplete > ul > li:not([aria-selected="true"]) .cm-completionIcon.cm-completionIcon-method {
+	color: #af00db !important;
+}
+
+.cm-tooltip-autocomplete > ul > li:not([aria-selected="true"]) .cm-completionIcon.cm-completionIcon-function {
+	color: #3858e9 !important;
+}
+
+.cm-tooltip-autocomplete > ul > li:not([aria-selected="true"]) .cm-completionIcon.cm-completionIcon-constant {
+	color: #008080 !important;
+}
+
+.cm-tooltip-autocomplete > ul > li:not([aria-selected="true"]) .cm-completionIcon.cm-completionIcon-property {
+	color: #414141 !important;
+}
+
+.cm-tooltip-autocomplete > ul > li:not([aria-selected="true"]) .cm-completionIcon.cm-completionIcon-keyword {
+	color: #af00db !important;
+}
+
+.hljs {
+	line-height: 19px !important;
+
+	.hljs-keyword {
+		color: #af00db;
+		font-weight: normal;
+	}
+
+	.hljs-built_in {
+		color: black;
+		font-weight: normal;
+	}
+
+	.hljs-string {
+		color: #a31515;
+	}
+
+	.hljs-number {
+		color: #098658;
+	}
+
+	.hljs-type {
+		color: #2271b1;
+	}
+
+	.hljs-variable {
+		color: #e91e63;
+	}
+
+	.hljs-variable.constant_ {
+		color: black;
+	}
+
+	.hljs-variable.language_ {
+		color: black !important;
+	}
+
+	.hljs-title.function_,
+	.hljs-title.class_ {
+		color: black;
+	}
+
+	.hljs-literal {
+		color: #00f;
+	}
+
+	.hljs-property {
+		color: black;
+	}
+
+	.hljs-comment {
+		color: #888;
+	}
+
+	.hljs-regexp {
+		color: #a31515;
+	}
+
+	.hljs-operator,
+	.hljs-punctuation {
+		color: black;
+	}
+
+	.hljs-attr {
+		color: black;
+	}
+}
+
+.cm-docblock.tag {
+	color: #525252;
+	font-weight: bold;
+	margin: 0 0 4px !important;
+	font-size: 13px !important;
+	line-height: 1.4;
+
+	&:last-child {
+		margin-bottom: 0 !important;
+	}
+}
+
+.cm-docblock.doc-section {
+	margin-top: 10px;
+
+	&:first-child {
+		margin-top: 0;
+	}
+}
+
+.cm-docblock.doc-section-title {
+	font-weight: 600;
+	color: #444;
+	font-size: 14px !important;
+	margin-bottom: 4px;
+}
+
+.cm-docblock.doc-returns,
+.cm-docblock.doc-type,
+.cm-docblock.doc-value,
+.cm-docblock.doc-default {
+	line-height: 1.5;
+	font-size: 14px !important;
+
+	.doc-section-title {
+		display: inline;
+		margin-right: 4px;
+		margin-bottom: 0;
+	}
+}
+
+.cm-docblock.doc-list {
+	margin: 0 !important;
+	padding: 0 !important;
+	list-style: none !important;
+	list-style-type: none !important;
+
+	li {
+		margin: 0 0 4px !important;
+		padding: 0 !important;
+		line-height: 1.5;
+		font-size: 14px !important;
+
+		&:last-child {
+			margin-bottom: 0 !important;
+		}
+	}
+}
+
+.cm-docblock {
+	.codicon-symbol-field {
+		margin-right: 4px;
+		font-size: 16px !important;
+		line-height: 1;
+		vertical-align: -4px;
+
+		&.param-required {
+			color: #e91e63;
+		}
+
+		&.param-optional {
+			color: #676767;
+		}
+	}
+
+	.codicon-link {
+		margin-right: 4px;
+		font-size: 13px;
+		line-height: 1;
+		color: #676767;
+		vertical-align: -1px;
+	}
+}
+
+.cm-docblock.type {
+	color: #2271b1;
+	font-family: monospace;
+	font-size: 13.5px !important;
+}
+
+.cm-docblock.variable {
+	color: #e91e63;
+	font-family: monospace;
+	font-size: 13.5px !important;
+	font-weight: 600;
+}
+
+.cm-docblock.doc-separator {
+	color: #888;
+	font-size: 14px !important;
+	user-select: none;
+}
+
+.cm-docblock.doc-desc {
+	font-size: 14px !important;
+	color: #333;
+
+	code {
+		background: #e0e0e0;
+		padding: 2px 5px;
+		border-radius: 3px;
+		font-family: vars.$font-family-monospace !important;
+		font-size: 13px;
+	}
+}
+
+.cm-docblock.doc-link,
+.cm-docblock.doc-ref {
+	font-size: 14px;
+
+	.codicon {
+		font-size: 16px;
+		vertical-align: -4px;
+		display: inline-block;
+	}
+}
+
+a.cm-docblock,
+a.cm-docblock.doc-link {
+	color: #2271b1 !important;
+	text-decoration: underline !important;
+	cursor: pointer !important;
+	word-break: break-all;
+
+	&:hover {
+		color: #135e96 !important;
+	}
+}
+
+.cm-docblock.summary {
+	font-weight: bold;
+	margin: 0 0 10px !important;
+}
+
+.cm-docblock._description {
+	margin-top: 0 !important;
+}
+
+.cm-matchingBracket {
+	background-color: #cce5ff !important;
+}
+
+.cm-nonmatchingBracket {
+	background-color: #ffecec !important;
+	color: red !important;
+}
+
+// Shared docblock signature styles
+.cm-docblock.signature {
+	&,
+	& * {
+		font-family: monospace;
+		font-size: 14px !important;
+	}
+
+	display: block !important;
+	margin: 0 0 15px !important;
+	padding: 0 !important;
+	white-space: break-spaces;
+
+	.hljs-attr {
+		color: #2271b1 !important;
+	}
+}
+
+.cm-docblock.description-wrapper {
+	max-height: 200px;
+	overflow-y: auto;
+	margin-bottom: 15px !important;
+
+	// Description Markdown content.
+	._description {
+		p {
+			margin: 0 0 10px !important;
+			line-height: 1.5;
+		}
+
+		*:first-child {
+			margin-top: 0 !important;
+		}
+
+		*:last-child {
+			margin-bottom: 0 !important;
+		}
+
+		code,
+		pre {
+			border-radius: 3px;
+			font-family: vars.$font-family-monospace !important;
+		}
+
+		code {
+			background: #e0e0e0;
+			padding: 2px 5px;
+			font-size: 14px;
+		}
+
+		pre {
+			display: block;
+			white-space: pre;
+			padding: 8px 10px !important;
+			margin: 10px 0 14px !important;
+			background: #e6e6e6;
+			overflow-x: hidden;
+
+			code {
+				display: block;
+				padding: 0 !important;
+				margin: 0 !important;
+				background: transparent !important;
+				white-space: break-spaces;
+				overflow: hidden;
+				font-size: inherit;
+			}
+		}
+
+		.el-code-block-wrapper {
+			position: relative;
+			margin: 10px 0 14px !important;
+
+			pre {
+				margin: 0 !important;
+				padding-right: 65px !important;
+			}
+
+			.el-code-actions {
+				position: absolute;
+				top: 5px;
+				right: 5px;
+				display: inline-flex;
+				align-items: center;
+				gap: 4px;
+				z-index: 10;
+
+				.el-code-action-btn {
+					display: inline-flex;
+					align-items: center;
+					justify-content: center;
+					width: 24px;
+					height: 24px;
+					padding: 0;
+					border: 1px solid #d0d0d0;
+					background: #fff;
+					border-radius: 3px;
+					cursor: pointer;
+					color: #555;
+					opacity: 0.8;
+					line-height: 1;
+					box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+					transition: opacity 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+					&:hover {
+						opacity: 1;
+						background-color: #f0f0f0;
+						border-color: #888;
+						color: #111;
+					}
+
+					&:active {
+						background-color: #e0e0e0;
+					}
+
+					&.copied {
+						border-color: #28a745;
+						color: #28a745;
+					}
+
+					// stylelint-disable-next-line no-descending-specificity
+					.codicon {
+						font-size: 14px;
+						line-height: 1;
+					}
+				}
+			}
+		}
+
+		ul,
+		ol {
+			margin-left: 0;
+			margin-bottom: 10px !important;
+
+			li {
+				margin-left: 0;
+				list-style: disc;
+			}
+		}
+
+		// Headings formatting in description markdown
+		h1,
+		h2,
+		h3,
+		h4,
+		h5,
+		h6 {
+			font-weight: bold !important;
+			margin-top: 14px !important;
+			margin-bottom: 10px !important;
+			line-height: 1.4;
+		}
+
+		h1 {
+			font-size: 16px !important;
+		}
+
+		h2 {
+			font-size: 15px !important;
+		}
+
+		h3,
+		h4,
+		h5,
+		h6 {
+			font-size: 14px !important;
+		}
+	}
+}

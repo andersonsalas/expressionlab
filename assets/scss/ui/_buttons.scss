@@ -1,0 +1,100 @@
+// Generic toolbar/toolbar-like button (used in console toolbar and library modal)
+.toolbar-button {
+	display: flex;
+	align-items: center;
+	padding: 6px 10px;
+	margin-right: 8px;
+	border: solid 1px transparent;
+	background: transparent;
+	cursor: pointer;
+	font-size: $font-default-size;
+	height: 100%;
+
+	.codicon {
+		font-size: 18px;
+		margin-right: 6px;
+	}
+
+	&:last-child {
+		margin-right: 0;
+	}
+
+	&:hover {
+		background: transparent;
+		border-color: black;
+	}
+
+	&:active,
+	&.active {
+		background: #f0f8ff;
+		border-color: $wordpress-primary;
+		color: black;
+
+		.codicon {
+			color: $wordpress-primary;
+		}
+	}
+
+	span {
+		line-height: 19px;
+	}
+}
+
+.fp-button {
+	background: #f5f5f5;
+	border: solid 1px #d0d0d0;
+	border-radius: 3px !important;
+	padding: 4px 8px;
+	cursor: pointer;
+	transition: background 0.2s, border-color 0.2s;
+	font-size: 12px;
+	font-family: $font-family-sans;
+	display: inline-block;
+
+	&:hover {
+		background: #e8e8e8;
+		border-color: #b0b0b0;
+	}
+}
+
+.btn {
+    padding: 6px 16px;
+    border-radius: 2px !important;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.2s;
+
+	&:disabled, &.disabled {
+		opacity: 0.7;
+		cursor: not-allowed;
+	}
+
+	&.fw-80px {
+		min-width: 80px;
+	}
+	
+	&.fw-100px {
+		min-width: 100px;
+	}
+}
+
+.btn-primary {
+    background: $wordpress-primary;
+    color: white;
+    border: none;
+
+    &:hover {
+        background: $wordpress-primary-600;
+    }
+}
+
+.btn-default {
+	background: #f5f5f5;
+	color: #333;
+	border: solid 1px #d0d0d0;
+
+	&:hover {
+		background: #e8e8e8;
+		border-color: #b0b0b0;
+	}
+}

@@ -1,0 +1,98 @@
+{
+  "theme.docs.sidebar.collapseButtonTitle": {
+    "message": "Colapsar barra lateral",
+    "description": "The title attribute for collapse button of doc sidebar"
+  },
+  "theme.docs.sidebar.expandButtonTitle": {
+    "message": "Expandir barra lateral",
+    "description": "The title attribute for expand button of doc sidebar"
+  },
+  "homepage.meta.title": {
+    "message": "Expression Lab",
+    "description": "Meta title for homepage"
+  },
+  "homepage.meta.description": {
+    "message": "Una consola de diagnóstico interactiva y DSL declarativo para WordPress. Inspecciona tablas, archivos, opciones y posts a través de un sandbox AST sin ejecutar PHP arbitrario ni recurrir a eval().",
+    "description": "Meta description for homepage"
+  },
+  "homepage.hero.eyebrow": {
+    "message": "Entorno de diagnóstico para WordPress",
+    "description": "Eyebrow subtitle in hero"
+  },
+  "homepage.hero.title": {
+    "message": "Expression Lab",
+    "description": "Main title on landing page"
+  },
+  "homepage.hero.alpha": {
+    "message": "Alpha",
+    "description": "Alpha indicator next to main title"
+  },
+  "homepage.hero.description": {
+    "message": "Descubre una consola interactiva y DSL declarativo para inspeccionar el núcleo y los datos de WordPress de forma segura, sin escribir PHP directo ni usar eval().",
+    "description": "Main description on landing page"
+  },
+  "homepage.hero.cta.start": {
+    "message": "Primeros Pasos",
+    "description": "Primary CTA button to getting started"
+  },
+  "homepage.hero.cta.github": {
+    "message": "Ver en GitHub",
+    "description": "Secondary CTA button to github"
+  },
+  "homepage.hero.notice": {
+    "message": "Fase Alpha: destinado estrictamente a desarrollo local e inspección en staging.",
+    "description": "Alpha stage notice below CTA buttons"
+  },
+  "homepage.features.queries.badge": {
+    "message": "01 // INSPECCIÓN",
+    "description": "Badge for queries feature"
+  },
+  "homepage.features.queries.title": {
+    "message": "Sandbox AST declarativo",
+    "description": "Title for queries feature"
+  },
+  "homepage.features.queries.detail": {
+    "message": "Inspecciona tablas, opciones, archivos y posts mediante sintaxis estructurada, sin scripts temporales ni riesgos en tiempo de ejecución.",
+    "description": "Detail for queries feature"
+  },
+  "homepage.features.readonly.badge": {
+    "message": "02 // LIMITES",
+    "description": "Badge for read-only feature"
+  },
+  "homepage.features.readonly.title": {
+    "message": "Solo lectura por diseño",
+    "description": "Title for read-only feature"
+  },
+  "homepage.features.readonly.detail": {
+    "message": "Opera en modo de solo lectura con límites estrictos de CPU. Replica consultas pesadas en SQLite en memoria para no saturar MySQL en producción.",
+    "description": "Detail for read-only feature"
+  },
+  "homepage.features.credentials.badge": {
+    "message": "03 // ACCESO",
+    "description": "Badge for credentials feature"
+  },
+  "homepage.features.credentials.title": {
+    "message": "Cero credenciales en la base de datos",
+    "description": "Title for credentials feature"
+  },
+  "homepage.features.credentials.detail": {
+    "message": "La autorización se define en wp-config.php y se valida en la sesión del navegador. Nunca se almacenan tokens ni contraseñas en la base de datos.",
+    "description": "Detail for credentials feature"
+  },
+  "footer.paragraph1": {
+    "message": "© {year} Anderson Salas y colaboradores. Todos los derechos reservados.",
+    "description": "Footer copyright notice"
+  },
+  "footer.paragraph2": {
+    "message": "WordPress® es una marca registrada de la WordPress Foundation. Expression Lab no está afiliado, patrocinado ni respaldado por la WordPress Foundation.",
+    "description": "Footer WordPress trademark and non-affiliation disclaimer"
+  },
+  "footer.disclaimer": {
+    "message": "Expression Lab es software experimental proporcionado bajo la licencia GPLv2 \"tal cual\", sin garantías de ningún tipo. No ha sido auditado por firmas de seguridad independientes y estrictamente no está destinado a entornos de producción, gubernamentales o de misión crítica.",
+    "description": "Footer experimental software and warranty disclaimer"
+  },
+  "installation.downloadButton": {
+    "message": "Descargar Expression Lab v{version}",
+    "description": "Label for the plugin download button on the installation page"
+  }
+}

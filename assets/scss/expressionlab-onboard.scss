@@ -1,0 +1,376 @@
+@import "~bootstrap/scss/functions";
+@import "~bootstrap/scss/variables";
+@import "~bootstrap/scss/maps";
+@import "~bootstrap/scss/mixins";
+@import "~bootstrap/scss/utilities";
+@import "variables";
+@import "ui";
+@import "admin-fixes";
+@import "layout";
+@import 'https://fonts.googleapis.com/css2?family=Cascadia+Mono:ital,wght@0,200..700;1,200..700&family=Roboto+Slab:wght@100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap';
+@import "~highlight.js/styles/vs.min.css";
+
+iframe.expressionlab-app {
+	display: block;
+	width: 100%;
+	height: calc( 100dvh - 32px );
+	border: none;
+}
+
+body {
+	background: white;
+}
+
+.expressionlab-app {
+	grid-template-rows: auto auto auto !important;
+}
+
+.onboard-header {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background: #fff;
+	padding-top: 50px;
+	padding-bottom: 50px;
+
+	.wizard-progress {
+		display: flex;
+		justify-content: space-between;
+		width: 100%;
+		max-width: 800px;
+		position: relative;
+	}
+
+	.step-item {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		position: relative;
+		flex: 1;
+		text-align: center;
+		z-index: 1;
+	}
+
+    .step-label {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        color: #1d2327;
+        margin-bottom: 12px;
+        transition: color 0.2s ease;
+    }
+
+    .step-indicator {
+        position: relative;
+        display: flex;
+        align-items: center;
+        width: 100%;
+        justify-content: center;
+    }
+
+	.step-dot {
+		width: 16px;
+		height: 16px;
+		border-radius: 50%;
+		background-color: #dcdcde;
+
+		// border: 4px solid #fff;
+		box-sizing: content-box;
+        z-index: 2;
+        transition: background-color 0.2s ease;
+	}
+
+    .step-item:not(:last-child) .step-indicator::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%; /* Start at center of current dot */
+        width: 100%; /* Stretch to next center */
+        height: 4px; /* Thickness */
+        background-color: #dcdcde;
+        z-index: 1; /* Behind dot */
+        transform: translateY(-50%);
+    }
+
+	/* Active State */
+	.step-item.active {
+		.step-label {
+			font-weight: 700;
+			color: #1d2327;
+		}
+
+		.step-dot {
+			background-color: $wordpress-primary;
+			border-color: $wordpress-primary; /* Make the border blue too so it looks solid/larger vs the line */
+			box-shadow: 0 0 0 3px rgba($wordpress-primary, 0.2); /* optional glow */
+		}
+	}
+
+	/* Completed State */
+	.step-item.completed {
+		.step-label {
+             color: $wordpress-primary;
+        }
+
+		.step-dot {
+			background-color: $wordpress-primary;
+			border-color: $wordpress-primary;
+		}
+		
+		/* Color the line taking us TO the next step */
+        .step-indicator::after {
+            background-color: $wordpress-primary;
+        }
+	}
+}
+
+.onboard-wizard {
+	display: flex;
+	justify-content: center;
+	font-family: $font-family-sans;
+	color: #3c434a;
+
+	.step-container {
+		background: white;
+		max-width: 700px;
+		width: 100%;
+		text-align: center;
+		min-height: 462px;
+		height: auto;
+		border: solid 1px #d4d4d4;
+		padding: 40px;
+
+		// transform: translateY(-30px);
+
+		&.welcome-step {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			padding: 0 40px;
+		}
+
+		.step-inner-container {
+			min-height: 256px;
+		}
+
+		.step-codicon {
+			font-size: 38px;
+			height: 44px;
+			display: block;
+			color: $wordpress-primary;
+		}
+	}
+
+	h1,
+	h2 {
+		font-weight: 500;
+		font-family: $font-family-serif;
+	}
+
+	h2 {
+		margin-bottom: 20px;
+		font-weight: 500;
+		margin-top: 8px;
+	}
+
+	p {
+		margin-bottom: 15px;
+		line-height: 1.5;
+	}
+
+	.form-group input {
+		width: 100%;
+		padding: 8px;
+		border: 1px solid #8c8f94;
+		border-radius: 4px;
+	}
+
+	.welcome-step .wizard-logo {
+		margin-bottom: 12px;
+		color: $wordpress-primary;
+	}
+
+	.welcome-step .wizard-icon {
+		height: 48px;
+		width: auto;
+		fill: currentcolor;
+	}
+
+	.welcome-step h1 {
+		margin-bottom: 6px;
+	}
+
+	.welcome-step .welcome-subtitle {
+		margin-bottom: 16px;
+		color: #646970;
+	}
+
+	.requirements-list {
+		list-style: none;
+		padding: 0;
+		margin-bottom: 20px;
+		text-align: left;
+	}
+
+	.requirements-list li {
+		display: flex;
+		justify-content: space-between;
+		padding: 10px 0;
+		border-bottom: 1px solid #f0f0f1;
+
+		&:last-child {
+			border-bottom: none;
+		}
+	}
+
+	.requirements-list li.ok {
+		color: #007017;
+	}
+
+	.requirements-list li.fail {
+		color: #d63638;
+	}
+
+	.alpha-notice-box {
+		background: #fdfbf7;
+		border: 1px solid #c7c0ac;
+		border-left: 4px solid #dba617;
+		border-radius: 4px;
+		padding: 14px 18px;
+		margin: 0 0 16px;
+		text-align: left;
+
+		.alpha-notice-title {
+			font-family: $font-family-sans;
+			font-size: 14px;
+			font-weight: 600;
+			color: #574412;
+			margin: 0 0 6px;
+			display: flex;
+			align-items: center;
+			gap: 6px;
+
+			.alpha-notice-icon {
+				color: #dba617;
+				font-size: 16px;
+				flex-shrink: 0;
+			}
+		}
+
+		.alpha-notice-description {
+			font-size: 12.5px;
+			line-height: 1.5;
+			color: #0c0c0c;
+			margin-bottom: 8px;
+			text-align: left;
+		}
+
+		.alpha-notice-list {
+			margin: 0;
+			padding-left: 18px;
+			list-style: disc;
+
+			li {
+				font-size: 12px;
+				line-height: 1.5;
+				color: #0c0c0c;
+				margin-bottom: 3px;
+
+				&:last-child {
+					margin-bottom: 0;
+				}
+			}
+		}
+	}
+
+	.agreement-check {
+		text-align: left;
+		margin-bottom: 20px;
+		font-size: 13px;
+		display: flex;
+		align-items: flex-start;
+		margin-top: 0;
+		justify-content: flex-start;
+		user-select: none;
+		position: relative;
+	}
+
+	.agreement-check label {
+		cursor: pointer;
+		display: flex;
+		align-items: flex-start;
+		gap: 8px;
+		text-align: left;
+
+		input {
+			margin-top: 2px;
+			flex-shrink: 0;
+			margin-right: 0;
+		}
+
+		span {
+			display: inline-block;
+			font-size: 12.5px;
+			line-height: 1.45;
+			color: #2c3338;
+		}
+	}
+
+	.requirements-description, .key-generation-description {
+		text-align: justify;
+	}
+
+	.requirements-description {
+		color: #646970;
+	}
+
+	.key-generation-notes {
+		text-align: left;
+		margin: 0;
+		margin-left: 20px;
+		padding: 0;
+		list-style: disc;
+	}
+
+	.requirements-list li .status {
+		font-weight: bold;
+	}
+
+	.form-group {
+		margin-bottom: 20px;
+		text-align: left;
+	}
+
+	.form-group label {
+		display: block;
+		margin-bottom: 5px;
+		font-weight: 500;
+	}
+
+	.step-inner-container.generating-keys {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 20px;
+		text-align: center;
+		min-height: 100%;
+	}
+
+	.config-output {
+		width: 100%;
+		height: 150px;
+		font-family: monospace;
+		padding: 10px;
+		margin-bottom: 10px;
+		background: #f6f7f7;
+		border: 1px solid #dcdcde;
+		resize: none;
+		border-radius: 0;
+	}
+}
+
+.onboard-footer {
+	text-align: center;
+	font-family: $font-family-serif;
+}

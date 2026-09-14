@@ -1,0 +1,390 @@
+@use '../codemirror' as codemirror;
+
+#library-modal {
+	.cm-focused {
+		outline: none !important;
+		box-shadow: none !important;
+	}
+
+	.library-modal-container {
+		width: 100%;
+		height: 100%;
+		max-height: 100%;
+		max-width: 1320px;
+	}
+
+	.library-layout {
+		display: flex;
+		height: 100%;
+		overflow: hidden;
+	}
+
+	.library-sidebar {
+		width: 262px;
+		border-right: 1px solid $border-color;
+		display: flex;
+		flex-direction: column;
+		background: #F9F9F9;
+		font-size: 14px;
+	}
+
+	.library-search-bar {
+		display: flex;
+		padding: 3px;
+		border-bottom: 1px solid $border-color;
+		height: 36px;
+		gap: 8px;
+	}
+
+	.library-search-bar input {
+		flex: 1;
+		padding: 6px 12px;
+		font-size: 14px;
+	}
+
+	.library-list {
+		flex: 1;
+		overflow-y: auto;
+		padding: 1px;
+	}
+
+	.library-list-item {
+		padding: 8px 12px;
+		cursor: pointer;
+		user-select: none;
+		height: 34px;
+		display: flex;
+		align-items: center;
+
+		.unsaved-dot {
+			display: inline-block;
+			width: 8px;
+			height: 8px;
+			border-radius: 50%;
+			background: $wordpress-primary;
+			margin-right: 8px;
+			flex-shrink: 0;
+		}
+
+		&.btn-create {
+			display: flex;
+			justify-content: flex-start;
+			align-items: center;
+			border-bottom: solid 1px $border-color;
+			padding: 8px 12px;
+			height: 36px;
+
+			.codicon {
+				font-size: 18px !important;
+				margin-right: 6px;
+				color: $wordpress-primary;
+			}
+		}
+	}
+
+	.library-list-item:hover {
+		background: #eaeaea;
+	}
+
+	.library-list-item.active {
+		background: #3c50e0;
+		color: white;
+
+		.unsaved-dot {
+			background: #ffffffc2;
+		}
+	}
+
+	.no-results {
+		padding: 15px;
+		font-size: 14px;
+		color: #777;
+		text-align: center;
+	}
+
+	.library-main {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		background: white;
+	}
+
+	.library-main.empty {
+		justify-content: center;
+		align-items: center;
+		display: flex;
+		flex-direction: column;
+		padding: 40px 20px;
+		user-select: none;
+		background: #fff;
+	}
+
+	.library-empty-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		text-align: center;
+		max-width: 440px;
+		margin: 0 auto;
+
+		* {
+			color: #878787;
+		}
+	}
+
+	.library-empty-icon-wrapper {
+		margin-bottom: 15px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+
+		.codicon-library {
+			font-size: 56px !important;
+		}
+	}
+
+	.library-empty-title {
+		font-family: $font-family-serif;
+		font-size: 26px;
+		font-weight: 600;
+		margin: 0 0 16px;
+		line-height: 1.25;
+		letter-spacing: -0.01em;
+	}
+
+	.library-empty-desc {
+		font-size: 15px;
+		line-height: 1.5;
+		margin: 0 0 32px;
+		max-width: 380px;
+	}
+
+	.library-empty-tip {
+		font-size: 13px;
+		line-height: 1.45;
+		margin: 0;
+		max-width: 340px;
+
+		.tip-icon {
+			vertical-align: middle;
+    		margin-right: 2px;
+		}
+
+		.tip-label {
+			font-weight: 700;
+		}
+	}
+
+	.library-fs-banner {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 8px 12px;
+		background: #eff6ff;
+		border-bottom: 1px solid #bfdbfe;
+		color: #1e40af;
+		gap: 12px;
+
+		.btn {
+			padding: 4px 10px;
+			cursor: pointer;
+		}
+	}
+
+	.library-main-header {
+		display: flex;
+		border-bottom: 1px solid $border-color;
+		align-items: center;
+		height: 36px;
+	}
+
+	.snippet-title-input {
+		flex: 1;
+		border: none;
+		font-size: 14px;
+		outline: none;
+		height: 100%;
+		font-weight: bold;
+	}
+
+	.library-main-actions {
+		display: flex;
+		gap: 1px;
+		border-left: solid 1px $border-color;
+		height: 100%;
+		padding: 3px;
+	}
+
+	.library-main-actions button {
+		// stylelint-disable-next-line
+		@extend .toolbar-button;
+
+		margin-right: 0;
+		padding: 8px;
+
+		// stylelint-disable-next-line
+		.codicon {
+			margin-right: 0;
+			font-size: 16px;
+		}
+	}
+
+	.library-main-editor {
+		flex: 1;
+		padding: 2px 10px;
+		display: flex;
+		overflow: hidden;
+	}
+
+	.snippet-code-editor {
+		flex: 1;
+		border: none !important;
+		border-color: transparent !important;
+		font-family: monospace;
+		font-size: 14px;
+	}
+
+	.snippet-code-editor .cm-editor {
+		height: 100%;
+		box-shadow: none !important;
+
+		& .cm-focused {
+			outline: none !important;
+			box-shadow: none !important;
+		}
+
+		&.cm-focused.cm-focused.cm-focused.cm-focused.cm-focused {
+			outline: none !important;
+			box-shadow: none !important;
+		}
+	}
+
+	.snippet-code-editor .cm-scroller {
+		overflow: auto;
+	}
+
+	.library-sidebar-footer {
+		border-top: 1px solid $border-color;
+		background: #f4f5f7;
+		padding: 8px 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		position: relative;
+		font-size: 14px;
+
+		.library-fs-container {
+			display: flex;
+			align-items: center;
+		}
+
+		.library-fs-checkbox-label {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			color: #5f5f5f;
+			cursor: pointer;
+			user-select: none;
+			margin: 0;
+
+			.library-fs-text {
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				color: #5f5f5f;
+			}
+
+			&:hover {
+				.library-fs-text {
+					color: black;
+				}
+			}
+		}
+
+		.library-import-export-wrapper {
+			position: relative;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+
+			.import-icon {
+				color: #878787;
+				font-size: 18px !important;
+				text-decoration: none !important;
+			}
+		}
+
+		.library-import-export-btn {
+			background: none;
+			border: none;
+			cursor: pointer;
+			display: inline-flex;
+			align-items: center;
+			gap: 9px;
+			padding: 3px 0;
+			text-decoration: none;
+			transition: color 0.15s ease;
+			color: #5f5f5f;
+
+			.codicon {
+				font-size: 14px;
+			}
+
+			&:hover {
+				color: black;
+			}
+		}
+
+		.library-dropdown-menu {
+			position: absolute;
+			bottom: calc(100% + 4px);
+			left: 0;
+			width: 160px;
+			background: #fff;
+			border: 1px solid black;
+			z-index: 100;
+			display: flex;
+			flex-direction: column;
+			padding: 1px;
+
+			.dropdown-item {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				padding: 6px 12px;
+				color: #333;
+				background: transparent;
+				border: none;
+				width: 100%;
+				text-align: left;
+				cursor: pointer;
+
+				.codicon {
+					font-size: 18px;
+					color: black;
+				}
+
+				&:hover {
+					color: white;
+					background: $wordpress-primary;
+				
+					.codicon {
+						color: white;
+					}
+				}
+			}
+		}
+	}
+
+	@keyframes library-menu-fade-in {
+		from {
+			opacity: 0;
+			transform: translateY(4px);
+		}
+
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+}

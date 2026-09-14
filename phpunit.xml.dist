@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<phpunit
+	bootstrap="tests/bootstrap.php"
+	backupGlobals="false"
+	colors="true"
+	convertErrorsToExceptions="true"
+	convertWarningsToExceptions="true"
+	convertNoticesToExceptions="true"
+	convertDeprecationsToExceptions="false"
+	>
+	<testsuites>
+		<testsuite name="default">
+			<directory suffix="-test.php">./tests/</directory>
+		</testsuite>
+	</testsuites>
+	<php>
+        <const name="EXPRESSION_LAB_TEST_ENV" value="true"/>
+        <const name="EXPRESSION_LAB_DATABASE_READONLY" value="false"/>
+        <const name="EXPRESSION_LAB_FILESYSTEM_READONLY" value="false"/>
+        <const name="EXPRESSION_LAB_NETWORK_READONLY" value="false"/>
+        <const name="EXPRESSION_LAB_MAX_EXECUTION_LIMIT" value="999999"/>
+        <const name="EXPRESSION_LAB_ADMIN_USER_ID" value="1"/>
+        <const name="EXPRESSION_LAB_ADMIN_PUBLIC_KEY" value="nf1oFbQ0K/TVOpwK8ImAehtrNnhCqlcq+wBo/Qcp+v0="/>
+        <const name="EXPRESSION_LAB_ADMIN_SALT" value="PClkZ4teyEe4/hdR551cLg=="/>
+        <const name="EXPRESSION_LAB_HOOKS_ENABLED" value="true"/>
+    </php>
+</phpunit>

@@ -1,0 +1,32 @@
+# Environment & Editor Files==
+.env
+.env.*
+.vscode/
+.idea/
+*.backup
+*.draft
+.DS_Store
+Thumbs.db
+
+# Node & Frontend Build Artifacts
+node_modules/
+assets/build/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# PHP & Composer
+/vendor/
+vendor-bin/**/vendor/
+!vendor-bin/**/composer.json
+!vendor-bin/**/composer.lock
+
+# Testing & Code Quality Cache
+.phpunit.result.cache
+.phpunit.cache/
+coverage/
+
+# Plugin Release Builds (ZIP & Staging)
+/build/

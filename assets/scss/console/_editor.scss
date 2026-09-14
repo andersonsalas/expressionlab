@@ -1,0 +1,73 @@
+// stylelint-disable selector-class-pattern
+
+.code-editor-container,
+.snippet-code-editor {
+	height: auto;
+	border: none;
+	background: transparent;
+
+	@import '../ui/codemirror';
+}
+
+// HLJS overrides specific to console buffer
+.console-buffer .hljs {
+	line-height: 19px !important;
+
+	.hljs-number {
+		color: #098658;
+	}
+
+	.hljs-type {
+		color: #2271b1;
+	}
+
+	.hljs-variable {
+		color: #e91e63;
+	}
+
+	.hljs-variable.constant_ {
+		color: black;
+	}
+
+	.hljs-variable.language_ {
+		color: black !important;
+	}
+
+	.hljs-title.function_,
+	.hljs-title.class_ {
+		color: black;
+	}
+
+	.hljs-literal {
+		color: #00f;
+	}
+
+	.hljs-property {
+		color: black;
+	}
+
+	.hljs-title.class_ {
+		color: black;
+	}
+
+	.hljs-comment {
+		color: #888;
+	}
+
+	.hljs-regexp {
+		color: #a31515;
+	}
+
+	.hljs-attr {
+		color: black;
+	}
+}
+
+.entry.editor-entry.in.active {
+	&.mode-generate,
+	&.mode-assistant {
+		.cm-editor * {
+			font-size: $font-default-size !important;
+		}
+	}
+}

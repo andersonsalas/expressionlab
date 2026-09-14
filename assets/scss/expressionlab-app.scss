@@ -1,0 +1,20 @@
+@import "~bootstrap/scss/functions";
+@import "~bootstrap/scss/variables";
+@import "~bootstrap/scss/mixins";
+@import "~bootstrap/scss/maps";
+@import "~bootstrap/scss/utilities";
+@import "variables";
+@import "admin-fixes";
+@import "ui";
+@import "layout";
+@import "console/password";
+@import "console/layout";
+@import "console/log";
+@import "console/sidebar";
+@import "console/editor";
+@import 'https://fonts.googleapis.com/css2?family=Cascadia+Mono:ital,wght@0,200..700;1,200..700&family=Roboto+Slab:wght@100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap';
+@import "~highlight.js/styles/vs.min.css";
+
+body {
+	background: white;
+}

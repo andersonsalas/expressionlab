@@ -1,0 +1,46 @@
+{
+    "name": "andersonsalas/expressionlab",
+    "description": "Expression Lab is a sandboxed diagnostics and data inspection environment for WordPress.",
+    "type": "library",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Anderson Salas",
+            "email": "github@andersonsalas.com"
+        }
+    ],
+    "autoload": {
+        "classmap": [
+            "src/"
+        ]
+    },
+    "minimum-stability": "stable",
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "bamarni/composer-bin-plugin": true
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit --exclude-group multisite",
+        "test:multisite": "WP_MULTISITE=1 vendor/bin/phpunit --exclude-group singlesite"
+    },
+    "extra": {
+        "bamarni-bin": {
+            "bin-links": false,
+            "target-directory": "vendor-bin",
+            "forward-command": false
+        }
+    },
+    "require-dev": {
+        "wp-coding-standards/wpcs": "^3.0",
+        "phpunit/phpunit": "^9.6",
+        "yoast/phpunit-polyfills": "^4.0",
+        "phpcompatibility/phpcompatibility-wp": "*",
+        "bamarni/composer-bin-plugin": "^1.9"
+    },
+    "require": {
+        "symfony/expression-language": "^7.4",
+        "phpdocumentor/reflection-docblock": "^6.0"
+    }
+}

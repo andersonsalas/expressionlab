@@ -1,0 +1,21 @@
+root = true
+
+[*]
+indent_style = tab
+indent_size = tab
+
+[*.js]
+indent_style = space
+indent_size = 2
+
+[*.vue]
+indent_style = space
+indent_size = 2
+
+[*.scss]
+indent_style = tab
+indent_size = tab
+
+[*.php]
+indent_style = tab
+indent_size = tab

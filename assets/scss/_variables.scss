@@ -1,0 +1,19 @@
+@use "sass:color";
+
+$wordpress-primary: #3858e9;
+$wordpress-primary-100: color.scale($wordpress-primary, $lightness: 40%);
+$wordpress-primary-200: color.scale($wordpress-primary, $lightness: 30%);
+$wordpress-primary-300: color.scale($wordpress-primary, $lightness: 20%);
+$wordpress-primary-400: color.scale($wordpress-primary, $lightness: 10%);
+$wordpress-primary-500: $wordpress-primary;
+$wordpress-primary-600: color.scale($wordpress-primary, $lightness: -10%);
+$wordpress-primary-700: color.scale($wordpress-primary, $lightness: -20%);
+$wordpress-primary-800: color.scale($wordpress-primary, $lightness: -30%);
+$wordpress-primary-900: color.scale($wordpress-primary, $lightness: -40%);
+$border-color: #cdcdcd;
+$font-family-monospace: 'Cascadia Mono', monospace;
+$font-family-sans: 'Roboto', sans-serif;
+$font-family-serif: 'Roboto Slab', serif;
+$code-font-size: 13px;
+$font-monospace-size: 13px;
+$font-default-size: 14px;

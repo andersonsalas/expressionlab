@@ -1,0 +1,32 @@
+.fp-alert {
+	font-family: $font-family-monospace;
+	font-size: $font-monospace-size;
+	position: relative;
+	margin-top: 6px;
+	margin-bottom: 6px;
+
+	&.info {
+		background: transparent;
+		border: none;
+		color: #222;
+		margin-bottom: 0 !important;
+	}
+
+	&.warning {
+		background: transparent;
+		border: none;
+		color: #9f6004;
+	}
+
+	&.error {
+		background: transparent;
+		border: none;
+		color: #cc1818;
+	}
+
+	&.success {
+		background: transparent;
+		border: none;
+		color: #2e7d32;
+	}
+}

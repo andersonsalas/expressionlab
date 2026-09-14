@@ -1,0 +1,37 @@
+.vjs-tree {
+	font-family: $font-family-monospace;
+	font-size: $font-monospace-size;
+	margin-top: 3px;
+
+	.vjs-key {
+		color: #a31515;
+	}
+
+	.vjs-value-string {
+		color: #a31515;
+	}
+
+	.vjs-value-number {
+		color: #098658;
+	}
+
+	.vjs-value-boolean,
+	.vjs-value-undefined,
+	.vjs-value-null {
+		color: blue;
+	}
+
+	.vjs-tree-node.is-highlight,
+	.vjs-tree-node:hover {
+		background: none;
+		background-color: transparent;
+	}
+
+	.vjs-comment {
+		color: #9c9c9c;
+	}
+
+	.vjs-tree-node .vjs-indent-unit.has-line {
+		border-left: 1px dashed $border-color;
+	}
+}

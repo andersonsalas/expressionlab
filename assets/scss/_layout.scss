@@ -1,0 +1,321 @@
+body.expressionlab-admin-page {
+	#wpbody-content {
+		> *:not(.wrap) {
+			display: none !important;
+		}
+
+		> .wrap > *:not(.expressionlab-app) {
+			display: none !important;
+		}
+	}
+}
+
+.expressionlab-app {
+	// Local reboot
+	@import "reboot";
+	@import "~bootstrap/scss/grid";
+	@import "~bootstrap/scss/utilities/api";
+	@import "~bootstrap/scss/forms";
+
+	input[type="date"],
+	input[type="datetime-local"],
+	input[type="datetime"],
+	input[type="email"],
+	input[type="month"],
+	input[type="number"],
+	input[type="password"],
+	input[type="search"],
+	input[type="tel"],
+	input[type="text"],
+	input[type="time"],
+	input[type="url"],
+	input[type="week"] {
+		min-height: auto;
+		border-radius:0;
+
+		&:hover {
+			border-color: black;
+		}
+
+		&:focus {
+			border-color: $wordpress-primary;
+			box-shadow: none;
+		}
+	}
+
+	select:focus {
+		box-shadow: none;
+	}
+
+	display: grid;
+	grid-template-rows: 1fr 24px;
+	width: 100%;
+	height: 100%;
+	min-height: 0;
+	overflow: hidden;
+	font-family: $font-family-sans;
+
+	&.onboarding {
+		grid-template-rows: auto auto auto;
+	}
+
+	body.admin-bar & {
+		height: 100%;
+
+		@media (width <= 782px) {
+			height: 100%;
+		}
+	}
+
+	& > .editor-footer {
+		height: 24px;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 0 8px 0 0;
+		color: #6f6f6f;
+		border-top: solid 1px #d4d4d4;
+		min-width: 0;
+		overflow: hidden;
+		container-type: inline-size;
+		container-name: footer;
+
+		.left, .right {
+			display: flex;
+			align-items: center;
+			height: 100%;
+			min-width: 0;
+		}
+
+		.left {
+			overflow: hidden;
+			flex-shrink: 1;
+
+			& > .codicon {
+				margin-right: 6px;
+				flex-shrink: 0;
+			}
+
+			.footer-toggle-btn {
+				cursor: pointer;
+				background: #e8e8e8;
+				margin-right: 8px;
+				width: 30px;
+				text-align: center;
+				margin-left: 1px;
+				flex-shrink: 0;
+
+				.codicon {
+					line-height: 21px;
+					vertical-align: middle;
+				}
+
+				&:hover {
+					background: #dbdbdb;
+				}
+
+				&:active {
+					background: #d4d4d4;
+				}
+			}
+			
+			.footer-badge {
+				display: flex;
+				align-items: center;
+				border-right: solid 1px #d4d4d4;
+				padding-right: 12px;
+				margin-right: 12px;
+				height: 18px;
+				gap: 6px;
+				white-space: nowrap;
+				flex-shrink: 0;
+
+				.badge-value {
+					max-width: 140px;
+					overflow: hidden;
+					text-overflow: ellipsis;
+					white-space: nowrap;
+				}
+			}
+		}
+
+		.right {
+			margin-left: auto;
+			flex-shrink: 0;
+
+			.footer-badge {
+				display: flex;
+				align-items: center;
+				border-left: solid 1px #d4d4d4;
+				padding-left: 12px;
+				margin-left: 12px;
+				height: 18px;
+				line-height: 18px;
+				gap: 6px;
+				white-space: nowrap;
+				flex-shrink: 0;
+
+				&.signature-verification-badge {
+					.signature-indicator {
+						width: 14px;
+						height: 14px;
+						border-radius: 50%;
+						background-color: #d4d4d4;
+						box-sizing: border-box;
+						flex-shrink: 0;
+
+						&.state-valid {
+							background: conic-gradient(#d4d4d4 calc(100% - var(--progress) * 1%), $wordpress-primary 0);
+						}
+
+						&.state-expired {
+							background-color: #d4d4d4;
+						}
+
+						&.state-requesting {
+							background-color: transparent;
+							border: 2px solid #d4d4d4;
+							border-top-color: $wordpress-primary;
+							animation: signature-spin 1s linear infinite;
+						}
+					}
+
+					@keyframes signature-spin {
+						to { transform: rotate(360deg); }
+					}
+				}
+
+				&.write-protection-badge {
+					.resource-icon {
+						color: #6f6f6f;
+						flex-shrink: 0;
+					}
+
+					.lock-icon,
+					.codicon-lock,
+					.codicon-unlock {
+						flex-shrink: 0;
+
+						&.codicon-lock {
+							color: $wordpress-primary;
+						}
+
+						&.codicon-unlock {
+							color: #d9534f;
+						}
+					}
+				}
+
+				&.sandbox-disabled-badge {
+					.codicon {
+						color: #fff;
+						flex-shrink: 0;
+					}
+
+					color: #fff;
+					background: #cb0600;
+					padding: 0 10px 0 6px;
+					font-weight: bold;
+					border-radius: 2px;
+					border-left: none;
+					white-space: nowrap;
+					flex-shrink: 0;
+				}
+			}
+		}
+
+		strong {
+			color: #414141;
+		}
+
+		@container footer (max-width: 1380px) {
+			.right {
+				.write-protection-badge {
+					.badge-label {
+						display: none;
+					}
+				}
+			}
+		}
+
+		@container footer (max-width: 1150px) {
+			.left {
+				.el-server-badge,
+				.el-user-badge {
+					.badge-label {
+						display: none;
+					}
+				}
+
+				.el-php-badge,
+				.el-wp-badge {
+					padding-right: 8px;
+					margin-right: 8px;
+				}
+			}
+
+			.right {
+				.footer-badge {
+					padding-left: 8px;
+					margin-left: 8px;
+				}
+
+				.write-protection-badge {
+					.badge-status {
+						display: none;
+					}
+				}
+			}
+		}
+
+		@container footer (max-width: 950px) {
+			.left {
+				.el-debug-badge {
+					display: none;
+				}
+
+				.el-php-badge,
+				.el-wp-badge {
+					.badge-label {
+						display: none;
+					}
+				}
+			}
+		}
+
+		@container footer (max-width: 800px) {
+			.left {
+				.el-user-badge {
+					display: none;
+				}
+			}
+		}
+	}
+
+	// stylelint-disable no-descending-specificity
+	.expressionlab-admin-banner {
+		place-self: center center;
+		text-align: center;
+		max-width: 320px;
+
+		h2 {
+			font-family: $font-family-serif;
+		}
+
+		.codicon {
+			font-size: 64px;
+			color: $wordpress-primary;
+		}
+
+		.details {
+			margin-top: 20px;			
+			color: #6f6f6f;
+			line-height: 1.9;
+
+			&, * {
+				font-size: 11px;
+			}
+		}
+	}
+	// stylelint-enable no-descending-specificity
+}

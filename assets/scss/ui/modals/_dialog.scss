@@ -1,0 +1,102 @@
+.dialog-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	background-color: #00000059;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	z-index: 999999;
+}
+
+body.wp-admin {
+	&.sticky-menu {
+		.dialog-overlay {
+			left: 160px;
+			top: 32px;
+			width: calc(100vw - 160px);
+			height: calc(100vh - 32px);
+		}
+
+		&.folded {
+			.dialog-overlay {
+				left: 36px;
+				width: calc(100vw - 36px);
+			}
+		}
+	}
+}
+
+#dialog-modal {
+	.modal-header {
+		box-sizing: border-box;
+	}
+
+	.dialog-modal-container {
+		max-width: 530px;
+		min-width: auto;
+	}
+
+	.dialog-content {
+		padding: 30px;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 20px;
+		text-align: left;
+	}
+
+	.dialog-icon {
+		font-size: 48px;
+		line-height: 1;
+
+		.codicon {
+			font-size: 48px;
+			line-height: 1;
+		}
+
+		.codicon-info,
+		&.codicon-info {
+			color: #7c7c7c;
+		}
+
+		.codicon-warning,
+		&.codicon-warning {
+			color: #e09010;
+		}
+
+		.codicon-error,
+		&.codicon-error {
+			color: #d32f2f;
+		}
+
+		.codicon-pass,
+		.codicon-pass-filled,
+		.codicon-check,
+		.codicon-check-circle,
+		&.codicon-pass,
+		&.codicon-pass-filled,
+		&.codicon-check,
+		&.codicon-check-circle {
+			color: #2e7d32;
+		}
+
+		.codicon-check-circle::before {
+			content: "\eba4";
+		}
+
+		&.confirm-icon .codicon {
+			font-size: 48px;
+			color: #7c7c7c;
+		}
+	}
+
+	.dialog-message {
+		margin: 0;
+		font-size: $font-default-size;
+		color: #333;
+		line-height: 1.5;
+	}
+}

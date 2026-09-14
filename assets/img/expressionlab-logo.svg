@@ -1,0 +1,66 @@
+  <svg 
+	xmlns="http://www.w3.org/2000/svg"
+	xmlns:xlink="http://www.w3.org/1999/xlink"
+	xml:space="preserve"
+	overflow="hidden"
+	viewBox="0 0 794 867"
+  >
+	<g transform="translate(-1413 -516)">
+	  <path 
+		d="M1420 1181 1810 986 2200 1181 1810 1376Z"
+		stroke="#FFFFFF"
+		stroke-width="13.75"
+		stroke-linejoin="round"
+		stroke-miterlimit="10"
+		fill="#474747"
+		fill-rule="evenodd"
+	  />
+	  <path
+		d="M1810 523 2200 716.857 2200 1181 1810 987.143Z"
+		stroke="#FFFFFF"
+		stroke-width="13.75"
+		stroke-linejoin="round"
+		stroke-miterlimit="10"
+		fill="#474747"
+		fill-rule="evenodd"
+	  />
+	  <path 
+		d="M0 390 193.857 0 658 0 464.143 390Z"
+		stroke="#FFFFFF"
+		stroke-width="13.75"
+		stroke-linejoin="round"
+		stroke-miterlimit="10"
+		fill="#474747"
+		fill-rule="evenodd"
+		transform="matrix(1.83697e-16 1 1 -1.83697e-16 1420 523)"
+	  />
+	  <path 
+		d="M0 260 129.238 0 439 0 309.762 260Z"
+		stroke="#FFFFFF"
+		stroke-width="13.75"
+		stroke-linejoin="round"
+		stroke-miterlimit="10"
+		fill="#BFBFBF"
+		fill-rule="evenodd"
+		transform="matrix(1.83697e-16 1 1 -1.83697e-16 1810 805)"
+	  />
+	  <path
+		d="M1550 805 1810 934.238 1810 1244 1550 1114.76Z"
+		stroke="#FFFFFF"
+		stroke-width="13.75"
+		stroke-linejoin="round"
+		stroke-miterlimit="10"
+		fill="#D9D9D9"
+		fill-rule="evenodd"
+	  />
+	  <path
+		d="M1550 805 1810 675 2070 805 1810 935Z"
+		stroke="#FFFFFF"
+		stroke-width="13.75"
+		stroke-linejoin="round"
+		stroke-miterlimit="10"
+		fill="#F2F2F2"
+		fill-rule="evenodd"
+	  />
+	</g>
+  </svg>

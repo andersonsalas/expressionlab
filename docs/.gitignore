@@ -1,0 +1,18 @@
+# Docusaurus cache and build artifacts
+.docusaurus/
+build/
+.cache-loader/
+
+# Node dependencies
+node_modules/
+
+# Environment files
+.env
+.env.local
+
+# Decoupled release manifest (served from Cloudflare R2, not Pages)
+static/update.json
+
+# OS and Editor
+.DS_Store
+*.log

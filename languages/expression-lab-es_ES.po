@@ -1,0 +1,1133 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Expression Lab 0.0.1-alpha\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/expression-lab\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: Español <es@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-09-12T01:36:22+00:00\n"
+"PO-Revision-Date: 2026-09-12T01:36:22+00:00\n"
+"Language: es_ES\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: expression-lab\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#. Plugin Name of the plugin
+#: expressionlab.php
+msgid "Expression Lab"
+msgstr "Expression Lab"
+
+#. Plugin URI of the plugin
+#: expressionlab.php
+msgid "https://expressionlab.io"
+msgstr "https://expressionlab.io"
+
+#. Description of the plugin
+#: expressionlab.php
+msgid "Expression Lab is a sandboxed diagnostics and data inspection environment for WordPress. It features a Domain-Specific Language for evaluating expressions and visualization capabilities."
+msgstr "Expression Lab es un entorno aislado (sandbox) de diagnóstico e inspección de datos para WordPress. Cuenta con un lenguaje específico de dominio (DSL) para evaluar expresiones y capacidades de visualización."
+
+#. Author of the plugin
+#: expressionlab.php
+msgid "Anderson Salas"
+msgstr "Anderson Salas"
+
+#. Author URI of the plugin
+#: expressionlab.php
+msgid "https://andersonsalas.com"
+msgstr "https://andersonsalas.com"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:147
+#: build/dist/expressionlab/src/admin/pages/class-console.php:161
+#: build/dist/expressionlab/src/admin/pages/class-console.php:928
+#: src/admin/pages/class-console.php:147
+#: src/admin/pages/class-console.php:161
+#: src/admin/pages/class-console.php:928
+msgid "(Main)"
+msgstr "(Principal)"
+
+#. translators: %s: Expression Lab version number
+#: build/dist/expressionlab/src/admin/pages/class-console.php:184
+#: src/admin/pages/class-console.php:184
+#, php-format
+msgid "Expression Lab [Version %s]"
+msgstr "Expression Lab [Versión %s]"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:186
+msgid "(c) Anderson Salas and contributors. All rights reserved"
+msgstr "(c) Anderson Salas y colaboradores. Todos los derechos reservados"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:262
+#: src/admin/pages/class-console.php:262
+msgid "Clear"
+msgstr "Limpiar"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:263
+#: src/admin/pages/class-console.php:263
+msgid "User"
+msgstr "Usuario"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:264
+#: src/admin/pages/class-console.php:264
+msgid "Search users..."
+msgstr "Buscar usuarios..."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:265
+#: src/admin/pages/class-console.php:265
+msgid "Site"
+msgstr "Sitio"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:266
+#: src/admin/pages/class-console.php:266
+msgid "Search by domain/path..."
+msgstr "Buscar por dominio/ruta..."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:267
+#: src/admin/pages/class-console.php:267
+msgid "Current site"
+msgstr "Sitio actual"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:268
+#: src/admin/pages/class-console.php:268
+msgid "Library"
+msgstr "Biblioteca"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:269
+#: src/admin/pages/class-console.php:269
+msgid "Loading..."
+msgstr "Cargando..."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:270
+#: src/admin/pages/class-console.php:270
+msgid "Error evaluating expression."
+msgstr "Error al evaluar la expresión."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:271
+#: src/admin/pages/class-console.php:271
+msgid "Copy to clipboard"
+msgstr "Copiar al portapapeles"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:272
+#: src/admin/pages/class-console.php:272
+msgid "Edit input"
+msgstr "Editar entrada"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:273
+#: src/admin/pages/class-console.php:273
+msgid "Search..."
+msgstr "Buscar..."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:274
+#: src/admin/pages/class-console.php:274
+msgid "Objects"
+msgstr "Objetos"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:275
+#: src/admin/pages/class-console.php:275
+msgid "Functions"
+msgstr "Funciones"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:276
+#: src/admin/pages/class-console.php:276
+msgid "Constants"
+msgstr "Constantes"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:277
+#: src/admin/pages/class-console.php:277
+msgid "No results found"
+msgstr "No se encontraron resultados"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:278
+#: src/admin/pages/class-console.php:278
+msgid "Loading outline"
+msgstr "Cargando esquema"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:279
+#: src/admin/pages/class-console.php:279
+msgid "No outline available"
+msgstr "No hay esquema disponible"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:282
+#: src/admin/pages/class-console.php:282
+msgid "Parameters:"
+msgstr "Parámetros:"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:283
+#: src/admin/pages/class-console.php:283
+msgid "Returns:"
+msgstr "Retorna:"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:284
+#: src/admin/pages/class-console.php:284
+msgid "See also:"
+msgstr "Ver también:"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:285
+#: src/admin/pages/class-console.php:285
+msgid "Type:"
+msgstr "Tipo:"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:286
+#: src/admin/pages/class-console.php:286
+msgid "Value:"
+msgstr "Valor:"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:287
+#: src/admin/pages/class-console.php:287
+msgid "Default:"
+msgstr "Por defecto:"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:290
+#: src/admin/pages/class-console.php:290
+msgid "Hide Sensitive Info"
+msgstr "Ocultar información sensible"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:291
+#: src/admin/pages/class-console.php:291
+msgid "Show Sensitive Info"
+msgstr "Mostrar información sensible"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:292
+#: src/admin/pages/class-console.php:292
+msgid "Server:"
+msgstr "Servidor:"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:293
+#: src/admin/pages/class-console.php:293
+msgid "User:"
+msgstr "Usuario:"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:294
+#: src/admin/pages/class-console.php:294
+msgid "PHP:"
+msgstr "PHP:"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:295
+#: src/admin/pages/class-console.php:295
+msgid "WP:"
+msgstr "WP:"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:296
+#: src/admin/pages/class-console.php:296
+msgid "Debug:"
+msgstr "Depuración:"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:297
+#: src/admin/pages/class-console.php:297
+msgid "Enabled"
+msgstr "Habilitado"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:298
+#: src/admin/pages/class-console.php:298
+msgid "Disabled"
+msgstr "Deshabilitado"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:299
+#: src/admin/pages/class-console.php:299
+msgid "Database:"
+msgstr "Base de datos:"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:300
+#: src/admin/pages/class-console.php:300
+msgid "Files:"
+msgstr "Archivos:"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:301
+#: src/admin/pages/class-console.php:301
+msgid "Network:"
+msgstr "Red:"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:302
+#: src/admin/pages/class-console.php:302
+msgid "Locked"
+msgstr "Bloqueado"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:303
+#: src/admin/pages/class-console.php:303
+msgid "Unlocked"
+msgstr "Desbloqueado"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:304
+#: src/admin/pages/class-console.php:304
+msgid "Requesting signature..."
+msgstr "Solicitando firma..."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:305
+#: src/admin/pages/class-console.php:305
+msgid "Signature expired"
+msgstr "Firma expirada"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:306
+#: src/admin/pages/class-console.php:306
+msgid "Signed"
+msgstr "Firmado"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:307
+#: src/admin/pages/class-console.php:307
+msgid "Sandbox disabled"
+msgstr "Sandbox deshabilitado"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:310
+#: src/admin/pages/class-console.php:310
+msgid "Enter your passphrase:"
+msgstr "Introduce tu contraseña:"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:311
+#: src/admin/pages/class-console.php:311
+msgid "Please enter your passphrase."
+msgstr "Por favor, introduce tu contraseña."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:312
+#: src/admin/pages/class-console.php:312
+msgid "Password too short."
+msgstr "Contraseña demasiado corta."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:313
+#: src/admin/pages/class-console.php:313
+msgid "Salt not found in configuration."
+msgstr "Salt no encontrado en la configuración."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:314
+#: src/admin/pages/class-console.php:314
+msgid "Invalid passphrase."
+msgstr "Contraseña no válida."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:315
+#: src/admin/pages/class-console.php:315
+msgid "Failed: "
+msgstr "Falló: "
+
+#. translators: %s: error message
+#: build/dist/expressionlab/src/admin/pages/class-console.php:317
+#: src/admin/pages/class-console.php:317
+#, php-format
+msgid "Failed: %s"
+msgstr "Falló: %s"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:318
+#: src/admin/pages/class-console.php:318
+msgid "Unlocking..."
+msgstr "Desbloqueando..."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:319
+#: src/admin/pages/class-console.php:319
+msgid "Unlock"
+msgstr "Desbloquear"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:320
+#: src/admin/pages/class-console.php:320
+msgid "If you forgot this passphrase, you must delete the Expression Lab constants from your <code>wp-config.php</code> to trigger a new installation."
+msgstr "Si olvidaste esta contraseña, debes eliminar las constantes de Expression Lab de tu <code>wp-config.php</code> para reiniciar la instalación."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:321
+#: src/admin/pages/class-console.php:321
+msgid "An error occurred during verification."
+msgstr "Ocurrió un error durante la verificación."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:324
+#: src/admin/pages/class-console.php:324
+msgid "About"
+msgstr "Acerca de"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:325
+#: src/admin/pages/class-console.php:325
+msgid "Close"
+msgstr "Cerrar"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:326
+#: src/admin/pages/class-console.php:326
+msgid "© Anderson Salas and contributors."
+msgstr "© Anderson Salas y colaboradores."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:327
+#: src/admin/pages/class-console.php:327
+msgid "Website"
+msgstr "Sitio web"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:328
+#: src/admin/pages/class-console.php:328
+msgid "Docs"
+msgstr "Documentación"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:329
+#: src/admin/pages/class-console.php:329
+msgid "GitHub"
+msgstr "GitHub"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:330
+#: src/admin/pages/class-console.php:330
+msgid "This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version."
+msgstr "Este programa es software libre; puedes redistribuirlo y/o modificarlo bajo los términos de la Licencia Pública General de GNU tal como está publicada por la Free Software Foundation; ya sea la versión 2 de la Licencia, o (a tu elección) cualquier versión posterior."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:331
+#: src/admin/pages/class-console.php:331
+msgid "This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details."
+msgstr "Este programa se distribuye con la esperanza de que sea útil, pero SIN NINGUNA GARANTÍA; ni siquiera la garantía implícita de COMERCIABILIDAD o IDONEIDAD PARA UN PROPÓSITO PARTICULAR. Consulta la Licencia Pública General de GNU para más detalles."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:332
+#: src/admin/pages/class-console.php:332
+msgid "You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA."
+msgstr "Deberías haber recibido una copia de la Licencia Pública General de GNU junto con este programa; si no es así, escribe a la Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, EE. UU."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:335
+#: src/admin/pages/class-console.php:335
+msgid "Accept"
+msgstr "Aceptar"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:336
+#: src/admin/pages/class-console.php:336
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:339
+#: src/admin/pages/class-console.php:339
+msgid "Save changes?"
+msgstr "¿Guardar cambios?"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:340
+#: src/admin/pages/class-console.php:340
+msgid "You have unsaved changes in the current snippet. Do you want to save them?"
+msgstr "Tienes cambios no guardados en el snippet actual. ¿Deseas guardarlos?"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:341
+#: src/admin/pages/class-console.php:341
+msgid "Save"
+msgstr "Guardar"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:342
+#: src/admin/pages/class-console.php:342
+msgid "Don't save"
+msgstr "No guardar"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:343
+#: src/admin/pages/class-console.php:343
+msgid "Snippet library"
+msgstr "Biblioteca de snippets"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:344
+#: src/admin/pages/class-console.php:344
+msgid "Save your frequent snippets here to reuse them easily."
+msgstr "Guarda tus fragmentos frecuentes aquí para reutilizarlos en cualquier momento."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:345
+#: src/admin/pages/class-console.php:345
+msgid "Pro tip:"
+msgstr "Consejo:"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:346
+#: src/admin/pages/class-console.php:346
+msgid "select Use local file system to save snippets to your hard drive."
+msgstr "selecciona Usar sistema de archivos local para guardar fragmentos en tu disco duro."
+
+#. translators: %s: directory name
+#: build/dist/expressionlab/src/admin/pages/class-console.php:348
+#: src/admin/pages/class-console.php:348
+#, php-format
+msgid "Permission required to access folder \"%s\"."
+msgstr "Se requiere permiso para acceder a la carpeta \"%s\"."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:349
+#: src/admin/pages/class-console.php:349
+msgid "Grant Access"
+msgstr "Conceder acceso"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:350
+#: src/admin/pages/class-console.php:350
+msgid "File System Error"
+msgstr "Error del sistema de archivos"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:351
+#: src/admin/pages/class-console.php:351
+msgid "Could not connect to local folder."
+msgstr "No se pudo conectar a la carpeta local."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:352
+#: src/admin/pages/class-console.php:352
+msgid "Import Error"
+msgstr "Error de importación"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:353
+#: src/admin/pages/class-console.php:353
+msgid "Failed to select file."
+msgstr "Error al seleccionar el archivo."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:354
+#: src/admin/pages/class-console.php:354
+msgid "Invalid JSON"
+msgstr "JSON no válido"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:355
+#: src/admin/pages/class-console.php:355
+msgid "The selected file is not a valid JSON document."
+msgstr "El archivo seleccionado no es un documento JSON válido."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:356
+#: src/admin/pages/class-console.php:356
+msgid "Empty File"
+msgstr "Archivo vacío"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:357
+#: src/admin/pages/class-console.php:357
+msgid "No snippets found in the selected file."
+msgstr "No se encontraron snippets en el archivo seleccionado."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:358
+#: src/admin/pages/class-console.php:358
+msgid "Import Complete"
+msgstr "Importación completada"
+
+#. translators: %d: count of imported snippets
+#: build/dist/expressionlab/src/admin/pages/class-console.php:360
+#: src/admin/pages/class-console.php:360
+#, php-format
+msgid "Successfully imported %d snippet(s)."
+msgstr "Se importaron con éxito %d snippet(s)."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:361
+#: src/admin/pages/class-console.php:361
+msgid "New Snippet"
+msgstr "Nuevo snippet"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:362
+#: src/admin/pages/class-console.php:362
+msgid "Delete Snippet"
+msgstr "Eliminar snippet"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:363
+#: src/admin/pages/class-console.php:363
+msgid "Are you sure you want to delete this snippet?"
+msgstr "¿Estás seguro de que deseas eliminar este snippet?"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:364
+#: src/admin/pages/class-console.php:364
+msgid "Delete"
+msgstr "Eliminar"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:365
+#: src/admin/pages/class-console.php:365
+msgid "Search"
+msgstr "Buscar"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:366
+#: src/admin/pages/class-console.php:366
+msgid "Add Snippet"
+msgstr "Añadir snippet"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:367
+#: src/admin/pages/class-console.php:367
+msgid "(Untitled)"
+msgstr "(Sin título)"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:368
+#: src/admin/pages/class-console.php:368
+msgid "Untitled"
+msgstr "Sin título"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:369
+#: src/admin/pages/class-console.php:369
+msgid "No snippets found."
+msgstr "No se encontraron snippets."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:370
+#: src/admin/pages/class-console.php:370
+msgid "Store snippets in a local folder using native File System API"
+msgstr "Almacena snippets en una carpeta local utilizando la API nativa de File System"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:371
+#: src/admin/pages/class-console.php:371
+msgid "Use local file system"
+msgstr "Usar sistema de archivos local"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:372
+#: src/admin/pages/class-console.php:372
+msgid "Import or export snippets"
+msgstr "Importar o exportar snippets"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:373
+#: src/admin/pages/class-console.php:373
+msgid "Import/Export"
+msgstr "Importar/Exportar"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:374
+#: src/admin/pages/class-console.php:374
+msgid "Import JSON"
+msgstr "Importar JSON"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:375
+#: src/admin/pages/class-console.php:375
+msgid "Export JSON"
+msgstr "Exportar JSON"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:376
+#: src/admin/pages/class-console.php:376
+msgid "Snippet title"
+msgstr "Título del snippet"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:377
+#: src/admin/pages/class-console.php:377
+msgid "No snippet selected."
+msgstr "Ningún snippet seleccionado."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:378
+#: src/admin/pages/class-console.php:378
+msgid "Insert"
+msgstr "Insertar"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:379
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:88
+#: src/admin/pages/class-console.php:379
+#: src/admin/pages/class-onboarding.php:94
+msgid "OK"
+msgstr "OK"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:382
+#: src/admin/pages/class-console.php:382
+msgid "Select"
+msgstr "Seleccionar"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:383
+#: src/admin/pages/class-console.php:383
+msgid "No results found."
+msgstr "No se encontraron resultados."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:386
+#: src/admin/pages/class-console.php:386
+msgid "Site Icon"
+msgstr "Icono del sitio"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:387
+#: src/admin/pages/class-console.php:387
+msgid "User Avatar"
+msgstr "Avatar de usuario"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:388
+#: src/admin/pages/class-console.php:388
+msgid "Avatar"
+msgstr "Avatar"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:391
+#: src/admin/pages/class-console.php:391
+msgid "Raw"
+msgstr "Sin formato"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:392
+#: src/admin/pages/class-console.php:392
+msgid "Table"
+msgstr "Tabla"
+
+#. translators: %s: visualization type
+#: build/dist/expressionlab/src/admin/pages/class-console.php:394
+#: src/admin/pages/class-console.php:394
+#, php-format
+msgid "Unknown visualization type: %s"
+msgstr "Tipo de visualización desconocido: %s"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:395
+#: src/admin/pages/class-console.php:395
+msgid "Paginate"
+msgstr "Paginar"
+
+#. translators: %d: page size
+#: build/dist/expressionlab/src/admin/pages/class-console.php:397
+#: src/admin/pages/class-console.php:397
+#, php-format
+msgid "%d per page"
+msgstr "%d por página"
+
+#. translators: %d: number of rows
+#: build/dist/expressionlab/src/admin/pages/class-console.php:399
+#: src/admin/pages/class-console.php:399
+#, php-format
+msgid "%d rows"
+msgstr "%d filas"
+
+#. translators: %d: total number of rows before filtering
+#: build/dist/expressionlab/src/admin/pages/class-console.php:401
+#: src/admin/pages/class-console.php:401
+#, php-format
+msgid "(filtered from %d)"
+msgstr "(filtrado de %d)"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:402
+#: src/admin/pages/class-console.php:402
+msgid "&laquo; Prev"
+msgstr "&laquo; Anterior"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:403
+#: src/admin/pages/class-console.php:403
+msgid "Next &raquo;"
+msgstr "Siguiente &raquo;"
+
+#. translators: 1: current page number, 2: total pages
+#: build/dist/expressionlab/src/admin/pages/class-console.php:405
+#: src/admin/pages/class-console.php:405
+#, php-format
+msgid "Page %1$d / %2$d"
+msgstr "Página %1$d / %2$d"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:406
+#: src/admin/pages/class-console.php:406
+msgid "Export CSV"
+msgstr "Exportar CSV"
+
+#. translators: %s: column name
+#: build/dist/expressionlab/src/admin/pages/class-console.php:408
+#: src/admin/pages/class-console.php:408
+#, php-format
+msgid "Search %s"
+msgstr "Buscar %s"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:409
+#: src/admin/pages/class-console.php:409
+msgid "Click to expand/collapse"
+msgstr "Haz clic para expandir/contraer"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:410
+#: src/admin/pages/class-console.php:410
+msgid "No data to display."
+msgstr "No hay datos para mostrar."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:424
+#: build/dist/expressionlab/src/admin/pages/class-console.php:484
+#: build/dist/expressionlab/src/admin/pages/class-console.php:488
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:132
+#: build/dist/expressionlab/src/core/class-adminpage.php:293
+#: build/dist/expressionlab/src/core/class-adminpage.php:297
+#: src/admin/pages/class-console.php:424
+#: src/admin/pages/class-console.php:484
+#: src/admin/pages/class-console.php:488
+#: src/admin/pages/class-onboarding.php:138
+#: src/core/class-adminpage.php:334
+#: src/core/class-adminpage.php:338
+msgid "Unauthorized"
+msgstr "No autorizado"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:432
+#: src/admin/pages/class-console.php:432
+msgid "Access Restricted"
+msgstr "Acceso restringido"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:433
+#: src/admin/pages/class-console.php:433
+msgid "For security reasons, access to this console is limited to a single administrator designated at the server level."
+msgstr "Por razones de seguridad, el acceso a esta consola queda limitado a un único administrador designado a nivel de servidor."
+
+#. translators: 1: admin user ID constant name, 2: config file name
+#: build/dist/expressionlab/src/admin/pages/class-console.php:434
+#: src/admin/pages/class-console.php:434
+#, php-format
+msgid "If you are the site owner, verify that your current user ID matches the %1$s constant in your %2$s file."
+msgstr "Si eres el propietario del sitio, verifica que tu ID de usuario actual coincida con la constante %1$s en tu archivo %2$s."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:476
+#: src/admin/pages/class-console.php:476
+msgid "Sodium extension is required for AJAX requests."
+msgstr "Se requiere la extensión Sodium para peticiones AJAX."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:480
+#: src/admin/pages/class-console.php:480
+msgid "Plugin is not fully configured."
+msgstr "La configuración del plugin está incompleta."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:500
+#: src/admin/pages/class-console.php:500
+msgid "Invalid signature."
+msgstr "Firma no válida."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:523
+#: src/admin/pages/class-console.php:523
+msgid "Signature verification failed."
+msgstr "Error en la verificación de la firma."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:556
+#: build/dist/expressionlab/src/admin/pages/class-console.php:664
+#: src/admin/pages/class-console.php:556
+#: src/admin/pages/class-console.php:664
+msgid "Invalid or expired challenge."
+msgstr "Desafío no válido o caducado."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:656
+#: src/admin/pages/class-console.php:656
+msgid "No expression provided"
+msgstr "No se proporcionó ninguna expresión"
+
+#. translators: 1: syntax error details, 2: expression code span, 3: suggestion
+#: build/dist/expressionlab/src/admin/pages/class-console.php:690
+#: src/admin/pages/class-console.php:690
+#, php-format
+msgid "Syntax error: %1$s for expression %2$s%3$s"
+msgstr "Error de sintaxis: %1$s para la expresión %2$s%3$s"
+
+#. translators: %s: syntax error details
+#: build/dist/expressionlab/src/admin/pages/class-console.php:693
+#: src/admin/pages/class-console.php:693
+#, php-format
+msgid "Syntax error: %s"
+msgstr "Error de sintaxis: %s"
+
+#. translators: %s: exception class name
+#: build/dist/expressionlab/src/admin/pages/class-console.php:699
+#: src/admin/pages/class-console.php:699
+#, php-format
+msgid "Expression error: %s"
+msgstr "Error de expresión: %s"
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:820
+#: build/dist/expressionlab/src/admin/pages/class-console.php:903
+#: src/admin/pages/class-console.php:820
+#: src/admin/pages/class-console.php:903
+msgid "Challenge verification failed."
+msgstr "Error en la verificación del desafío."
+
+#: build/dist/expressionlab/src/admin/pages/class-console.php:882
+#: src/admin/pages/class-console.php:882
+msgid "Not a multisite installation."
+msgstr "No es una instalación multisitio."
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:77
+#: src/admin/pages/class-onboarding.php:77
+msgid "Welcome"
+msgstr "Bienvenido"
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:78
+#: src/admin/pages/class-onboarding.php:78
+msgid "System Requirements"
+msgstr "Requisitos del sistema"
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:79
+#: src/admin/pages/class-onboarding.php:79
+msgid "Key Generation"
+msgstr "Generación de claves"
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:80
+#: src/admin/pages/class-onboarding.php:80
+msgid "Verification"
+msgstr "Verificación"
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:81
+#: src/admin/pages/class-onboarding.php:81
+msgid "Welcome to Expression Lab"
+msgstr "Bienvenido a Expression Lab"
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:82
+#: src/admin/pages/class-onboarding.php:82
+msgid "The installation wizard guides the initial configuration of the plugin."
+msgstr "El asistente de instalación guía la configuración inicial del plugin."
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:83
+#: src/admin/pages/class-onboarding.php:89
+msgid "I acknowledge this is an experimental tool and use it at my own risk."
+msgstr "Reconozco que esta es una herramienta experimental y la utilizo bajo mi propia responsabilidad."
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:84
+#: src/admin/pages/class-onboarding.php:90
+msgid "Begin install"
+msgstr "Comenzar instalación"
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:85
+#: src/admin/pages/class-onboarding.php:91
+msgid "SQLite3 PHP extension"
+msgstr "Extensión PHP SQLite3"
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:86
+#: src/admin/pages/class-onboarding.php:92
+msgid "Sodium PHP extension"
+msgstr "Extensión PHP Sodium"
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:87
+#: src/admin/pages/class-onboarding.php:93
+msgid "Web Crypto API (Browser)"
+msgstr "Web Crypto API (Navegador)"
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:89
+#: src/admin/pages/class-onboarding.php:95
+msgid "Missing"
+msgstr "No disponible"
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:90
+#: src/admin/pages/class-onboarding.php:96
+msgid "<strong>SQLite3</strong> enables safe, in-memory database mirroring to prevent direct queries to the live database. <strong>Sodium</strong> and the <strong>Web Crypto API</strong> are required to generate, sign, and validate secure communications within the sandboxed environment."
+msgstr "<strong>SQLite3</strong> permite replicar la base de datos en memoria para evitar consultas a la base de datos en producción. <strong>Sodium</strong> y la <strong>Web Crypto API</strong> son obligatorias para generar, firmar y validar comunicaciones seguras dentro del entorno aislado en sandbox."
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:91
+#: src/admin/pages/class-onboarding.php:97
+msgid "Next"
+msgstr "Siguiente"
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:92
+#: src/admin/pages/class-onboarding.php:98
+msgid "Passphrase:"
+msgstr "Contraseña:"
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:93
+#: src/admin/pages/class-onboarding.php:99
+msgid "Min 8 characters"
+msgstr "Mínimo 8 caracteres"
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:94
+#: src/admin/pages/class-onboarding.php:100
+msgid "This passphrase is used only to derive the private key. Keep the following in mind:"
+msgstr "Esta contraseña se utiliza para derivar la clave privada. Aspectos a considerar:"
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:95
+#: src/admin/pages/class-onboarding.php:101
+msgid "<strong>Zero storage:</strong> Neither this passphrase nor the derived private key are ever stored on the server or the database."
+msgstr "<strong>Sin almacenamiento:</strong> Ni esta contraseña ni la clave privada derivada se almacenan jamás en el servidor ni en la base de datos."
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:96
+#: src/admin/pages/class-onboarding.php:102
+msgid "<strong>Security:</strong> Avoid reusing WordPress passwords or trivial terms (e.g., <code>admin</code>, <code>12345678</code>)."
+msgstr "<strong>Seguridad:</strong> Se desaconseja reutilizar contraseñas de WordPress o términos triviales (por ejemplo, <code>admin</code>, <code>12345678</code>)."
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:97
+#: src/admin/pages/class-onboarding.php:103
+msgid "<strong>No recovery:</strong> If this passphrase is lost, cryptographic constants must be removed from <code>wp-config.php</code> to restart the setup."
+msgstr "<strong>Sin recuperación:</strong> En caso de pérdida de esta contraseña, se deben eliminar las constantes criptográficas del archivo <code>wp-config.php</code> para reiniciar la configuración."
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:98
+#: src/admin/pages/class-onboarding.php:104
+msgid "Generating cryptographic keys..."
+msgstr "Generando claves criptográficas..."
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:99
+#: src/admin/pages/class-onboarding.php:105
+msgid "Generate Keys"
+msgstr "Generar claves"
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:100
+#: src/admin/pages/class-onboarding.php:106
+msgid "Key generation failed: "
+msgstr "Error en la generación de claves: "
+
+#. translators: %s: error message
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:102
+#: src/admin/pages/class-onboarding.php:108
+#, php-format
+msgid "Key generation failed: %s"
+msgstr "Error en la generación de claves: %s"
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:103
+#: src/admin/pages/class-onboarding.php:109
+msgid "Server Ownership Verification"
+msgstr "Verificación de propiedad del servidor"
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:104
+#: src/admin/pages/class-onboarding.php:110
+msgid "For security reasons, server access must be verified. Copy the following code and paste it into the <code>wp-config.php</code> file:"
+msgstr "Por motivos de seguridad, se debe verificar el acceso al servidor. Copie el siguiente código y péguelo en el archivo <code>wp-config.php</code>:"
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:105
+#: src/admin/pages/class-onboarding.php:111
+msgid "Once changes are saved to the <code>wp-config.php</code> file, reload this page to verify the setup and complete the installation."
+msgstr "Tras guardar los cambios en el archivo <code>wp-config.php</code>, recargue esta página para verificar la configuración y completar la instalación."
+
+#: build/dist/expressionlab/src/admin/pages/class-onboarding.php:106
+#: src/admin/pages/class-onboarding.php:112
+msgid "Expression Lab is a free, open-source plugin by Anderson Salas and contributors."
+msgstr "Expression Lab es un plugin gratuito y de código abierto desarrollado por Anderson Salas y colaboradores."
+
+#: build/dist/expressionlab/src/core/class-adminpage.php:149
+#: build/dist/expressionlab/src/core/class-adminpage.php:150
+#: build/dist/expressionlab/src/core/class-adminpage.php:166
+#: build/dist/expressionlab/src/core/class-adminpage.php:167
+#: src/core/class-adminpage.php:190
+#: src/core/class-adminpage.php:191
+#: src/core/class-adminpage.php:207
+#: src/core/class-adminpage.php:208
+msgid "Console"
+msgstr "Consola"
+
+#: build/dist/expressionlab/src/core/class-adminpage.php:327
+#: src/core/class-adminpage.php:368
+msgid "Integrity file not found"
+msgstr "Archivo de integridad no encontrado"
+
+#: build/dist/expressionlab/src/core/class-adminpage.php:331
+#: src/core/class-adminpage.php:372
+msgid "Invalid integrity data"
+msgstr "Datos de integridad no válidos"
+
+#: build/dist/expressionlab/src/core/class-adminpage.php:340
+#: src/core/class-adminpage.php:381
+msgid "Script not found"
+msgstr "Script no encontrado"
+
+#: build/dist/expressionlab/src/core/class-adminpage.php:344
+#: src/core/class-adminpage.php:385
+msgid "Integrity hash for script not found"
+msgstr "Hash de integridad para el script no encontrado"
+
+#. translators: %s: asset file name
+#: build/dist/expressionlab/src/core/class-adminpage.php:349
+#: build/dist/expressionlab/src/core/class-adminpage.php:394
+#: src/core/class-adminpage.php:390
+#: src/core/class-adminpage.php:435
+#, php-format
+msgid "Integrity check failed for %s"
+msgstr "Falló la comprobación de integridad para %s"
+
+#: build/dist/expressionlab/src/core/class-adminpage.php:385
+#: src/core/class-adminpage.php:426
+msgid "Stylesheet not found"
+msgstr "Hoja de estilos no encontrada"
+
+#: build/dist/expressionlab/src/core/class-adminpage.php:389
+#: src/core/class-adminpage.php:430
+msgid "Integrity hash for stylesheet not found"
+msgstr "Hash de integridad para la hoja de estilos no encontrado"
+
+#. translators: %s: font file name
+#: build/dist/expressionlab/src/core/class-adminpage.php:423
+#: src/core/class-adminpage.php:464
+#, php-format
+msgid "Integrity hash for font %s not found"
+msgstr "Hash de integridad para la fuente %s no encontrado"
+
+#. translators: %s: font file name
+#: build/dist/expressionlab/src/core/class-adminpage.php:428
+#: src/core/class-adminpage.php:469
+#, php-format
+msgid "Integrity check failed for font %s"
+msgstr "Falló la comprobación de integridad para la fuente %s"
+
+#: build/dist/expressionlab/src/core/class-languageengine.php:663
+#: src/core/class-languageengine.php:649
+msgid "Security sandbox is disabled. Any actions performed without sandbox protection are AT YOUR OWN RISK."
+msgstr "El entorno aislado (sandbox) de seguridad está desactivado. Cualquier acción realizada sin la protección del sandbox es BAJO TU PROPIA RESPONSABILIDAD."
+
+#: build/dist/expressionlab/src/core/class-languageengine.php:670
+#: src/core/class-languageengine.php:663
+msgid "Hooks enabled: Custom objects and functions from active plugins are loaded in the console."
+msgstr "Hooks habilitados: Los objetos y funciones personalizados de plugins activos se cargan en la consola."
+
+#. translators: %s: constant name
+#: build/dist/expressionlab/src/core/class-languageengine.php:685
+#: src/core/class-languageengine.php:678
+#, php-format
+msgid "Cannot register custom constant '%s': identifier is reserved by core."
+msgstr "No se puede registrar la constante personalizada '%s': el identificador está reservado por el núcleo."
+
+#. translators: %s: constant name
+#: build/dist/expressionlab/src/core/class-languageengine.php:694
+#: src/core/class-languageengine.php:687
+#, php-format
+msgid "Cannot register custom constant '%s': constant value must be a scalar (string, integer, float, boolean)."
+msgstr "No se puede registrar la constante personalizada '%s': el valor de la constante debe ser un escalar (cadena, entero, flotante, booleano)."
+
+#. translators: %s: error message
+#: build/dist/expressionlab/src/core/class-languageengine.php:703
+#: src/core/class-languageengine.php:696
+#, php-format
+msgid "Error checking custom constants: %s"
+msgstr "Error al verificar las constantes personalizadas: %s"
+
+#. translators: %s: object name
+#: build/dist/expressionlab/src/core/class-languageengine.php:716
+#: src/core/class-languageengine.php:709
+#, php-format
+msgid "Cannot register custom object '%s': identifier is reserved by core."
+msgstr "No se puede registrar el objeto personalizado '%s': el identificador está reservado por el núcleo."
+
+#. translators: %s: error message
+#: build/dist/expressionlab/src/core/class-languageengine.php:725
+#: src/core/class-languageengine.php:718
+#, php-format
+msgid "Error checking custom objects: %s"
+msgstr "Error al verificar los objetos personalizados: %s"
+
+#. translators: %s: function name
+#: build/dist/expressionlab/src/core/class-languageengine.php:738
+#: src/core/class-languageengine.php:731
+#, php-format
+msgid "Cannot register custom function '%s': identifier is reserved by core."
+msgstr "No se puede registrar la función personalizada '%s': el identificador está reservado por el núcleo."
+
+#. translators: %s: error message
+#: build/dist/expressionlab/src/core/class-languageengine.php:747
+#: src/core/class-languageengine.php:740
+#, php-format
+msgid "Error checking custom functions: %s"
+msgstr "Error al verificar las funciones personalizadas: %s"
+
+#: build/dist/expressionlab/src/core/class-updater.php:193
+#: src/core/class-updater.php:226
+msgid "Security error: Downloaded package SHA-256 checksum does not match the release manifest. Update aborted."
+msgstr "Error de seguridad: la suma de verificación SHA-256 del paquete descargado no coincide con el manifiesto de la versión. Actualización cancelada."
+
+#: build/dist/expressionlab/src/core/class-updater.php:207
+#: src/core/class-updater.php:262
+msgid "Security error: Malformed cryptographic signature or public key. Update aborted."
+msgstr "Error de seguridad: la firma criptográfica o la clave pública tienen un formato no válido. Actualización cancelada."
+
+#: build/dist/expressionlab/src/core/class-updater.php:220
+#: src/core/class-updater.php:275
+msgid "Critical security error: Cryptographic signature verification failed. The package may have been tampered with. Update aborted."
+msgstr "Error crítico de seguridad: falló la verificación de la firma criptográfica. El paquete podría haber sido alterado. Actualización cancelada."
+
+#: src/admin/pages/class-console.php:186
+msgid "(c) Anderson Salas and contributors. All rights reserved."
+msgstr "(c) Anderson Salas y colaboradores. Todos los derechos reservados."
+
+#: src/core/class-adminpage.php:83
+msgid "Expression Lab Debug Enabled"
+msgstr "Expression Lab: Depuración activada"
+
+#: src/core/class-adminpage.php:87
+msgid "Debug mode is active. This poses a security risk in production environments."
+msgstr "El modo de depuración está activo. Esto representa un riesgo de seguridad en entornos de producción."
+
+#. translators: 1: new version number, 2: current version number
+#: src/core/class-languageengine.php:639
+#, php-format
+msgid "Update available: Version %1$s is available (current: %2$s)."
+msgstr "Actualización disponible: la versión %1$s se encuentra disponible (actual: %2$s)."
+
+#: src/core/class-languageengine.php:656
+msgid "Debug mode is enabled. This poses a security risk in production environments."
+msgstr "El modo de depuración está activado. Esto supone un riesgo de seguridad en entornos de producción."
+
+#: src/core/class-updater.php:202
+msgid "Security error: Package download URL must use HTTPS. Update aborted."
+msgstr "Error de seguridad: la URL de descarga del paquete debe utilizar HTTPS. Actualización cancelada."
+
+#: src/core/class-updater.php:217
+msgid "Security error: Release manifest is missing SHA-256 checksum. Update aborted."
+msgstr "Error de seguridad: el manifiesto de la versión no contiene la suma de verificación SHA-256. Actualización cancelada."
+
+#: src/core/class-updater.php:234
+msgid "Security error: Libsodium extension is not available. Ed25519 signature verification cannot proceed. Update aborted."
+msgstr "Error de seguridad: la extensión Libsodium no está disponible. No se puede proceder con la verificación de la firma Ed25519. Actualización cancelada."
+
+#: src/core/class-updater.php:244
+msgid "Security error: Ed25519 public key is not configured. Update aborted."
+msgstr "Error de seguridad: la clave pública Ed25519 no está configurada. Actualización cancelada."
+
+#: src/core/class-updater.php:252
+msgid "Security error: Release manifest is missing Ed25519 signature. Update aborted."
+msgstr "Error de seguridad: el manifiesto de la versión no contiene la firma Ed25519. Actualización cancelada."
+
+#: src/admin/pages/class-onboarding.php:83
+msgid "Experimental Alpha Software"
+msgstr "Software alfa experimental"
+
+#: src/admin/pages/class-onboarding.php:84
+msgid "Expression Lab is in alpha. While designed with security-first patterns (AST sandboxing, client-side cryptographic keys), it has not undergone third-party security audits."
+msgstr "Expression Lab se encuentra en fase alfa. Aunque ha sido diseñado siguiendo patrones de máxima seguridad (aislamiento mediante AST en sandbox, claves criptográficas en el cliente), aún no ha sido sometido a auditorías de seguridad externas."
+
+#: src/admin/pages/class-onboarding.php:85
+msgid "Intended for local development, testing, or staging environments."
+msgstr "Diseñado solo para entornos de desarrollo local, pruebas o staging."
+
+#: src/admin/pages/class-onboarding.php:86
+msgid "Do not use in production, high-security, governmental, or critical infrastructure sites."
+msgstr "No utilizar en sitios en producción, de alta seguridad, gubernamentales o de infraestructura crítica."
+
+#: src/admin/pages/class-onboarding.php:87
+msgid "Provided \"as is\" under GPL-2.0 without warranty or liability for data loss."
+msgstr "Se proporciona «tal cual» bajo licencia GPL-2.0, sin garantía ni responsabilidad por pérdida de datos."
+
+#: src/admin/pages/class-onboarding.php:88
+msgid "I understand Expression Lab is an unaudited alpha prototype and agree to use it only in non-critical environments at my own risk."
+msgstr "Entiendo que Expression Lab es un prototipo alfa no auditado y acepto utilizarlo solo en entornos no críticos bajo mi propia responsabilidad."

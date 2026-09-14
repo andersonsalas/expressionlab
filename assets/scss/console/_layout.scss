@@ -1,0 +1,86 @@
+.console-content {
+	display: grid;
+	min-height: 0;
+}
+
+.console-main {
+	display: grid;
+	grid-template-rows: 45px 1fr;
+	min-height: 0;
+}
+
+// Toolbar
+.console-toolbar {
+	height: 100%;
+	border-bottom: solid 1px $border-color;
+	display: flex;
+
+	.console-toolbar-logo,
+	.console-toolbar-group {
+		display: flex;
+		align-items: center;
+		height: 100%;
+		box-sizing: border-box;
+		border-right: solid 1px $border-color;
+	}
+
+	.console-toolbar-logo {
+		padding: 8px;
+		position: relative;
+
+		.fpw-icon {
+			width: 30px;
+			height: 30px;
+		}
+
+		.go-back-button-overlay {
+			position: absolute;
+			width: calc(100% - 10px);
+			height: calc(100% - 10px);
+			display: flex;
+			inset: 5px;
+			opacity: 0;
+			align-items: center;
+			justify-content: center;
+			background-color: transparent;
+			z-index: 2;
+			border: solid 1px transparent;
+
+			.codicon {
+				font-size: 24px;
+				color: white;
+			}
+		}
+	}
+
+	.console-toolbar-group {
+		padding: 5px;
+
+		.console-toolbar-button {
+			// stylelint-disable-next-line
+			@extend .toolbar-button;
+
+			.codicon {
+				font-size: 20px;
+			}
+
+			span {
+				line-height: 20px;
+			}
+			
+			&.menu {
+				padding: 6px;
+
+				.codicon {
+    				margin: 0;
+				}
+			}
+		}
+
+		&.pull-right {
+			margin-left: auto;
+			border-right: none;
+			border-left: solid 1px $border-color;
+		}
+	}
+}

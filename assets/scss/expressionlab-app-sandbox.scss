@@ -1,0 +1,12 @@
+@import "admin-fixes";
+
+iframe.expressionlab-app {
+	display: block;
+	width: 100%;
+	height: calc( 100dvh - 32px );
+	border: none;
+}
+
+body {
+	background: white;
+}
