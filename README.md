@@ -228,6 +228,7 @@ pnpm run lint:css       # Stylelint
 # Run unit tests
 pnpm run test:php       # PHPUnit (Single-site)
 pnpm run test:php:ms    # PHPUnit (Multisite)
+pnpm run test:php:all   # PHPUnit (Multisite + Single-site)
 pnpm run test:js        # Jest (Frontend)
 ```
 
