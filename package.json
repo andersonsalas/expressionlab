@@ -1,6 +1,6 @@
 {
   "name": "expressionlab",
-  "version": "0.0.1-alpha",
+  "version": "0.0.2-alpha",
   "description": "Expression Lab is a sandboxed diagnostics and data inspection environment for WordPress.",
   "main": "index.js",
   "scripts": {

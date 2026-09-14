@@ -33,7 +33,7 @@ class Updater {
 	 *
 	 * @var string
 	 */
-	const MANIFEST_URL = 'https://updates.expressionlab.com/update.json';
+	const MANIFEST_URL = 'https://updates.expressionlab.io/update.json';
 
 	/**
 	 * Default transient key for caching the update manifest.
@@ -61,7 +61,7 @@ class Updater {
 	 *
 	 * @var string
 	 */
-	const HOMEPAGE_URL = 'https://expressionlab.com';
+	const HOMEPAGE_URL = 'https://expressionlab.io';
 
 	/**
 	 * Initializes update hooks.
