@@ -23,16 +23,24 @@ export default function DownloadButton() {
         href={downloadUrl}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label={`Download Expression Lab v${version}`}
+        aria-label={`Download Expression Lab v${version} (ZIP)`}
       >
         <Translate
           id="installation.downloadButton"
           description="Label for the plugin download button on the installation page"
-          values={{ version }}
         >
-          {'Download Expression Lab v{version}'}
+          Download Expression Lab
         </Translate>
       </a>
+      <div className={styles.version}>
+        <Translate
+          id="installation.currentVersion"
+          description="Label indicating the current plugin version below the download button"
+          values={{ version: `v${version}` }}
+        >
+          {'Current version: {version}'}
+        </Translate>
+      </div>
     </div>
   );
 }

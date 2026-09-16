@@ -92,7 +92,11 @@
     "description": "Footer experimental software and warranty disclaimer"
   },
   "installation.downloadButton": {
-    "message": "Descargar Expression Lab v{version}",
+    "message": "Descargar Expression Lab",
     "description": "Label for the plugin download button on the installation page"
+  },
+  "installation.currentVersion": {
+    "message": "Versión actual: {version}",
+    "description": "Label indicating the current plugin version below the download button"
   }
 }

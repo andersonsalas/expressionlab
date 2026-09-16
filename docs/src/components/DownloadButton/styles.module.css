@@ -1,3 +1,10 @@
 .wrapper {
   margin: 1.2rem 0;
 }
+
+.version {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--ifm-color-content-secondary);
+}

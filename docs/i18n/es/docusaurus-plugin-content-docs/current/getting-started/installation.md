@@ -37,9 +37,9 @@ Expression Lab ejecuta operaciones criptográficas en el navegador durante la co
 
 ## Métodos de instalación
 
-### Método 1: Descargar la versión estable
+### Método 1: Descargar el archivo ZIP
 
-La última versión empaquetada está disponible en el [repositorio de Expression Lab en GitHub](https://github.com/andersonsalas/expressionlab):
+La última versión empaquetada en ZIP está disponible en el [repositorio de Expression Lab en GitHub](https://github.com/andersonsalas/expressionlab):
 
 <DownloadButton />
 
