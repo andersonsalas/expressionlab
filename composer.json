@@ -41,6 +41,7 @@
     },
     "require": {
         "symfony/expression-language": "^7.4",
-        "phpdocumentor/reflection-docblock": "^6.0"
+        "phpdocumentor/reflection-docblock": "^6.0",
+        "maxmind-db/reader": "^1.14"
     }
 }
