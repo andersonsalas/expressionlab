@@ -11,6 +11,7 @@
 
 namespace ExpressionLab\Core\Services;
 
+use ExpressionLab\Core\Helper;
 use ExpressionLab\Core\LanguageEngine;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -62,56 +63,7 @@ final class Files {
 	 * @throws \InvalidArgumentException If the path resolves outside ABSPATH.
 	 */
 	private function resolve_safe_path( string $path, bool $must_exist = true ): string {
-		// Append trailing separator to prevent sibling-directory prefix collisions
-		// (e.g., '/var/www/html' matching '/var/www/html_backup').
-		$wp_root = trailingslashit( wp_normalize_path( realpath( ABSPATH ) ) );
-
-		// If relative, prepend ABSPATH.
-		if ( ! str_starts_with( $path, '/' ) && ! preg_match( '/^[A-Za-z]:[\\\\\/]/', $path ) ) {
-			$full_path = ABSPATH . ltrim( $path, '/\\' );
-		} else {
-			$full_path = $path;
-		}
-
-		$real = realpath( $full_path );
-
-		if ( false === $real ) {
-			if ( $must_exist ) {
-				throw new \InvalidArgumentException( esc_html( "File or directory does not exist: $path" ) );
-			}
-
-			$normalized = wp_normalize_path( $full_path );
-			$parts      = explode( '/', $normalized );
-			$resolved   = array();
-
-			foreach ( $parts as $segment ) {
-				if ( '.' === $segment ) {
-					continue;
-				}
-				if ( '..' === $segment ) {
-					array_pop( $resolved );
-				} else {
-					$resolved[] = $segment;
-				}
-			}
-
-			$collapsed = implode( '/', $resolved );
-
-			if ( ! str_starts_with( $collapsed, $wp_root ) && rtrim( $wp_root, '/' ) !== $collapsed ) {
-				throw new \InvalidArgumentException( 'Access denied: Path is outside the WordPress root directory.' );
-			}
-
-			return $collapsed;
-		}
-
-		$normalized_real = wp_normalize_path( $real );
-
-		// Allow both exact root match and paths within the root.
-		if ( ! str_starts_with( $normalized_real, $wp_root ) && rtrim( $wp_root, '/' ) !== $normalized_real ) {
-			throw new \InvalidArgumentException( 'Access denied: Path is outside the WordPress root directory.' );
-		}
-
-		return $normalized_real;
+		return Helper::resolve_safe_path( $path, ABSPATH, $must_exist );
 	}
 
 	/**
