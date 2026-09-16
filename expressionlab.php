@@ -278,6 +278,26 @@ if ( ! defined( 'EXPRESSION_LAB_DISABLE_SQLITE' ) ) {
 	define( 'EXPRESSION_LAB_DISABLE_SQLITE', false );
 }
 
+if ( ! defined( 'EXPRESSION_LAB_MAXMIND_API_KEY' ) ) {
+	/**
+	 * MaxMind license key for downloading GeoLite2 database archives.
+	 *
+	 * @var string|null
+	 */
+	define( 'EXPRESSION_LAB_MAXMIND_API_KEY', null );
+}
+
+if ( ! defined( 'EXPRESSION_LAB_MAXMIND_PATH' ) ) {
+	/**
+	 * Path to the GeoLite2 database file, relative to WP_CONTENT_DIR.
+	 *
+	 * When null, the file defaults to a deterministic hash under wp-content/expressionlab/.
+	 *
+	 * @var string|null
+	 */
+	define( 'EXPRESSION_LAB_MAXMIND_PATH', null );
+}
+
 if ( file_exists( __DIR__ . '/vendor/scoper-autoload.php' ) ) {
 	require_once __DIR__ . '/vendor/scoper-autoload.php';
 } else {
