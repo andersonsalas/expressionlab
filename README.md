@@ -167,9 +167,9 @@ prog[
 
 ### 1. Installation
 
-#### Production Release (Recommended)
+#### Pre-built ZIP Archive (Recommended)
 
-Production archives are distributed as pre-compiled `.zip` packages via [GitHub Releases](https://github.com/andersonsalas/expressionlab/releases/latest). These include bundled frontend assets and scoped dependencies, installable through **Plugins &rarr; Add New Plugin &rarr; Upload Plugin** in the WordPress administration dashboard.
+Pre-built release packages are distributed as `.zip` archives via [GitHub Releases](https://github.com/andersonsalas/expressionlab/releases/latest). These include bundled frontend assets and scoped dependencies, installable through **Plugins &rarr; Add New Plugin &rarr; Upload Plugin** in the WordPress administration dashboard.
 
 #### From Source (Development)
 
