@@ -37,9 +37,9 @@ Expression Lab relies on client-side cryptographic features during onboarding an
 
 ## Installation Methods
 
-### Method 1: Download Stable Release
+### Method 1: Download ZIP archive
 
-Download the latest stable release from the [Expression Lab repository](https://github.com/andersonsalas/expressionlab):
+Download the latest ZIP archive from the [Expression Lab repository](https://github.com/andersonsalas/expressionlab):
 
 <DownloadButton />
 
