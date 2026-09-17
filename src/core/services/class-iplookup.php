@@ -138,7 +138,7 @@ final class IPLookup implements ServiceInterface {
 		$clean_ip = trim( $ip );
 
 		if ( ! filter_var( $clean_ip, FILTER_VALIDATE_IP ) ) {
-			throw new \InvalidArgumentException( esc_html( "Invalid IP address provided: $ip" ) );
+			throw new \InvalidArgumentException( sanitize_text_field( "Invalid IP address provided: $ip" ) );
 		}
 
 		// Private or reserved IP ranges (RFC 1918, loopback, link-local) have no public country mapping.
@@ -153,7 +153,7 @@ final class IPLookup implements ServiceInterface {
 		try {
 			$record = $this->reader->get( $clean_ip );
 		} catch ( \Exception $e ) {
-			throw new \RuntimeException( esc_html( 'IP lookup failed: ' . $e->getMessage() ) );
+			throw new \RuntimeException( sanitize_text_field( 'IP lookup failed: ' . $e->getMessage() ) );
 		}
 
 		if ( is_array( $record ) && isset( $record['country']['iso_code'] ) && is_string( $record['country']['iso_code'] ) ) {

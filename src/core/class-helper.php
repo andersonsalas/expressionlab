@@ -262,8 +262,8 @@ class Helper {
 	 *                                   or the path resolves outside the base directory.
 	 */
 	public static function resolve_safe_path( string $path, string $base_dir = ABSPATH, bool $must_exist = true ): string {
-		// Reject stream wrappers (e.g. phar://, php://, file://).
-		if ( preg_match( '/^[a-z0-9]+:\/\//i', $path ) ) {
+		// Reject stream wrappers (e.g. phar://, php://, file://, compress.zlib://).
+		if ( preg_match( '/^[a-z0-9][a-z0-9.+\-]*:\/\//i', $path ) ) {
 			throw new \InvalidArgumentException( 'Access denied: Stream wrappers are not permitted.' );
 		}
 
@@ -289,7 +289,8 @@ class Helper {
 
 		if ( false === $real ) {
 			if ( $must_exist ) {
-				throw new \InvalidArgumentException( esc_html( "File or directory does not exist: $path" ) );
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- sanitize_text_field() chosen over esc_html() for CLI context compatibility.
+				throw new \InvalidArgumentException( sanitize_text_field( "File or directory does not exist: $path" ) );
 			}
 
 			$normalized = wp_normalize_path( $full_path );

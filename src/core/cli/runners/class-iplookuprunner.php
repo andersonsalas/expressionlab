@@ -94,7 +94,8 @@ class IPLookupRunner {
 				throw new \RuntimeException( 'Invalid MaxMind license key or unauthorized access (HTTP 401).' );
 			}
 
-			throw new \RuntimeException( esc_html( sprintf( 'Failed to download GeoLite2 database: %s', $error_msg ) ) );
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- CLI context: esc_html() garbles terminal output with HTML entities.
+			throw new \RuntimeException( sanitize_text_field( sprintf( 'Failed to download GeoLite2 database: %s', $error_msg ) ) );
 		}
 
 		if ( null !== $feedback ) {
@@ -114,7 +115,8 @@ class IPLookupRunner {
 		} catch ( \Exception $e ) {
 			wp_delete_file( $tmp_file );
 			self::delete_directory( $tmp_extract_dir );
-			throw new \RuntimeException( esc_html( sprintf( 'Failed to extract archive: %s', $e->getMessage() ) ) );
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- CLI context: esc_html() garbles terminal output with HTML entities.
+			throw new \RuntimeException( sanitize_text_field( sprintf( 'Failed to extract archive: %s', $e->getMessage() ) ) );
 		}
 
 		wp_delete_file( $tmp_file );

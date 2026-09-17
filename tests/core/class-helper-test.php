@@ -57,6 +57,26 @@ class HelperTest extends WP_UnitTestCase {
 		Helper::resolve_safe_path( 'phar://archive.zip/file.txt', ABSPATH, false );
 	}
 
+	/**
+	 * @dataProvider provide_compound_stream_wrappers
+	 */
+	public function test_resolve_safe_path_rejects_compound_stream_wrappers( string $path ) {
+		$this->expectException( \InvalidArgumentException::class );
+		$this->expectExceptionMessage( 'Stream wrappers are not permitted' );
+		Helper::resolve_safe_path( $path, ABSPATH, false );
+	}
+
+	public function provide_compound_stream_wrappers(): array {
+		return array(
+			'compress.zlib'  => array( 'compress.zlib:///etc/passwd' ),
+			'compress.bzip2' => array( 'compress.bzip2:///etc/passwd' ),
+			'php://filter'   => array( 'php://filter/read=string.rot13/resource=/etc/passwd' ),
+			'data://'        => array( 'data://text/plain;base64,SSBsb3ZlIFBIUAo=' ),
+			'file://'        => array( 'file:///etc/passwd' ),
+			'PHAR:// (case)' => array( 'PHAR:///tmp/test.phar' ),
+		);
+	}
+
 	public function test_resolve_safe_path_rejects_null_bytes() {
 		$this->expectException( \InvalidArgumentException::class );
 		$this->expectExceptionMessage( 'invalid characters' );
