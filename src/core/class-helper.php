@@ -244,4 +244,92 @@ class Helper {
 
 		return $delimiter . $code . $delimiter;
 	}
+
+	/**
+	 * Resolves a path, verifying that it resides within a designated base directory.
+	 *
+	 * Normalizes relative and absolute paths, collapses directory traversal segments ('..'),
+	 * and validates that the canonical path is confined within the specified boundary.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $path       The relative or absolute path.
+	 * @param string $base_dir   The base directory boundary. Default ABSPATH.
+	 * @param bool   $must_exist Whether the path must already exist on disk. Default true.
+	 * @return string The canonicalized absolute path.
+	 * @throws \InvalidArgumentException If stream wrappers or invalid characters are used,
+	 *                                   the path does not exist (when $must_exist is true),
+	 *                                   or the path resolves outside the base directory.
+	 */
+	public static function resolve_safe_path( string $path, string $base_dir = ABSPATH, bool $must_exist = true ): string {
+		// Reject stream wrappers (e.g. phar://, php://, file://, compress.zlib://).
+		if ( preg_match( '/^[a-z0-9][a-z0-9.+\-]*:\/\//i', $path ) ) {
+			throw new \InvalidArgumentException( 'Access denied: Stream wrappers are not permitted.' );
+		}
+
+		// Reject null byte injection or invalid control characters.
+		if ( str_contains( $path, "\0" ) ) {
+			throw new \InvalidArgumentException( 'Access denied: Path contains invalid characters.' );
+		}
+
+		// Append trailing separator to prevent sibling-directory prefix collisions
+		// (e.g., '/var/www/html' matching '/var/www/html_backup').
+		$real_base      = realpath( $base_dir );
+		$resolved_base  = false !== $real_base ? $real_base : $base_dir;
+		$canonical_base = trailingslashit( wp_normalize_path( $resolved_base ) );
+
+		// If relative, prepend canonical base directory.
+		if ( ! str_starts_with( $path, '/' ) && ! preg_match( '/^[A-Za-z]:[\\\\\/]/', $path ) ) {
+			$full_path = $canonical_base . ltrim( $path, '/\\' );
+		} else {
+			$full_path = $path;
+		}
+
+		$real = realpath( $full_path );
+
+		if ( false === $real ) {
+			if ( $must_exist ) {
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- sanitize_text_field() chosen over esc_html() for CLI context compatibility.
+				throw new \InvalidArgumentException( sanitize_text_field( "File or directory does not exist: $path" ) );
+			}
+
+			$normalized = wp_normalize_path( $full_path );
+			$parts      = explode( '/', $normalized );
+			$resolved   = array();
+
+			foreach ( $parts as $segment ) {
+				if ( '.' === $segment ) {
+					continue;
+				}
+				if ( '..' === $segment ) {
+					array_pop( $resolved );
+				} else {
+					$resolved[] = $segment;
+				}
+			}
+
+			$collapsed = implode( '/', $resolved );
+
+			if ( ! str_starts_with( $collapsed, $canonical_base ) && rtrim( $canonical_base, '/' ) !== $collapsed ) {
+				if ( ABSPATH === $base_dir ) {
+					throw new \InvalidArgumentException( 'Access denied: Path is outside the WordPress root directory.' );
+				}
+				throw new \InvalidArgumentException( 'Access denied: Path is outside the designated directory.' );
+			}
+
+			return $collapsed;
+		}
+
+		$normalized_real = wp_normalize_path( $real );
+
+		// Allow both exact root match and paths within the root.
+		if ( ! str_starts_with( $normalized_real, $canonical_base ) && rtrim( $canonical_base, '/' ) !== $normalized_real ) {
+			if ( ABSPATH === $base_dir ) {
+				throw new \InvalidArgumentException( 'Access denied: Path is outside the WordPress root directory.' );
+			}
+			throw new \InvalidArgumentException( 'Access denied: Path is outside the designated directory.' );
+		}
+
+		return $normalized_real;
+	}
 }

@@ -37,10 +37,13 @@
         "phpunit/phpunit": "^9.6",
         "yoast/phpunit-polyfills": "^4.0",
         "phpcompatibility/phpcompatibility-wp": "*",
-        "bamarni/composer-bin-plugin": "^1.9"
+        "bamarni/composer-bin-plugin": "^1.9",
+        "php-stubs/wp-cli-stubs": "^2.12"
     },
     "require": {
         "symfony/expression-language": "^7.4",
-        "phpdocumentor/reflection-docblock": "^6.0"
+        "phpdocumentor/reflection-docblock": "^6.0",
+        "maxmind-db/reader": "^1.14",
+        "splitbrain/php-archive": "^1.5"
     }
 }
