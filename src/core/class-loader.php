@@ -41,6 +41,10 @@ class Loader {
 		Admin\Pages\Onboarding::get();
 		Admin\Pages\Console::get();
 		Updater::get()->init();
+
+		if ( defined( 'WP_CLI' ) && \WP_CLI ) {
+			\WP_CLI::add_command( 'expressionlab iplookup', Cli\Commands\IPLookupCommand::class );
+		}
 	}
 
 	/**
