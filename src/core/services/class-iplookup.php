@@ -97,16 +97,40 @@ final class IPLookup implements ServiceInterface {
 	/**
 	 * Resolves an IPv4 or IPv6 address to its ISO 3166-1 alpha-2 country code.
 	 *
-	 * TODO: Documentation.
+	 * Takes a valid IPv4 or IPv6 address and performs a lookup against the local
+	 * MaxMind GeoLite2 database. Returns an uppercase two-letter country code
+	 * (e.g. `'US'`, `'ES'`, `'DE'`) on success, or `null` if a private, reserved,
+	 * or unallocated IP address is supplied.
 	 *
-	 * This method uses the GeoLite2 database from MaxMind, Inc.
+	 * This product includes GeoLite2 data created by MaxMind, available from
+	 * [https://www.maxmind.com](https://www.maxmind.com). MaxMind and GeoLite2 are registered
+	 * trademarks of MaxMind, Inc.
 	 *
-	 * MaxMind and GeoLite2 are registered trademarks of MaxMind, Inc.
+	 * Examples:
 	 *
-	 * @param string $ip Valid IPv4 or IPv6 address.
-	 * @return string|null Two-letter country code (e.g. `'US'`, `'ES'`), or `null` if unallocated or private.
+	 * ```elscript
+	 * IPLookup.to_country('8.8.8.8')
+	 * ```
+	 *
+	 * ```elscript
+	 * IPLookup.to_country('2001:4860:4860::8888')
+	 * ```
+	 *
+	 * ```elscript
+	 * IPLookup.to_country('192.168.1.1')
+	 * ```
+	 *
+	 * ```elscript
+	 * IPLookup.to_country('8.8.8.8') in ['US', 'CA', 'MX']
+	 * ```
+	 *
+	 * @see https://expressionlab.io/docs/api-reference/ip-lookup#iplookupto_country
+	 * @see https://www.maxmind.com
+	 *
+	 * @param string $ip Valid IPv4 or IPv6 address string.
+	 * @return string|null Uppercase two-letter ISO 3166-1 alpha-2 country code (e.g. `'US'`, `'ES'`), or `null` if private, reserved, or unallocated.
 	 * @throws \InvalidArgumentException If the IP address is syntactically invalid.
-	 * @throws \RuntimeException If the database file is missing or unreadable.
+	 * @throws \RuntimeException If the GeoLite2 database file is missing, unreadable, or lookup fails.
 	 */
 	public function to_country( string $ip ): ?string {
 		LanguageEngine::get()->tick();

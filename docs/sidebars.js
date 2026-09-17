@@ -29,6 +29,7 @@ const sidebars = {
         'api-reference/media',
         'api-reference/files',
         'api-reference/http',
+        'api-reference/ip-lookup',
         'api-reference/console',
         'api-reference/functions-and-constants',
       ],
