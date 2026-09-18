@@ -83,6 +83,9 @@ importers:
       unicode-emoji-json:
         specifier: ^0.8.0
         version: 0.8.0
+      us-atlas:
+        specifier: ^3.0.1
+        version: 3.0.1
       vega:
         specifier: ^6.2.0
         version: 6.2.0
@@ -104,6 +107,9 @@ importers:
       vue-virtual-scroller:
         specifier: ^2.0.0-beta.8
         version: 2.0.1(vue@3.5.34)
+      world-atlas:
+        specifier: ^2.0.2
+        version: 2.0.2
     devDependencies:
       '@babel/core':
         specifier: ^7.27.7
@@ -9402,6 +9408,9 @@ packages:
   url-parse@1.5.10:
     resolution: {integrity: sha512-WypcfiRhfeUP9vvF0j6rw0J3hrWrw6iZv3+22h6iRMJ/8z1Tj6XfLP4DsUix5MhMPnXpiHDoKyoZ/bdCkwBCiQ==}
 
+  us-atlas@3.0.1:
+    resolution: {integrity: sha512-wEIZCq0ImPvGblTd8gZMqNNCPkQshugMUG/8nkSWXb02+XqNFREg9atHOKP9w6prLZTpqcLhSvdBW81MkV3/0Q==}
+
   use@3.1.1:
     resolution: {integrity: sha512-cwESVXlO3url9YWlFW/TA9cshCEhtu7IKJ/p5soJ/gGpj7vbvFrAY/eIioQ6Dw23KjZhYgiIo8HOs1nQ2vr/oQ==}
     engines: {node: '>=0.10.0'}
@@ -9838,6 +9847,9 @@ packages:
     resolution: {integrity: sha512-rYhpW6NWHD++p34ej+VXWzi5Pdnmd7ncdbB/ux4s+i3mf7IeOpW3O4roqClQ+Z8ernvyMCknBLCb76z1rA+a7Q==}
     engines: {node: '>=16'}
     hasBin: true
+
+  world-atlas@2.0.2:
+    resolution: {integrity: sha512-IXfV0qwlKXpckz1FhwXVwKRjiIhOnWttOskm5CtxMsjgE/MXAYRHWJqgXOpM8IkcPBoXnyTU5lFHcYa5ChG0LQ==}
 
   wrangler@4.130.0:
     resolution: {integrity: sha512-fzNjnTzyZl31PGJOFXbiLeZqEIToQ9KOzkkvGdQz4wlB+BoHnl3BRwCR5xg8AqYyzVunvvMHlMzvlbThQ7rrAA==}
@@ -19697,7 +19709,7 @@ snapshots:
       cosmiconfig: 8.3.6
       jiti: 1.21.7
       postcss: 8.5.14
-      semver: 7.8.1
+      semver: 7.8.5
       webpack: 5.106.2(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.14))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@7.2.0)(postcss@8.5.14)(webpack-cli@6.0.1)
     transitivePeerDependencies:
       - typescript
@@ -19707,7 +19719,7 @@ snapshots:
       cosmiconfig: 8.3.6
       jiti: 1.21.7
       postcss: 8.5.14
-      semver: 7.8.1
+      semver: 7.8.5
       webpack: 5.106.2(clean-css@5.3.3)(cssnano@7.1.9(postcss@8.5.14))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@7.2.0)(postcss@8.5.14)(webpack-cli@6.0.1)
     transitivePeerDependencies:
       - typescript
@@ -21744,6 +21756,8 @@ snapshots:
       querystringify: 2.2.0
       requires-port: 1.0.0
 
+  us-atlas@3.0.1: {}
+
   use@3.1.1: {}
 
   util-deprecate@1.0.2: {}
@@ -22066,7 +22080,7 @@ snapshots:
       eslint-visitor-keys: 5.0.1
       espree: 11.2.0
       esquery: 1.7.0
-      semver: 7.8.1
+      semver: 7.8.5
     transitivePeerDependencies:
       - supports-color
 
@@ -22547,6 +22561,8 @@ snapshots:
       '@cloudflare/workerd-linux-64': 1.20260908.1
       '@cloudflare/workerd-linux-arm64': 1.20260908.1
       '@cloudflare/workerd-windows-64': 1.20260908.1
+
+  world-atlas@2.0.2: {}
 
   wrangler@4.130.0:
     dependencies:
