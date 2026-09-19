@@ -21,179 +21,228 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Graph Service.
  *
- * Provides a generic visualization bridge and high-level ergonomic builders
- * to render Vega-Lite charts directly in the console.
+ * Provides a visualization bridge and chart builders
+ * to render Vega-Lite specifications in the console.
  *
  * @package ExpressionLab
  */
 final class Graph implements ServiceInterface {
 
 	/**
-	 * Default Vega-Lite schema definition URL.
+	 * Default schema definition URL for Vega-Lite v6 specifications.
+	 *
+	 * When the `$schema` key is omitted in a custom specification payload,
+	 * Graph injects this URL to validate the specification structure.
 	 *
 	 * @var string
 	 */
 	const DEFAULT_SCHEMA = 'https://vega.github.io/schema/vega-lite/v6.json';
 
 	/**
-	 * Default visualization container width.
+	 * Default responsive container width setting.
+	 *
+	 * Instructs the visualization engine to expand to the width of the parent container element.
 	 *
 	 * @var string
 	 */
 	const DEFAULT_WIDTH = 'container';
 
 	/**
-	 * Pre-bundled TopoJSON World Atlas Countries dataset (1:110m scale).
+	 * Relative path to the bundled TopoJSON World Atlas countries dataset (1:110m resolution).
+	 *
+	 * Used as the geographic feature source for global choropleth maps.
 	 *
 	 * @var string
 	 */
 	const COUNTRIES = 'countries-110m.json';
 
 	/**
-	 * Pre-bundled TopoJSON World Atlas Land masses dataset (1:110m scale).
+	 * Relative path to the bundled TopoJSON World Atlas land masses dataset (1:110m resolution).
+	 *
+	 * Used as the background outline for continental landmasses.
 	 *
 	 * @var string
 	 */
 	const LAND = 'land-110m.json';
 
 	/**
-	 * Pre-bundled TopoJSON US Atlas States dataset (1:10m scale).
+	 * Relative path to the bundled TopoJSON US Atlas states dataset (1:10m resolution).
+	 *
+	 * Used as the geographic feature source for United States choropleth maps.
 	 *
 	 * @var string
 	 */
 	const USA_STATES = 'states-10m.json';
 
 	/**
-	 * Default blue color.
+	 * Primary blue hex color code (#3858e9).
+	 *
+	 * Default mark fill color for single-series bar, line, scatter, and area visualizations.
 	 *
 	 * @var string
 	 */
 	const COLOR_BLUE = '#3858e9';
 
 	/**
-	 * Material Design Red.
+	 * Material Red hex color code (#e53935).
+	 *
+	 * Mark color for warning states, error metrics, and high-intensity accents.
 	 *
 	 * @var string
 	 */
 	const COLOR_RED = '#e53935';
 
 	/**
-	 * Material Design Green.
+	 * Material Green hex color code (#43a047).
+	 *
+	 * Mark color for success states, growth trends, and positive metrics.
 	 *
 	 * @var string
 	 */
 	const COLOR_GREEN = '#43a047';
 
 	/**
-	 * Material Design Purple.
+	 * Material Purple hex color code (#8e24aa).
+	 *
+	 * Mark color for secondary series and categorical accents.
 	 *
 	 * @var string
 	 */
 	const COLOR_PURPLE = '#8e24aa';
 
 	/**
-	 * Material Design Orange.
+	 * Material Orange hex color code (#fb8c00).
+	 *
+	 * Mark color for alert thresholds and notice metrics.
 	 *
 	 * @var string
 	 */
 	const COLOR_ORANGE = '#fb8c00';
 
 	/**
-	 * Material Design Cyan.
+	 * Material Cyan hex color code (#00acc1).
+	 *
+	 * Mark color for secondary continuous series and neutral metrics.
 	 *
 	 * @var string
 	 */
 	const COLOR_CYAN = '#00acc1';
 
 	/**
-	 * Material Design Gray.
+	 * Material Gray hex color code (#78909c).
+	 *
+	 * Mark color for baseline data, background tracks, and inactive states.
 	 *
 	 * @var string
 	 */
 	const COLOR_GRAY = '#78909c';
 
 	/**
-	 * Material Design Dark Blue Gray.
+	 * Material Dark Blue Gray hex color code (#263238).
+	 *
+	 * Mark color for high-contrast strokes, text overlays, and dark elements.
 	 *
 	 * @var string
 	 */
 	const COLOR_DARK = '#263238';
 
 	/**
-	 * Vega-Lite Reds sequential color scheme.
+	 * Reds sequential color scheme identifier.
+	 *
+	 * Maps increasing numeric magnitudes to a gradient of light to deep red hues.
 	 *
 	 * @var string
 	 */
 	const SCHEME_REDS = 'reds';
 
 	/**
-	 * Vega-Lite Blues sequential color scheme.
+	 * Blues sequential color scheme identifier.
+	 *
+	 * Maps increasing numeric magnitudes to a gradient of light to deep blue hues.
 	 *
 	 * @var string
 	 */
 	const SCHEME_BLUES = 'blues';
 
 	/**
-	 * Vega-Lite Greens sequential color scheme.
+	 * Greens sequential color scheme identifier.
+	 *
+	 * Maps increasing numeric magnitudes to a gradient of light to deep green hues.
 	 *
 	 * @var string
 	 */
 	const SCHEME_GREENS = 'greens';
 
 	/**
-	 * Vega-Lite Purples sequential color scheme.
+	 * Purples sequential color scheme identifier.
+	 *
+	 * Maps increasing numeric magnitudes to a gradient of light to deep purple hues.
 	 *
 	 * @var string
 	 */
 	const SCHEME_PURPLES = 'purples';
 
 	/**
-	 * Vega-Lite Oranges sequential color scheme.
+	 * Oranges sequential color scheme identifier.
+	 *
+	 * Maps increasing numeric magnitudes to a gradient of light to deep orange hues.
 	 *
 	 * @var string
 	 */
 	const SCHEME_ORANGES = 'oranges';
 
 	/**
-	 * Vega-Lite Viridis perceptually uniform color scheme.
+	 * Viridis uniform color gradient scheme identifier.
+	 *
+	 * Multi-hue sequential gradient from dark purple through teal to yellow.
 	 *
 	 * @var string
 	 */
 	const SCHEME_VIRIDIS = 'viridis';
 
 	/**
-	 * Vega-Lite Inferno color scheme.
+	 * Inferno uniform color gradient scheme identifier.
+	 *
+	 * Multi-hue sequential gradient from black through red and orange to yellow.
 	 *
 	 * @var string
 	 */
 	const SCHEME_INFERNO = 'inferno';
 
 	/**
-	 * Vega-Lite Magma color scheme.
+	 * Magma uniform color gradient scheme identifier.
+	 *
+	 * Multi-hue sequential gradient from black through purple and pink to pale white.
 	 *
 	 * @var string
 	 */
 	const SCHEME_MAGMA = 'magma';
 
 	/**
-	 * Vega-Lite Category10 discrete qualitative scheme.
+	 * Category10 discrete categorical color scheme identifier.
+	 *
+	 * Ten distinct hues designed for nominal data dimensions and independent series.
 	 *
 	 * @var string
 	 */
 	const SCHEME_CATEGORY10 = 'category10';
 
 	/**
-	 * Vega-Lite Tableau10 discrete qualitative scheme.
+	 * Tableau10 discrete categorical color scheme identifier.
+	 *
+	 * Ten balanced hues suited for multi-series line charts, pie slices, and group comparisons.
 	 *
 	 * @var string
 	 */
 	const SCHEME_TABLEAU10 = 'tableau10';
 
 	/**
-	 * Magic getter to expose class constants as object properties in ELScript runtime.
+	 * Resolves class constant values requested as object properties in ELScript runtime.
 	 *
-	 * @param string $name Property name.
-	 * @return mixed Constant value if defined, null otherwise.
+	 * @internal
+	 *
+	 * @param string $name Property name matching a defined class constant.
+	 * @return mixed Constant value when defined; otherwise null.
 	 */
 	public function __get( string $name ) {
 		if ( defined( "self::$name" ) ) {
@@ -817,19 +866,49 @@ final class Graph implements ServiceInterface {
 		$first = $records[0];
 		$keys  = array_keys( $first );
 
-		$nominal_key      = null;
-		$quantitative_key = null;
+		$color_key = isset( $options['color'] ) ? (string) $options['color'] : null;
+
+		$numeric_keys = array();
+		$string_keys  = array();
 
 		foreach ( $first as $key => $val ) {
-			if ( null === $quantitative_key && ( is_int( $val ) || is_float( $val ) || ( is_string( $val ) && is_numeric( $val ) ) ) ) {
-				$quantitative_key = $key;
-			} elseif ( null === $nominal_key && is_string( $val ) ) {
-				$nominal_key = $key;
+			if ( $key === $color_key ) {
+				continue;
+			}
+			if ( is_int( $val ) || is_float( $val ) || ( is_string( $val ) && is_numeric( $val ) ) ) {
+				$numeric_keys[] = $key;
+			} elseif ( is_string( $val ) ) {
+				$string_keys[] = $key;
 			}
 		}
 
-		$x_field = isset( $options['x'] ) ? (string) $options['x'] : ( $nominal_key ?? $keys[0] );
-		$y_field = isset( $options['y'] ) ? (string) $options['y'] : ( $quantitative_key ?? ( $keys[1] ?? $keys[0] ) );
+		$fallback_keys = array_values( array_filter( $keys, fn( $k ) => $k !== $color_key ) );
+		if ( empty( $fallback_keys ) ) {
+			$fallback_keys = $keys;
+		}
+
+		$nominal_key      = $string_keys[0] ?? null;
+		$quantitative_key = $numeric_keys[0] ?? null;
+
+		// When no string key is found and multiple numeric keys exist, detect time/sequence candidates for X.
+		if ( null === $nominal_key && count( $numeric_keys ) >= 2 ) {
+			$x_candidates = array( 'hour', 'time', 'minute', 'month', 'date', 'year', 'day', 'step', 'epoch', 'timestamp', 'x' );
+			foreach ( $numeric_keys as $num_key ) {
+				if ( in_array( strtolower( $num_key ), $x_candidates, true ) ) {
+					$nominal_key      = $num_key;
+					$remaining        = array_values( array_filter( $numeric_keys, fn( $k ) => $k !== $num_key ) );
+					$quantitative_key = $remaining[0] ?? $quantitative_key;
+					break;
+				}
+			}
+			if ( null === $nominal_key ) {
+				$nominal_key      = $numeric_keys[0];
+				$quantitative_key = $numeric_keys[1];
+			}
+		}
+
+		$x_field = isset( $options['x'] ) ? (string) $options['x'] : ( $nominal_key ?? $fallback_keys[0] );
+		$y_field = isset( $options['y'] ) ? (string) $options['y'] : ( $quantitative_key ?? ( $fallback_keys[1] ?? $fallback_keys[0] ) );
 
 		$x_type = isset( $options['x_type'] ) ? (string) $options['x_type'] : ( ( is_numeric( $first[ $x_field ] ?? null ) ) ? 'quantitative' : 'nominal' );
 		$y_type = isset( $options['y_type'] ) ? (string) $options['y_type'] : ( ( is_numeric( $first[ $y_field ] ?? null ) ) ? 'quantitative' : 'nominal' );
@@ -977,19 +1056,42 @@ final class Graph implements ServiceInterface {
 	}
 
 	/**
-	 * Renders an arbitrary Vega-Lite visualization in the Expression Lab console.
+	 * Renders a Vega-Lite specification in the console visualization panel.
 	 *
-	 * Accepts an associative array, a generic object, or a valid JSON string
-	 * representing a complete Vega-Lite specification.
+	 * Accepts an associative array, a generic object, or a JSON string.
+	 * When the specification omits `$schema` or `width`, default values
+	 * are injected to fit the console container.
 	 *
-	 * TODO: Documentation and examples.
+	 * Submitting an indexed list or an invalid JSON string triggers an exception.
+	 *
+	 * Example:
+	 *
+	 * ```elscript
+	 * Graph.render({
+	 *     '$schema': Graph.DEFAULT_SCHEMA,
+	 *     'description': 'A simple bar chart',
+	 *     'data': {
+	 *         'values': [
+	 *             { 'a': 'A', 'b': 28 },
+	 *             { 'a': 'B', 'b': 55 },
+	 *             { 'a': 'C', 'b': 43 }
+	 *         ]
+	 *     },
+	 *     'mark': 'bar',
+	 *     'encoding': {
+	 *         'x': { 'field': 'a', 'type': 'nominal' },
+	 *         'y': { 'field': 'b', 'type': 'quantitative' }
+	 *     }
+	 * }, 'Custom Vega-Lite Chart')
+	 * ```
 	 *
 	 * @see https://vega.github.io/vega-lite/docs/
+	 * @see https://expressionlab.io/docs/api-reference/graph#graphrender
 	 *
-	 * @param array|object|string $payload Vega-Lite specification object or JSON string.
-	 * @param string              $title   Optional tab title for the visualization. Default `'Graph'`.
+	 * @param array|object|string $payload Vega-Lite specification structure or JSON string.
+	 * @param string              $title   Tab title for the visualization panel. Default `'Graph'`.
 	 * @return void
-	 * @throws \InvalidArgumentException If the payload is empty, invalid, or cannot be parsed as a Vega-Lite spec.
+	 * @throws \InvalidArgumentException When the payload is empty, invalid JSON, or an indexed list.
 	 */
 	public function render( $payload, string $title = 'Graph' ): void {
 		LanguageEngine::get()->tick();
@@ -1052,12 +1154,58 @@ final class Graph implements ServiceInterface {
 	}
 
 	/**
-	 * Renders an ergonomic bar chart with automatic field inference.
+	 * Renders a bar chart from tabular records or key-value pairs.
 	 *
-	 * TODO: Documentation and examples.
+	 * Maps categorical dimensions to discrete positions and quantitative values
+	 * to bar lengths. When field names are omitted in `options`, the method
+	 * infers categorical labels and numeric metrics from the input structure.
 	 *
-	 * @param mixed $data    List of associative records or key-value map.
-	 * @param array $options Optional chart settings: `'title'`, `'x'`, `'y'`, `'color'`, `'color_value'`, `'horizontal'`, `'height'`.
+	 * Setting `horizontal` to `true` places categorical labels along the vertical axis
+	 * and extends bars along the horizontal plane. Providing a `color` field partitions
+	 * bars into discrete color groups with an associated legend.
+	 *
+	 * ## Examples
+	 *
+	 * ### Tabular records with category grouping:
+	 *
+	 * ```elscript
+	 * Graph.bars([
+	 *     { 'role': 'Administrator', 'count': 4 },
+	 *     { 'role': 'Editor', 'count': 12 },
+	 *     { 'role': 'Subscriber', 'count': 158 }
+	 * ], {
+	 *     'title': 'User Accounts by Role',
+	 *     'color_value': Graph.COLOR_PURPLE
+	 * })
+	 * ```
+	 *
+	 * ### Horizontal orientation with key-value map:
+	 *
+	 * ```elscript
+	 * Graph.bars({
+	 *     'Draft': 14,
+	 *     'Pending': 6,
+	 *     'Published': 89
+	 * }, {
+	 *     'title': 'Post Status Overview',
+	 *     'horizontal': true
+	 * })
+	 * ```
+	 *
+	 * @see https://vega.github.io/vega-lite/docs/bar.html
+	 * @see https://expressionlab.io/docs/api-reference/graph#graphbars
+	 *
+	 * @param mixed $data    List of associative records or key-value dictionary.
+	 * @param array $options Optional chart settings:
+	 *                       - `'title'` (string): Panel title. Default `'Bar Chart'`.
+	 *                       - `'x'` (string): Field mapped to horizontal axis.
+	 *                       - `'y'` (string): Field mapped to vertical axis.
+	 *                       - `'color'` (string): Field used for categorical color encoding.
+	 *                       - `'color_value'` (string): Fixed hex color for all bars. Default `Graph.COLOR_BLUE`.
+	 *                       - `'horizontal'` (bool): Whether to invert axes for horizontal bars. Default `false`.
+	 *                       - `'sort'` (string|array): Sorting order for categorical domain.
+	 *                       - `'label_angle'` (int): Rotation angle in degrees for axis labels. Default `-45`.
+	 *                       - `'height'` (int): Visualization height in pixels. Default `360`.
 	 * @return void
 	 */
 	public function bars( $data, array $options = array() ): void {
@@ -1135,12 +1283,62 @@ final class Graph implements ServiceInterface {
 	}
 
 	/**
-	 * Renders an ergonomic line chart with optional multiple series.
+	 * Renders a line chart for continuous trends and time-series records.
 	 *
-	 * TODO: Documentation and examples.
+	 * Connects sequential data points across an ordered horizontal axis.
+	 * When the input dataset contains multiple series, providing the `color`
+	 * option segments lines into distinct color paths and adds a category legend.
+	 *
+	 * Vertex points are rendered by default and can be suppressed by setting
+	 * `points` to `false`.
+	 *
+	 * ## Examples
+	 *
+	 * ### Single continuous trend
+	 *
+	 * ```elscript
+	 * Graph.lines([
+	 *     { 'date': '2026-01', 'requests': 1420 },
+	 *     { 'date': '2026-02', 'requests': 1890 },
+	 *     { 'date': '2026-03', 'requests': 2400 }
+	 * ], {
+	 *     'title': 'Traffic Volume by Month',
+	 *     'color_value': Graph.COLOR_GREEN
+	 * })
+	 * ```
+	 *
+	 * ### Multi-series comparison
+	 *
+	 * ```elscript
+	 * Graph.lines([
+	 *     { 'hour': '08:00', 'load': 24, 'server': 'web-01' },
+	 *     { 'hour': '09:00', 'load': 48, 'server': 'web-01' },
+	 *     { 'hour': '10:00', 'load': 68, 'server': 'web-01' },
+	 *     { 'hour': '11:00', 'load': 52, 'server': 'web-01' },
+	 *     { 'hour': '08:00', 'load': 18, 'server': 'web-02' },
+	 *     { 'hour': '09:00', 'load': 35, 'server': 'web-02' },
+	 *     { 'hour': '10:00', 'load': 82, 'server': 'web-02' },
+	 *     { 'hour': '11:00', 'load': 74, 'server': 'web-02' }
+	 * ], {
+	 *     'title': 'Server Load Comparison',
+	 *     'color': 'server'
+	 * })
+	 * ```
+	 *
+	 * @see https://vega.github.io/vega-lite/docs/line.html
+	 * @see https://expressionlab.io/docs/api-reference/graph#graphlines
 	 *
 	 * @param mixed $data    List of associative records.
-	 * @param array $options Optional chart settings: `'title'`, `'x'`, `'y'`, `'color'`, `'color_value'`, `'height'`, `'points'`.
+	 * @param array $options Optional chart settings:
+	 *                       - `'title'` (string): Panel title. Default `'Line Chart'`.
+	 *                       - `'x'` (string): Field mapped to horizontal axis.
+	 *                       - `'y'` (string): Field mapped to vertical axis.
+	 *                       - `'color'` (string): Field used for multi-series color grouping.
+	 *                       - `'color_value'` (string): Fixed hex color for single series. Default `Graph.COLOR_BLUE`.
+	 *                       - `'points'` (bool): Whether to draw circle markers on vertices. Default `true`.
+	 *                       - `'sort'` (string|array): Order specification for horizontal axis.
+	 *                       - `'label_angle'` (int): Rotation angle in degrees for axis labels. Default `-45`.
+	 *                       - `'height'` (int): Visualization height in pixels. Default `360`.
 	 * @return void
 	 */
 	public function lines( $data, array $options = array() ): void {
@@ -1156,12 +1354,6 @@ final class Graph implements ServiceInterface {
 			'point'   => $points,
 			'tooltip' => true,
 		);
-
-		if ( ! empty( $options['color_value'] ) ) {
-			$mark['color'] = (string) $options['color_value'];
-		} elseif ( empty( $options['color'] ) ) {
-			$mark['color'] = self::COLOR_BLUE;
-		}
 
 		$encoding = array(
 			'x' => array(
@@ -1186,11 +1378,24 @@ final class Graph implements ServiceInterface {
 		}
 
 		if ( ! empty( $options['color'] ) ) {
-			$encoding['color'] = array(
-				'field'  => (string) $options['color'],
-				'type'   => 'nominal',
-				'legend' => array( 'title' => ucwords( str_replace( '_', ' ', (string) $options['color'] ) ) ),
-			);
+			$color_opt = (string) $options['color'];
+			if ( array_key_exists( $color_opt, $records[0] ) ) {
+				$encoding['color'] = array(
+					'field'  => $color_opt,
+					'type'   => 'nominal',
+					'legend' => array( 'title' => ucwords( str_replace( '_', ' ', $color_opt ) ) ),
+				);
+			} else {
+				$mark['color']     = $color_opt;
+				$encoding['color'] = array( 'value' => $color_opt );
+			}
+		} elseif ( ! empty( $options['color_value'] ) ) {
+			$color_val         = (string) $options['color_value'];
+			$mark['color']     = $color_val;
+			$encoding['color'] = array( 'value' => $color_val );
+		} else {
+			$mark['color']     = self::COLOR_BLUE;
+			$encoding['color'] = array( 'value' => self::COLOR_BLUE );
 		}
 
 		$spec = array(
@@ -1205,12 +1410,54 @@ final class Graph implements ServiceInterface {
 	}
 
 	/**
-	 * Renders a pie or donut chart.
+	 * Renders a pie or donut chart for proportional distributions.
 	 *
-	 * TODO: Documentation and examples.
+	 * Computes angular arc spans proportional to metric values across categorical slices.
+	 * Setting `donut` to `true` carves an inner circular cutout.
 	 *
-	 * @param mixed $data    List of associative records or key-value map.
-	 * @param array $options Optional chart settings: `'title'`, `'category'`, `'value'`, `'donut'`, `'inner_radius'`, `'scheme'`, `'height'`.
+	 * Slices receive distinct hues from discrete color schemes such as `Graph.SCHEME_TABLEAU10`.
+	 *
+	 * ## Examples
+	 *
+	 * ### Standard pie chart from key-value dictionary
+	 *
+	 * ```elscript
+	 * Graph.pie({
+	 *     'Direct': 450,
+	 *     'Search': 1200,
+	 *     'Referral': 280,
+	 *     'Social': 190
+	 * }, {
+	 *     'title': 'Traffic Acquisition Channels'
+	 * })
+	 * ```
+	 *
+	 * ### Donut chart with custom inner radius
+	 *
+	 * ```elscript
+	 * Graph.pie([
+	 *     { 'device': 'Mobile', 'share': 58 },
+	 *     { 'device': 'Desktop', 'share': 36 },
+	 *     { 'device': 'Tablet', 'share': 6 }
+	 * ], {
+	 *     'title': 'Device Breakdown',
+	 *     'donut': true,
+	 *     'inner_radius': 80
+	 * })
+	 * ```
+	 *
+	 * @see https://vega.github.io/vega-lite/docs/arc.html
+	 * @see https://expressionlab.io/docs/api-reference/graph#graphpie
+	 *
+	 * @param mixed $data    List of associative records or key-value dictionary.
+	 * @param array $options Optional chart settings:
+	 *                       - `'title'` (string): Panel title. Default `'Pie Chart'` or `'Donut Chart'`.
+	 *                       - `'category'` (string): Field containing slice labels.
+	 *                       - `'value'` (string): Field containing slice quantities.
+	 *                       - `'donut'` (bool): Whether to render an inner cutout hole. Default `false`.
+	 *                       - `'inner_radius'` (int): Cutout radius in pixels when donut mode is active. Default `65`.
+	 *                       - `'scheme'` (string): Vega-Lite color palette name. Default `Graph.SCHEME_TABLEAU10`.
+	 *                       - `'height'` (int): Visualization height in pixels. Default `360`.
 	 * @return void
 	 */
 	public function pie( $data, array $options = array() ): void {
@@ -1254,16 +1501,59 @@ final class Graph implements ServiceInterface {
 	}
 
 	/**
-	 * Renders a complete offline choropleth World Map with base geography and heat layer.
+	 * Renders an offline choropleth World Map with base geography and metric heat layers.
 	 *
-	 * Automatically resolves ISO 3166-1 alpha-2 codes (`'US'`, `'ES'`), alpha-3 codes (`'USA'`, `'ESP'`),
-	 * numeric TopoJSON IDs (840, 724, `'032'`), or common country names (`'United States'`, `'Russia'`)
-	 * against pre-bundled TopoJSON geometries, generating tooltips and choropleth layers.
+	 * Projects country data onto global vector geometries using an Equal Earth projection.
+	 * Standardizes ISO 3166-1 Alpha-2 codes (`'US'`, `'ES'`), Alpha-3 codes (`'USA'`, `'ESP'`),
+	 * TopoJSON numeric identifiers (`840`, `724`, `'032'`), and country names (`'United States'`)
+	 * into matching geometry keys.
 	 *
-	 * TODO: Documentation and examples.
+	 * Injects full country names and ISO codes into interactive tooltips.
+	 * Outputs generated by `IPLookup.to_country()` plug into this method without manual conversion.
 	 *
-	 * @param mixed $data    List of associative records or dictionary with country identifiers and metrics.
-	 * @param array $options Optional map settings: `'title'`, `'key'`, `'value'`, `'label'`, `'scheme'`, `'projection'`, `'height'`, `'legend_title'`.
+	 * ## Examples
+	 *
+	 * ### Choropleth from key-value country codes
+	 *
+	 * ```elscript
+	 * Graph.worldmap({
+	 *     'US': 1930,
+	 *     'ES': 420,
+	 *     'DE': 890,
+	 *     'BR': 610,
+	 *     'JP': 750
+	 * }, {
+	 *     'title': 'Global Request Origins'
+	 * })
+	 * ```
+	 *
+	 * ### Tabular country records
+	 *
+	 * ```elscript
+	 * Graph.worldmap([
+	 *     { 'country': 'US', 'threats': 1420 },
+	 *     { 'country': 'GB', 'threats': 830 },
+	 *     { 'country': 'FR', 'threats': 560 }
+	 * ], {
+	 *     'title': 'Threat Distribution by Country',
+	 *     'scheme': Graph.SCHEME_ORANGES
+	 * })
+	 * ```
+	 *
+	 * @see https://vega.github.io/vega-lite/docs/projection.html
+	 * @see https://vega.github.io/vega-lite/docs/geoshape.html
+	 * @see https://expressionlab.io/docs/api-reference/graph#graphworldmap
+	 *
+	 * @param mixed $data    List of associative records or key-value dictionary mapping country codes to values.
+	 * @param array $options Optional map settings:
+	 *                       - `'title'` (string): Panel title. Default `'World Map'`.
+	 *                       - `'key'` (string): Field containing country codes, names, or numeric IDs.
+	 *                       - `'value'` (string): Field containing metric quantities.
+	 *                       - `'label'` (string): Additional metadata field shown in hover tooltips.
+	 *                       - `'scheme'` (string): Vega-Lite color scheme for heat gradient. Default `Graph.SCHEME_BLUES`.
+	 *                       - `'projection'` (string): Cartographic projection type. Default `'equalEarth'`.
+	 *                       - `'height'` (int): Visualization height in pixels. Default `480`.
+	 *                       - `'legend_title'` (string): Custom title for color scale legend.
 	 * @return void
 	 */
 	public function worldmap( $data, array $options = array() ): void {
@@ -1466,16 +1756,59 @@ final class Graph implements ServiceInterface {
 	}
 
 	/**
-	 * Renders a thematic US States choropleth map using TopoJSON geometries and Albers USA projection.
+	 * Renders a choropleth map of United States states and territories.
 	 *
-	 * Automatically resolves state abbreviations (`'CA'`, `'NY'`), state names (`'California'`, `'Texas'`),
-	 * or numeric FIPS codes (`6`, `'06'`, `48`) into standard TopoJSON IDs, generating tooltips and
-	 * seamless geographic layering.
+	 * Projects regional metrics onto US TopoJSON boundaries using an Albers USA composite projection.
+	 * Standardizes two-letter postal codes (`'CA'`, `'TX'`), full state names (`'California'`),
+	 * and numeric FIPS identifiers (`6`, `'06'`) into matching geometry keys.
 	 *
-	 * TODO: Documentation and examples.
+	 * Binds metric values to sequential color gradients and enriches hover tooltips
+	 * with state names and codes.
 	 *
-	 * @param mixed $data    List of associative records or dictionary with state identifiers and metrics.
-	 * @param array $options Optional map settings: `'title'`, `'key'`, `'value'`, `'label'`, `'scheme'`, `'projection'`, `'height'`, `'legend_title'`.
+	 * ## Examples
+	 *
+	 * ### Map from postal abbreviations
+	 *
+	 * ```elscript
+	 * Graph.usa({
+	 *     'CA': 9500,
+	 *     'TX': 6200,
+	 *     'NY': 5800,
+	 *     'FL': 4900,
+	 *     'IL': 3400
+	 * }, {
+	 *     'title': 'Sales Volume by State',
+	 *     'scheme': Graph.SCHEME_GREENS
+	 * })
+	 * ```
+	 *
+	 * ### Tabular state records
+	 *
+	 * ```elscript
+	 * Graph.usa([
+	 *     { 'state': 'California', 'active_users': 14200 },
+	 *     { 'state': 'Washington', 'active_users': 8300 },
+	 *     { 'state': 'Oregon',     'active_users': 5100 }
+	 * ], {
+	 *     'title': 'Pacific Coast User Base',
+	 *     'scheme': Graph.SCHEME_PURPLES
+	 * })
+	 * ```
+	 *
+	 * @see https://vega.github.io/vega-lite/docs/projection.html
+	 * @see https://vega.github.io/vega-lite/docs/geoshape.html
+	 * @see https://expressionlab.io/docs/api-reference/graph#graphusa
+	 *
+	 * @param mixed $data    List of associative records or dictionary mapping state identifiers to values.
+	 * @param array $options Optional map settings:
+	 *                       - `'title'` (string): Panel title. Default `'US State Map'`.
+	 *                       - `'key'` (string): Field containing state postal codes, names, or FIPS IDs.
+	 *                       - `'value'` (string): Field containing metric values.
+	 *                       - `'label'` (string): Additional metadata field shown in hover tooltips.
+	 *                       - `'scheme'` (string): Vega-Lite color scheme for heat gradient. Default `Graph.SCHEME_BLUES`.
+	 *                       - `'projection'` (string): Cartographic projection type. Default `'albersUsa'`.
+	 *                       - `'height'` (int): Visualization height in pixels. Default `450`.
+	 *                       - `'legend_title'` (string): Custom title for color scale legend.
 	 * @return void
 	 */
 	public function usa( $data, array $options = array() ): void {
@@ -1668,12 +2001,43 @@ final class Graph implements ServiceInterface {
 	}
 
 	/**
-	 * Renders a boxplot chart to visualize distributions and statistical quartiles.
+	 * Renders a boxplot chart to depict data distributions and statistical quartiles.
 	 *
-	 * TODO: Documentation and examples.
+	 * Computes median, lower quartile (Q1), upper quartile (Q3), and min-max whisker
+	 * boundaries for quantitative variables across categories.
+	 *
+	 * When a `color` field is defined, boxes partition into categorical sub-groups
+	 * with distinctive color fills.
+	 *
+	 * Example:
+	 *
+	 * ```elscript
+	 * Graph.boxplot([
+	 *     { 'endpoint': '/api/posts', 'latency_ms': 42 },
+	 *     { 'endpoint': '/api/posts', 'latency_ms': 58 },
+	 *     { 'endpoint': '/api/posts', 'latency_ms': 120 },
+	 *     { 'endpoint': '/api/users', 'latency_ms': 85 },
+	 *     { 'endpoint': '/api/users', 'latency_ms': 92 },
+	 *     { 'endpoint': '/api/users', 'latency_ms': 240 }
+	 * ], {
+	 *     'title': 'API Endpoint Latency Distribution',
+	 *     'x': 'endpoint',
+	 *     'y': 'latency_ms'
+	 * })
+	 * ```
+	 *
+	 * @see https://vega.github.io/vega-lite/docs/boxplot.html
+	 * @see https://expressionlab.io/docs/api-reference/graph#graphboxplot
 	 *
 	 * @param mixed $data    List of associative records.
-	 * @param array $options Optional chart settings: `'title'`, `'x'`, `'y'`, `'color'`, `'height'`.
+	 * @param array $options Optional chart settings:
+	 *                       - `'title'` (string): Panel title. Default `'Boxplot'`.
+	 *                       - `'x'` (string): Field mapped to horizontal axis (categorical dimension).
+	 *                       - `'y'` (string): Field mapped to vertical axis (quantitative metric).
+	 *                       - `'color'` (string): Field name for group colors, or literal color code.
+	 *                       - `'color_value'` (string): Fixed hex color for box fill. Default `Graph.COLOR_BLUE`.
+	 *                       - `'label_angle'` (int): Rotation angle in degrees for axis labels. Default `-45`.
+	 *                       - `'height'` (int): Visualization height in pixels. Default `360`.
 	 * @return void
 	 */
 	public function boxplot( $data, array $options = array() ): void {
@@ -1735,12 +2099,63 @@ final class Graph implements ServiceInterface {
 	}
 
 	/**
-	 * Renders a scatter / bubble plot to visualize correlations and distributions between two continuous variables.
+	 * Renders a scatter or bubble plot to analyze correlations between continuous variables.
 	 *
-	 * TODO: Documentation and examples.
+	 * Positions individual markers along two quantitative axes.
+	 * Binds optional dimensions to marker size, opacity, or categorical color grouping.
+	 *
+	 * When data clusters away from the origin, setting `zero` to `false` disables
+	 * zero-baseline expansion to focus on the active observation range.
+	 *
+	 * Example:
+	 *
+	 * ```elscript
+	 * Graph.scatter([
+	 *     { 'queries': 6,   'duration_ms': 18,  'rows_examined': 85,    'status': 'ok' },
+	 *     { 'queries': 12,  'duration_ms': 28,  'rows_examined': 240,   'status': 'ok' },
+	 *     { 'queries': 16,  'duration_ms': 35,  'rows_examined': 410,   'status': 'ok' },
+	 *     { 'queries': 22,  'duration_ms': 52,  'rows_examined': 620,   'status': 'ok' },
+	 *     { 'queries': 28,  'duration_ms': 48,  'rows_examined': 390,   'status': 'ok' },
+	 *     { 'queries': 32,  'duration_ms': 70,  'rows_examined': 880,   'status': 'ok' },
+	 *     { 'queries': 38,  'duration_ms': 88,  'rows_examined': 1250,  'status': 'ok' },
+	 *     { 'queries': 45,  'duration_ms': 135, 'rows_examined': 2800,  'status': 'warning' },
+	 *     { 'queries': 50,  'duration_ms': 160, 'rows_examined': 3400,  'status': 'warning' },
+	 *     { 'queries': 58,  'duration_ms': 145, 'rows_examined': 3100,  'status': 'warning' },
+	 *     { 'queries': 64,  'duration_ms': 195, 'rows_examined': 5400,  'status': 'warning' },
+	 *     { 'queries': 72,  'duration_ms': 230, 'rows_examined': 6800,  'status': 'warning' },
+	 *     { 'queries': 78,  'duration_ms': 210, 'rows_examined': 4900,  'status': 'warning' },
+	 *     { 'queries': 84,  'duration_ms': 275, 'rows_examined': 8200,  'status': 'warning' },
+	 *     { 'queries': 90,  'duration_ms': 360, 'rows_examined': 12500, 'status': 'critical' },
+	 *     { 'queries': 98,  'duration_ms': 430, 'rows_examined': 17200, 'status': 'critical' },
+	 *     { 'queries': 105, 'duration_ms': 490, 'rows_examined': 22000, 'status': 'critical' },
+	 *     { 'queries': 116, 'duration_ms': 560, 'rows_examined': 31000, 'status': 'critical' },
+	 *     { 'queries': 128, 'duration_ms': 640, 'rows_examined': 42000, 'status': 'critical' }
+	 * ], {
+	 *     'title': 'Database Queries vs Execution Duration',
+	 *     'x': 'queries',
+	 *     'y': 'duration_ms',
+	 *     'color': 'status',
+	 *     'size': 'rows_examined',
+	 *     'opacity': 0.75,
+	 *     'height': 380,
+	 *     'zero': false
+	 * })
+	 * ```
+	 *
+	 * @see https://vega.github.io/vega-lite/docs/point.html
+	 * @see https://expressionlab.io/docs/api-reference/graph#graphscatter
 	 *
 	 * @param mixed $data    List of associative records.
-	 * @param array $options Optional chart settings: 'title', 'x', 'y', 'color', 'size', 'opacity', 'zero', 'height'.
+	 * @param array $options Optional chart settings:
+	 *                       - `'title'` (string): Panel title. Default `'Scatter Plot'`.
+	 *                       - `'x'` (string): Numeric field for horizontal coordinates.
+	 *                       - `'y'` (string): Numeric field for vertical coordinates.
+	 *                       - `'color'` (string): Field for color grouping, or literal hex color code.
+	 *                       - `'size'` (string|int|float): Field for bubble size encoding or fixed marker point size in square pixels.
+	 *                       - `'opacity'` (float): Marker opacity from 0.0 to 1.0. Default `0.7`.
+	 *                       - `'zero'` (bool): Whether scale axes must include zero. Default `false`.
+	 *                       - `'label_angle'` (int): Rotation angle in degrees for axis labels. Default `-45`.
+	 *                       - `'height'` (int): Visualization height in pixels. Default `360`.
 	 * @return void
 	 */
 	public function scatter( $data, array $options = array() ): void {
@@ -1859,12 +2274,63 @@ final class Graph implements ServiceInterface {
 	}
 
 	/**
-	 * Renders a 2D intensity heatmap / matrix chart.
+	 * Renders a two-dimensional matrix heatmap for joint categorical or temporal densities.
 	 *
-	 * TODO: Documentation and examples.
+	 * Arranges records into a grid of discrete cells across horizontal and vertical coordinates.
+	 * Maps cell fill colors to a third quantitative metric using sequential gradient scales.
+	 *
+	 * White cell borders separate adjacent data partitions.
+	 *
+	 * Example:
+	 *
+	 * ```elscript
+	 * Graph.heatmap([
+	 *     { 'day': 'Mon', 'hour': 9,  'events': 50 },
+	 *     { 'day': 'Mon', 'hour': 10, 'events': 320 },
+	 *     { 'day': 'Mon', 'hour': 11, 'events': 25 },
+	 *     { 'day': 'Mon', 'hour': 12, 'events': 250 },
+	 *     { 'day': 'Mon', 'hour': 13, 'events': 195 },
+	 *     { 'day': 'Mon', 'hour': 14, 'events': 331 },
+	 *     { 'day': 'Mon', 'hour': 15, 'events': 80 },
+	 *     { 'day': 'Tue', 'hour': 9,  'events': 190 },
+	 *     { 'day': 'Tue', 'hour': 10, 'events': 78 },
+	 *     { 'day': 'Tue', 'hour': 11, 'events': 22 },
+	 *     { 'day': 'Tue', 'hour': 12, 'events': 25 },
+	 *     { 'day': 'Tue', 'hour': 13, 'events': 250 },
+	 *     { 'day': 'Tue', 'hour': 14, 'events': 410 },
+	 *     { 'day': 'Tue', 'hour': 15, 'events': 295 },
+	 *     { 'day': 'Wed', 'hour': 9,  'events': 190 },
+	 *     { 'day': 'Wed', 'hour': 10, 'events': 46 },
+	 *     { 'day': 'Wed', 'hour': 11, 'events': 101 },
+	 *     { 'day': 'Wed', 'hour': 12, 'events': 610 },
+	 *     { 'day': 'Wed', 'hour': 13, 'events': 710 },
+	 *     { 'day': 'Wed', 'hour': 14, 'events': 155 },
+	 *     { 'day': 'Wed', 'hour': 15, 'events': 25 }
+	 * ], {
+	 *     'title': 'System Events by Day and Hour',
+	 *     'x': 'hour',
+	 *     'y': 'day',
+	 *     'value': 'events',
+	 *     'height' : 180,
+	 *     'scheme': Graph.SCHEME_PURPLES
+	 * })
+	 * ```
+	 *
+	 * @see https://vega.github.io/vega-lite/docs/
+	 * @see https://expressionlab.io/docs/api-reference/graph#graphheatmap
 	 *
 	 * @param mixed $data    List of associative records.
-	 * @param array $options Optional chart settings: `'title'`, `'x'`, `'y'`, `'value'`, `'color'`, `'scheme'`, `'height'`, `'stroke'`.
+	 * @param array $options Optional chart settings:
+	 *                       - `'title'` (string): Panel title. Default `'Heatmap'`.
+	 *                       - `'x'` (string): Field for horizontal column coordinates.
+	 *                       - `'y'` (string): Field for vertical row coordinates.
+	 *                       - `'value'` (string): Quantitative metric mapped to cell color.
+	 *                       - `'color'` (string): Alias for `'value'` field selection.
+	 *                       - `'scheme'` (string): Sequential color scheme name. Default `Graph.SCHEME_BLUES`.
+	 *                       - `'stroke'` (string): Cell border stroke color. Default `'#ffffff'`.
+	 *                       - `'legend_title'` (string): Custom title for color bar legend.
+	 *                       - `'label_angle'` (int): Rotation angle in degrees for axis labels. Default `-45`.
+	 *                       - `'height'` (int): Visualization height in pixels. Default `360`.
 	 * @return void
 	 */
 	public function heatmap( $data, array $options = array() ): void {
@@ -1984,14 +2450,70 @@ final class Graph implements ServiceInterface {
 	}
 
 	/**
-	 * Renders a statistical frequency histogram with client-side automatic binning.
+	 * Renders a statistical frequency histogram with interval binning.
 	 *
-	 * Accepts either a flat array of numbers (e.g. latency readings) or records.
+	 * Groups continuous numeric observations into discrete interval bins
+	 * and calculates observation frequencies per bin.
 	 *
-	 * TODO: Documentation and examples.
+	 * Accepts either an array of numbers (such as latency measurements)
+	 * or tabular records containing a target numeric column.
 	 *
-	 * @param mixed $data    List of numbers or associative records.
-	 * @param array $options Optional chart settings: `'title'`, `'field'`, `'x'`, `'bins'`, `'maxbins'`, `'step'`, `'color'`, `'height'`.
+	 * ## Examples
+	 *
+	 * ### Histogram from numeric measurements
+	 *
+	 * ```elscript
+	 * Graph.histogram([
+	 *     12.4, 15.1, 18.3, 19.0, 21.2, 22.8, 23.1, 28.5, 34.2, 45.0
+	 * ], {
+	 *     'title': 'Query Duration Distribution',
+	 *     'bins': 10,
+	 *     'color': Graph.COLOR_CYAN
+	 * })
+	 * ```
+	 *
+	 * ### Tabular records with group coloring
+	 *
+	 * ```elscript
+	 * Graph.histogram([
+	 *     { 'duration': 45,  'status': '404' },
+	 *     { 'duration': 60,  'status': '404' },
+	 *     { 'duration': 80,  'status': '200' },
+	 *     { 'duration': 95,  'status': '200' },
+	 *     { 'duration': 110, 'status': '200' },
+	 *     { 'duration': 125, 'status': '200' },
+	 *     { 'duration': 130, 'status': '200' },
+	 *     { 'duration': 145, 'status': '200' },
+	 *     { 'duration': 160, 'status': '200' },
+	 *     { 'duration': 175, 'status': '200' },
+	 *     { 'duration': 190, 'status': '500' },
+	 *     { 'duration': 210, 'status': '200' },
+	 *     { 'duration': 220, 'status': '500' },
+	 *     { 'duration': 260, 'status': '500' },
+	 *     { 'duration': 310, 'status': '500' },
+	 *     { 'duration': 350, 'status': '500' }
+	 * ], {
+	 *     'title': 'HTTP Latency by Response Status',
+	 *     'field': 'duration',
+	 *     'color': 'status',
+	 *     'bins': 8
+	 * })
+	 * ```
+	 *
+	 * @see https://vega.github.io/vega-lite/docs/
+	 * @see https://expressionlab.io/docs/api-reference/graph#graphhistogram
+	 *
+	 * @param mixed $data    List of scalar numbers or associative records.
+	 * @param array $options Optional chart settings:
+	 *                       - `'title'` (string): Panel title. Default `'Histogram'`.
+	 *                       - `'field'` (string): Numeric field to partition into bins.
+	 *                       - `'x'` (string): Alias for `'field'`.
+	 *                       - `'bins'` (int): Maximum target bin count. Default `20`.
+	 *                       - `'maxbins'` (int): Upper bound for bin divisions.
+	 *                       - `'step'` (float): Fixed step width for each bin interval.
+	 *                       - `'color'` (string): Field name for color grouping, or fixed color code.
+	 *                       - `'label_angle'` (int): Rotation angle in degrees for axis labels. Default `-45`.
+	 *                       - `'height'` (int): Visualization height in pixels. Default `360`.
 	 * @return void
 	 */
 	public function histogram( $data, array $options = array() ): void {
@@ -2082,14 +2604,77 @@ final class Graph implements ServiceInterface {
 	}
 
 	/**
-	 * Renders an area chart to visualize continuous volumes, bandwidth, and stacked time-series.
+	 * Renders an area chart for cumulative volumes, bandwidth, and stacked time-series.
 	 *
-	 * Supports standard stacked areas, 100% normalized areas, and organic Streamgraphs.
+	 * Fills the region between baseline coordinates and metric values across an ordered axis.
 	 *
-	 * TODO: Documentation and examples.
+	 * Setting `stream` to `true` centers stacked series around a middle baseline to form
+	 * a streamgraph. Setting `normalize` to `true` standardizes stack heights to 100%
+	 * relative proportions.
+	 *
+	 * ## Examples
+	 *
+	 * ### Single volume area
+	 *
+	 * ```elscript
+	 * Graph.area([
+	 *     { 'timestamp': '10:00', 'bandwidth_mb': 120 },
+	 *     { 'timestamp': '10:05', 'bandwidth_mb': 240 },
+	 *     { 'timestamp': '10:10', 'bandwidth_mb': 180 }
+	 * ], {
+	 *     'title': 'Network Bandwidth Usage',
+	 *     'color': Graph.COLOR_BLUE
+	 * })
+	 * ```
+	 *
+	 * ### Stacked multi-series infrastructure volume
+	 *
+	 * ```elscript
+	 * Graph.area([
+	 *     { 'date': '2026-09-01', 'traffic_gb': 320, 'tier': 'Media CDN' },
+	 *     { 'date': '2026-09-01', 'traffic_gb': 180, 'tier': 'Web Application' },
+	 *     { 'date': '2026-09-01', 'traffic_gb': 90,  'tier': 'REST API Gateway' },
+	 *     { 'date': '2026-09-02', 'traffic_gb': 410, 'tier': 'Media CDN' },
+	 *     { 'date': '2026-09-02', 'traffic_gb': 240, 'tier': 'Web Application' },
+	 *     { 'date': '2026-09-02', 'traffic_gb': 130, 'tier': 'REST API Gateway' },
+	 *     { 'date': '2026-09-03', 'traffic_gb': 490, 'tier': 'Media CDN' },
+	 *     { 'date': '2026-09-03', 'traffic_gb': 290, 'tier': 'Web Application' },
+	 *     { 'date': '2026-09-03', 'traffic_gb': 160, 'tier': 'REST API Gateway' },
+	 *     { 'date': '2026-09-04', 'traffic_gb': 380, 'tier': 'Media CDN' },
+	 *     { 'date': '2026-09-04', 'traffic_gb': 220, 'tier': 'Web Application' },
+	 *     { 'date': '2026-09-04', 'traffic_gb': 110, 'tier': 'REST API Gateway' },
+	 *     { 'date': '2026-09-05', 'traffic_gb': 530, 'tier': 'Media CDN' },
+	 *     { 'date': '2026-09-05', 'traffic_gb': 310, 'tier': 'Web Application' },
+	 *     { 'date': '2026-09-05', 'traffic_gb': 190, 'tier': 'REST API Gateway' },
+	 *     { 'date': '2026-09-06', 'traffic_gb': 280, 'tier': 'Media CDN' },
+	 *     { 'date': '2026-09-06', 'traffic_gb': 140, 'tier': 'Web Application' },
+	 *     { 'date': '2026-09-06', 'traffic_gb': 70,  'tier': 'REST API Gateway' },
+	 *     { 'date': '2026-09-07', 'traffic_gb': 260, 'tier': 'Media CDN' },
+	 *     { 'date': '2026-09-07', 'traffic_gb': 120, 'tier': 'Web Application' },
+	 *     { 'date': '2026-09-07', 'traffic_gb': 60,  'tier': 'REST API Gateway' }
+	 * ], {
+	 *     'title': 'Infrastructure Network Consumption (GB)',
+	 *     'x': 'date',
+	 *     'y': 'traffic_gb',
+	 *     'color': 'tier'
+	 * })
+	 * ```
+	 *
+	 * @see https://vega.github.io/vega-lite/docs/
+	 * @see https://expressionlab.io/docs/api-reference/graph#grapharea
 	 *
 	 * @param mixed $data    List of associative records.
-	 * @param array $options Optional chart settings: `'title'`, `'x'`, `'y'`, `'color'`, `'stream'`, `'normalize'`, `'curve'`, `'opacity'`, `'height'`.
+	 * @param array $options Optional chart settings:
+	 *                       - `'title'` (string): Panel title. Default `'Area Chart'`.
+	 *                       - `'x'` (string): Field mapped to horizontal axis.
+	 *                       - `'y'` (string): Field mapped to vertical axis.
+	 *                       - `'color'` (string): Field for multi-series color grouping, or fixed color code.
+	 *                       - `'stream'` (bool): Whether to center stack on zero for a streamgraph. Default `false`.
+	 *                       - `'normalize'` (bool): Whether to scale stack to 100% percentages. Default `false`.
+	 *                       - `'curve'` (string): Interpolation mode (`'monotone'`, `'basis'`, `'linear'`). Default `'monotone'`.
+	 *                       - `'opacity'` (float): Fill opacity between 0.0 and 1.0. Default `0.6`.
+	 *                       - `'label_angle'` (int): Rotation angle in degrees for axis labels. Default `-45`.
+	 *                       - `'height'` (int): Visualization height in pixels. Default `360`.
 	 * @return void
 	 */
 	public function area( $data, array $options = array() ): void {
@@ -2150,10 +2735,16 @@ final class Graph implements ServiceInterface {
 					'legend' => array( 'title' => ucwords( str_replace( '_', ' ', $color_opt ) ) ),
 				);
 			} else {
-				$mark['color'] = $color_opt;
+				$mark['color']     = $color_opt;
+				$encoding['color'] = array( 'value' => $color_opt );
 			}
+		} elseif ( ! empty( $options['color_value'] ) ) {
+			$color_val         = (string) $options['color_value'];
+			$mark['color']     = $color_val;
+			$encoding['color'] = array( 'value' => $color_val );
 		} else {
-			$mark['color'] = self::COLOR_BLUE;
+			$mark['color']     = self::COLOR_BLUE;
+			$encoding['color'] = array( 'value' => self::COLOR_BLUE );
 		}
 
 		$spec = array(
@@ -2168,12 +2759,38 @@ final class Graph implements ServiceInterface {
 	}
 
 	/**
-	 * Renders a timeline / interval Gantt chart for events, tasks, profiler traces, and job execution intervals.
+	 * Renders a horizontal interval Gantt timeline for execution intervals and scheduled events.
 	 *
-	 * TODO: Documentation and examples.
+	 * Displays horizontal task bars spanning from a start coordinate to an end coordinate
+	 * along a temporal or quantitative axis. Allocates individual operations to discrete
+	 * rows along the vertical lane axis.
 	 *
-	 * @param mixed $data    List of associative records with task, start, and end definitions.
-	 * @param array $options Optional chart settings: `'title'`, `'task'`, `'y'`, `'start'`, `'x'`, `'end'`, `'x2'`, `'color'`, `'height'`.
+	 * Accepts timestamp strings or numeric millisecond offsets for boundary markers.
+	 *
+	 * Example:
+	 *
+	 * ```elscript
+	 * Graph.timeline([
+	 *     { 'task': 'Database Query',   'start': 0,  'end': 45 },
+	 *     { 'task': 'Cache Resolution', 'start': 30, 'end': 85 },
+	 *     { 'task': 'Template Render',  'start': 80, 'end': 190 }
+	 * ], {
+	 *     'title': 'Execution Profile Timeline'
+	 * })
+	 * ```
+	 *
+	 * @see https://vega.github.io/vega-lite/docs/
+	 * @see https://expressionlab.io/docs/api-reference/graph#graphtimeline
+	 *
+	 * @param mixed $data    List of associative records containing task, start, and end definitions.
+	 * @param array $options Optional chart settings:
+	 *                       - `'title'` (string): Panel title. Default `'Timeline'`.
+	 *                       - `'task'` (string): Field containing task or lane names (vertical axis).
+	 *                       - `'start'` (string): Field containing start coordinates (horizontal axis).
+	 *                       - `'end'` (string): Field containing end coordinates (horizontal extent).
+	 *                       - `'color'` (string): Field for category coloring, or fixed color code.
+	 *                       - `'label_angle'` (int): Rotation angle in degrees for axis labels. Default `-45`.
+	 *                       - `'height'` (int): Visualization height in pixels. Default auto-calculated from record count.
 	 * @return void
 	 */
 	public function timeline( $data, array $options = array() ): void {

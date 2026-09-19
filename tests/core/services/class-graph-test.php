@@ -348,6 +348,13 @@ class GraphTest extends WP_UnitTestCase {
 		$this->assertEquals( -45, $viz['data']['encoding']['x']['axis']['labelAngle'] );
 		$this->assertNull( $viz['data']['encoding']['x']['sort'] );
 		$this->assertEquals( 'visits', $viz['data']['encoding']['y']['field'] );
+		$this->assertEquals( array( 'value' => Graph::COLOR_BLUE ), $viz['data']['encoding']['color'] );
+
+		// Custom color_value for single-series line chart (propagates to points).
+		$this->graph->lines( $data, array( 'title' => 'Green Traffic', 'color_value' => Graph::COLOR_GREEN ) );
+		$viz_green = LanguageEngine::get()->get_visualizations()[1];
+		$this->assertEquals( array( 'value' => Graph::COLOR_GREEN ), $viz_green['data']['encoding']['color'] );
+		$this->assertEquals( Graph::COLOR_GREEN, $viz_green['data']['mark']['color'] );
 
 		// Multi-series line chart with categorical color grouping.
 		$multi_data = array(
@@ -373,9 +380,38 @@ class GraphTest extends WP_UnitTestCase {
 			),
 		);
 		$this->graph->lines( $multi_data, array( 'title' => 'Multi Traffic', 'color' => 'channel' ) );
-		$viz2 = LanguageEngine::get()->get_visualizations()[1];
+		$viz2 = LanguageEngine::get()->get_visualizations()[2];
 		$this->assertEquals( 'channel', $viz2['data']['encoding']['color']['field'] );
 		$this->assertEquals( 'nominal', $viz2['data']['encoding']['color']['type'] );
+
+		// Multi-series line chart with numeric time and metric fields.
+		$server_data = array(
+			array(
+				'hour'   => 1,
+				'metric' => 45,
+				'server' => 'web-01',
+			),
+			array(
+				'hour'   => 2,
+				'metric' => 52,
+				'server' => 'web-01',
+			),
+			array(
+				'hour'   => 1,
+				'metric' => 38,
+				'server' => 'web-02',
+			),
+			array(
+				'hour'   => 2,
+				'metric' => 48,
+				'server' => 'web-02',
+			),
+		);
+		$this->graph->lines( $server_data, array( 'title' => 'Server Load', 'color' => 'server' ) );
+		$viz3 = LanguageEngine::get()->get_visualizations()[3];
+		$this->assertEquals( 'hour', $viz3['data']['encoding']['x']['field'] );
+		$this->assertEquals( 'metric', $viz3['data']['encoding']['y']['field'] );
+		$this->assertEquals( 'server', $viz3['data']['encoding']['color']['field'] );
 	}
 
 	public function test_pie_and_donut_chart_creation() {
