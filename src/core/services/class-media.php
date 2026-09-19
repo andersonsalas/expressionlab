@@ -534,11 +534,7 @@ final class Media {
 							'field'  => 'mime_type',
 							'type'   => 'nominal',
 							'legend' => array(
-								'title'         => 'MIME Type',
-								'titleFontSize' => 14,
-								'labelFontSize' => 13,
-								'labelFont'     => 'Cascadia Mono, monospace',
-								'titleFont'     => 'Roboto Slab, serif',
+								'title' => 'MIME Type',
 							),
 						),
 					),

@@ -588,11 +588,7 @@ final class Files {
 								'field'  => 'extension',
 								'type'   => 'nominal',
 								'legend' => array(
-									'title'         => 'Extension',
-									'titleFontSize' => 14,
-									'labelFontSize' => 13,
-									'labelFont'     => 'Cascadia Mono, monospace',
-									'titleFont'     => 'Roboto Slab, serif',
+									'title' => 'Extension',
 								),
 							),
 						),
