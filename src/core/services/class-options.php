@@ -509,6 +509,7 @@ class Options {
 						'data'  => array(
 							'$schema'     => 'https://vega.github.io/schema/vega-lite/v6.json',
 							'description' => 'Prefix distribution graph',
+							'title'       => 'Option Prefix Distribution',
 							'width'       => 'container',
 							'height'      => 400,
 							'padding'     => 5,
@@ -566,6 +567,7 @@ class Options {
 						'data'  => array(
 							'$schema'     => 'https://vega.github.io/schema/vega-lite/v6.json',
 							'description' => 'Autoload distribution graph',
+							'title'       => 'Autoload Distribution',
 							'width'       => 'container',
 							'height'      => 300,
 							'padding'     => 20,

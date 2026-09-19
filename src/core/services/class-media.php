@@ -515,6 +515,7 @@ final class Media {
 				'data'  => array(
 					'$schema'     => 'https://vega.github.io/schema/vega-lite/v6.json',
 					'description' => 'Media distribution graph',
+					'title'       => 'Media Distribution by MIME Type',
 					'width'       => 'container',
 					'height'      => 300,
 					'padding'     => 20,

@@ -362,6 +362,7 @@ final class Posts {
 				'data'  => array(
 					'$schema'     => 'https://vega.github.io/schema/vega-lite/v6.json',
 					'description' => 'Posts distribution graph',
+					'title'       => 'Posts Distribution by Type',
 					'width'       => 'container',
 					'height'      => 320,
 					'padding'     => 5,

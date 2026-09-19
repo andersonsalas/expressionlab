@@ -569,6 +569,7 @@ final class Files {
 					'data'  => array(
 						'$schema'     => 'https://vega.github.io/schema/vega-lite/v6.json',
 						'description' => 'Files extension size distribution graph',
+						'title'       => 'Disk Size Distribution by Extension',
 						'width'       => 'container',
 						'height'      => 300,
 						'padding'     => 20,
