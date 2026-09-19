@@ -451,7 +451,132 @@ class GraphTest extends WP_UnitTestCase {
 		$this->assertEquals( Graph::SCHEME_BLUES, $data_layer['encoding']['color']['scale']['scheme'] );
 		$this->assertEquals( '#000000', $data_layer['mark']['stroke'] );
 		$this->assertEquals( 0.5, $data_layer['mark']['strokeWidth'] );
-		$this->assertCount( 2, $data_layer['encoding']['tooltip'] );
+		$this->assertCount( 3, $data_layer['encoding']['tooltip'] );
+		$this->assertEquals( 'country_name', $data_layer['encoding']['tooltip'][0]['field'] );
+		$this->assertEquals( 'country_code', $data_layer['encoding']['tooltip'][1]['field'] );
+		$this->assertEquals( 'spam', $data_layer['encoding']['tooltip'][2]['field'] );
+	}
+
+	/**
+	 * Helper to invoke private Graph::resolve_country via Reflection.
+	 *
+	 * @param mixed $val Country code, ID, or name.
+	 * @return array|null
+	 */
+	private function resolve_country( $val ): ?array {
+		$ref    = new \ReflectionClass( $this->graph );
+		$method = $ref->getMethod( 'resolve_country' );
+		return $method->invoke( $this->graph, $val );
+	}
+
+	public function test_resolve_country_various_formats() {
+		// Alpha-2 code.
+		$us = $this->resolve_country( 'US' );
+		$this->assertNotNull( $us );
+		$this->assertEquals( '840', $us['id'] );
+		$this->assertEquals( 'United States', $us['name'] );
+		$this->assertEquals( 'US', $us['alpha2'] );
+		$this->assertEquals( 'USA', $us['alpha3'] );
+
+		// Lowercase Alpha-2 code.
+		$es = $this->resolve_country( 'es' );
+		$this->assertNotNull( $es );
+		$this->assertEquals( '724', $es['id'] );
+		$this->assertEquals( 'Spain', $es['name'] );
+
+		// Alpha-3 code.
+		$ru = $this->resolve_country( 'RUS' );
+		$this->assertNotNull( $ru );
+		$this->assertEquals( '643', $ru['id'] );
+		$this->assertEquals( 'Russia', $ru['name'] );
+
+		// Numeric ID (integer and string with leading zero).
+		$ar = $this->resolve_country( 32 );
+		$this->assertNotNull( $ar );
+		$this->assertEquals( '032', $ar['id'] );
+		$this->assertEquals( 'Argentina', $ar['name'] );
+
+		$ar_str = $this->resolve_country( '032' );
+		$this->assertNotNull( $ar_str );
+		$this->assertEquals( '032', $ar_str['id'] );
+
+		// Common country names and aliases.
+		$uk = $this->resolve_country( 'UK' );
+		$this->assertNotNull( $uk );
+		$this->assertEquals( '826', $uk['id'] );
+		$this->assertEquals( 'United Kingdom', $uk['name'] );
+
+		$kr = $this->resolve_country( 'South Korea' );
+		$this->assertNotNull( $kr );
+		$this->assertEquals( '410', $kr['id'] );
+		$this->assertEquals( 'South Korea', $kr['name'] );
+
+		$russia = $this->resolve_country( 'Russian Federation' );
+		$this->assertNotNull( $russia );
+		$this->assertEquals( '643', $russia['id'] );
+
+		// Invalid inputs.
+		$this->assertNull( $this->resolve_country( null ) );
+		$this->assertNull( $this->resolve_country( '' ) );
+		$this->assertNull( $this->resolve_country( 'XYZ' ) );
+		$this->assertNull( $this->resolve_country( 9999 ) );
+	}
+
+	public function test_worldmap_with_alpha2_codes() {
+		$data = array(
+			array(
+				'country' => 'US',
+				'spam'    => 1930,
+			),
+			array(
+				'country' => 'ES',
+				'spam'    => 420,
+			),
+			array(
+				'country' => 'RU',
+				'spam'    => 3420,
+			),
+		);
+
+		$this->graph->worldmap( $data, array( 'title' => 'Spam by Country' ) );
+
+		$viz        = LanguageEngine::get()->get_visualizations()[0];
+		$data_layer = $viz['data']['layer'][1];
+		$normalized = $data_layer['transform'][0]['from']['data']['values'];
+
+		$this->assertCount( 3, $normalized );
+		$this->assertEquals( '840', $normalized[0]['id'] );
+		$this->assertEquals( 'United States', $normalized[0]['country_name'] );
+		$this->assertEquals( 'US', $normalized[0]['country_code'] );
+
+		$this->assertEquals( '724', $normalized[1]['id'] );
+		$this->assertEquals( 'Spain', $normalized[1]['country_name'] );
+
+		$this->assertEquals( '643', $normalized[2]['id'] );
+		$this->assertEquals( 'Russia', $normalized[2]['country_name'] );
+
+		$this->assertEquals( 'id', $data_layer['transform'][0]['from']['key'] );
+		$this->assertEquals( 'id', $data_layer['transform'][0]['lookup'] );
+	}
+
+	public function test_worldmap_with_associative_map() {
+		$data = array(
+			'US' => 1930,
+			'ES' => 420,
+			'RU' => 3420,
+		);
+
+		$this->graph->worldmap( $data, array( 'title' => 'Spam Frequencies' ) );
+
+		$viz        = LanguageEngine::get()->get_visualizations()[0];
+		$data_layer = $viz['data']['layer'][1];
+		$normalized = $data_layer['transform'][0]['from']['data']['values'];
+
+		$this->assertCount( 3, $normalized );
+		$this->assertEquals( '840', $normalized[0]['id'] );
+		$this->assertEquals( 'United States', $normalized[0]['country_name'] );
+		$this->assertEquals( 1930, $normalized[0]['value'] );
+		$this->assertEquals( 'value', $data_layer['encoding']['color']['field'] );
 	}
 
 	public function test_boxplot_chart_creation() {

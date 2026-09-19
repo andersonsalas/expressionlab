@@ -435,6 +435,319 @@ final class Graph implements ServiceInterface {
 	);
 
 	/**
+	 * ISO 3166-1 country lookup table: Alpha-2 => array( numeric_id, name, alpha-3 ).
+	 *
+	 * @var array<string, array{0: string, 1: string, 2: string}>
+	 */
+	private static array $countries = array(
+		'AD' => array( '020', 'Andorra', 'AND' ),
+		'AE' => array( '784', 'United Arab Emirates', 'ARE' ),
+		'AF' => array( '004', 'Afghanistan', 'AFG' ),
+		'AG' => array( '028', 'Antigua and Barbuda', 'ATG' ),
+		'AI' => array( '660', 'Anguilla', 'AIA' ),
+		'AL' => array( '008', 'Albania', 'ALB' ),
+		'AM' => array( '051', 'Armenia', 'ARM' ),
+		'AO' => array( '024', 'Angola', 'AGO' ),
+		'AQ' => array( '010', 'Antarctica', 'ATA' ),
+		'AR' => array( '032', 'Argentina', 'ARG' ),
+		'AS' => array( '016', 'American Samoa', 'ASM' ),
+		'AT' => array( '040', 'Austria', 'AUT' ),
+		'AU' => array( '036', 'Australia', 'AUS' ),
+		'AW' => array( '533', 'Aruba', 'ABW' ),
+		'AX' => array( '248', 'Åland Islands', 'ALA' ),
+		'AZ' => array( '031', 'Azerbaijan', 'AZE' ),
+		'BA' => array( '070', 'Bosnia and Herzegovina', 'BIH' ),
+		'BB' => array( '052', 'Barbados', 'BRB' ),
+		'BD' => array( '050', 'Bangladesh', 'BGD' ),
+		'BE' => array( '056', 'Belgium', 'BEL' ),
+		'BF' => array( '854', 'Burkina Faso', 'BFA' ),
+		'BG' => array( '100', 'Bulgaria', 'BGR' ),
+		'BH' => array( '048', 'Bahrain', 'BHR' ),
+		'BI' => array( '108', 'Burundi', 'BDI' ),
+		'BJ' => array( '204', 'Benin', 'BEN' ),
+		'BL' => array( '652', 'Saint Barthélemy', 'BLM' ),
+		'BM' => array( '060', 'Bermuda', 'BMU' ),
+		'BN' => array( '096', 'Brunei', 'BRN' ),
+		'BO' => array( '068', 'Bolivia', 'BOL' ),
+		'BQ' => array( '535', 'Bonaire, Sint Eustatius and Saba', 'BES' ),
+		'BR' => array( '076', 'Brazil', 'BRA' ),
+		'BS' => array( '044', 'Bahamas', 'BHS' ),
+		'BT' => array( '064', 'Bhutan', 'BTN' ),
+		'BV' => array( '074', 'Bouvet Island', 'BVT' ),
+		'BW' => array( '072', 'Botswana', 'BWA' ),
+		'BY' => array( '112', 'Belarus', 'BLR' ),
+		'BZ' => array( '084', 'Belize', 'BLZ' ),
+		'CA' => array( '124', 'Canada', 'CAN' ),
+		'CC' => array( '166', 'Cocos (Keeling) Islands', 'CCK' ),
+		'CD' => array( '180', 'Dem. Rep. Congo', 'COD' ),
+		'CF' => array( '140', 'Central African Republic', 'CAF' ),
+		'CG' => array( '178', 'Congo', 'COG' ),
+		'CH' => array( '756', 'Switzerland', 'CHE' ),
+		'CI' => array( '384', 'Cote d\'Ivoire', 'CIV' ),
+		'CK' => array( '184', 'Cook Islands', 'COK' ),
+		'CL' => array( '152', 'Chile', 'CHL' ),
+		'CM' => array( '120', 'Cameroon', 'CMR' ),
+		'CN' => array( '156', 'China', 'CHN' ),
+		'CO' => array( '170', 'Colombia', 'COL' ),
+		'CR' => array( '188', 'Costa Rica', 'CRI' ),
+		'CU' => array( '192', 'Cuba', 'CUB' ),
+		'CV' => array( '132', 'Cabo Verde', 'CPV' ),
+		'CW' => array( '531', 'Curaçao', 'CUW' ),
+		'CX' => array( '162', 'Christmas Island', 'CXR' ),
+		'CY' => array( '196', 'Cyprus', 'CYP' ),
+		'CZ' => array( '203', 'Czechia', 'CZE' ),
+		'DE' => array( '276', 'Germany', 'DEU' ),
+		'DJ' => array( '262', 'Djibouti', 'DJI' ),
+		'DK' => array( '208', 'Denmark', 'DNK' ),
+		'DM' => array( '212', 'Dominica', 'DMA' ),
+		'DO' => array( '214', 'Dominican Republic', 'DOM' ),
+		'DZ' => array( '012', 'Algeria', 'DZA' ),
+		'EC' => array( '218', 'Ecuador', 'ECU' ),
+		'EE' => array( '233', 'Estonia', 'EST' ),
+		'EG' => array( '818', 'Egypt', 'EGY' ),
+		'EH' => array( '732', 'Western Sahara', 'ESH' ),
+		'ER' => array( '232', 'Eritrea', 'ERI' ),
+		'ES' => array( '724', 'Spain', 'ESP' ),
+		'ET' => array( '231', 'Ethiopia', 'ETH' ),
+		'FI' => array( '246', 'Finland', 'FIN' ),
+		'FJ' => array( '242', 'Fiji', 'FJI' ),
+		'FK' => array( '238', 'Falkland Islands', 'FLK' ),
+		'FM' => array( '583', 'Micronesia', 'FSM' ),
+		'FO' => array( '234', 'Faroe Islands', 'FRO' ),
+		'FR' => array( '250', 'France', 'FRA' ),
+		'GA' => array( '266', 'Gabon', 'GAB' ),
+		'GB' => array( '826', 'United Kingdom', 'GBR' ),
+		'GD' => array( '308', 'Grenada', 'GRD' ),
+		'GE' => array( '268', 'Georgia', 'GEO' ),
+		'GF' => array( '254', 'French Guiana', 'GUF' ),
+		'GG' => array( '831', 'Guernsey', 'GGY' ),
+		'GH' => array( '288', 'Ghana', 'GHA' ),
+		'GI' => array( '292', 'Gibraltar', 'GIB' ),
+		'GL' => array( '304', 'Greenland', 'GRL' ),
+		'GM' => array( '270', 'Gambia', 'GMB' ),
+		'GN' => array( '324', 'Guinea', 'GIN' ),
+		'GP' => array( '312', 'Guadeloupe', 'GLP' ),
+		'GQ' => array( '226', 'Equatorial Guinea', 'GNQ' ),
+		'GR' => array( '300', 'Greece', 'GRC' ),
+		'GS' => array( '239', 'South Georgia and the South Sandwich Islands', 'SGS' ),
+		'GT' => array( '320', 'Guatemala', 'GTM' ),
+		'GU' => array( '316', 'Guam', 'GUM' ),
+		'GW' => array( '624', 'Guinea-Bissau', 'GNB' ),
+		'GY' => array( '328', 'Guyana', 'GUY' ),
+		'HK' => array( '344', 'Hong Kong', 'HKG' ),
+		'HM' => array( '334', 'Heard Island and McDonald Islands', 'HMD' ),
+		'HN' => array( '340', 'Honduras', 'HND' ),
+		'HR' => array( '191', 'Croatia', 'HRV' ),
+		'HT' => array( '332', 'Haiti', 'HTI' ),
+		'HU' => array( '348', 'Hungary', 'HUN' ),
+		'ID' => array( '360', 'Indonesia', 'IDN' ),
+		'IE' => array( '372', 'Ireland', 'IRL' ),
+		'IL' => array( '376', 'Israel', 'ISR' ),
+		'IM' => array( '833', 'Isle of Man', 'IMN' ),
+		'IN' => array( '356', 'India', 'IND' ),
+		'IO' => array( '086', 'British Indian Ocean Territory', 'IOT' ),
+		'IQ' => array( '368', 'Iraq', 'IRQ' ),
+		'IR' => array( '364', 'Iran', 'IRN' ),
+		'IS' => array( '352', 'Iceland', 'ISL' ),
+		'IT' => array( '380', 'Italy', 'ITA' ),
+		'JE' => array( '832', 'Jersey', 'JEY' ),
+		'JM' => array( '388', 'Jamaica', 'JAM' ),
+		'JO' => array( '400', 'Jordan', 'JOR' ),
+		'JP' => array( '392', 'Japan', 'JPN' ),
+		'KE' => array( '404', 'Kenya', 'KEN' ),
+		'KG' => array( '417', 'Kyrgyzstan', 'KGZ' ),
+		'KH' => array( '116', 'Cambodia', 'KHM' ),
+		'KI' => array( '296', 'Kiribati', 'KIR' ),
+		'KM' => array( '174', 'Comoros', 'COM' ),
+		'KN' => array( '659', 'Saint Kitts and Nevis', 'KNA' ),
+		'KP' => array( '408', 'North Korea', 'PRK' ),
+		'KR' => array( '410', 'South Korea', 'KOR' ),
+		'KW' => array( '414', 'Kuwait', 'KWT' ),
+		'KY' => array( '136', 'Cayman Islands', 'CYM' ),
+		'KZ' => array( '398', 'Kazakhstan', 'KAZ' ),
+		'LA' => array( '418', 'Laos', 'LAO' ),
+		'LB' => array( '422', 'Lebanon', 'LBN' ),
+		'LC' => array( '662', 'Saint Lucia', 'LCA' ),
+		'LI' => array( '438', 'Liechtenstein', 'LIE' ),
+		'LK' => array( '144', 'Sri Lanka', 'LKA' ),
+		'LR' => array( '430', 'Liberia', 'LBR' ),
+		'LS' => array( '426', 'Lesotho', 'LSO' ),
+		'LT' => array( '440', 'Lithuania', 'LTU' ),
+		'LU' => array( '442', 'Luxembourg', 'LUX' ),
+		'LV' => array( '428', 'Latvia', 'LVA' ),
+		'LY' => array( '434', 'Libya', 'LBY' ),
+		'MA' => array( '504', 'Morocco', 'MAR' ),
+		'MC' => array( '492', 'Monaco', 'MCO' ),
+		'MD' => array( '498', 'Moldova', 'MDA' ),
+		'ME' => array( '499', 'Montenegro', 'MNE' ),
+		'MF' => array( '663', 'Saint Martin (French part)', 'MAF' ),
+		'MG' => array( '450', 'Madagascar', 'MDG' ),
+		'MH' => array( '584', 'Marshall Islands', 'MHL' ),
+		'MK' => array( '807', 'North Macedonia', 'MKD' ),
+		'ML' => array( '466', 'Mali', 'MLI' ),
+		'MM' => array( '104', 'Myanmar', 'MMR' ),
+		'MN' => array( '496', 'Mongolia', 'MNG' ),
+		'MO' => array( '446', 'Macao', 'MAC' ),
+		'MP' => array( '580', 'Northern Mariana Islands', 'MNP' ),
+		'MQ' => array( '474', 'Martinique', 'MTQ' ),
+		'MR' => array( '478', 'Mauritania', 'MRT' ),
+		'MS' => array( '500', 'Montserrat', 'MSR' ),
+		'MT' => array( '470', 'Malta', 'MLT' ),
+		'MU' => array( '480', 'Mauritius', 'MUS' ),
+		'MV' => array( '462', 'Maldives', 'MDV' ),
+		'MW' => array( '454', 'Malawi', 'MWI' ),
+		'MX' => array( '484', 'Mexico', 'MEX' ),
+		'MY' => array( '458', 'Malaysia', 'MYS' ),
+		'MZ' => array( '508', 'Mozambique', 'MOZ' ),
+		'NA' => array( '516', 'Namibia', 'NAM' ),
+		'NC' => array( '540', 'New Caledonia', 'NCL' ),
+		'NE' => array( '562', 'Niger', 'NER' ),
+		'NF' => array( '574', 'Norfolk Island', 'NFK' ),
+		'NG' => array( '566', 'Nigeria', 'NGA' ),
+		'NI' => array( '558', 'Nicaragua', 'NIC' ),
+		'NL' => array( '528', 'Netherlands', 'NLD' ),
+		'NO' => array( '578', 'Norway', 'NOR' ),
+		'NP' => array( '524', 'Nepal', 'NPL' ),
+		'NR' => array( '520', 'Nauru', 'NRU' ),
+		'NU' => array( '570', 'Niue', 'NIU' ),
+		'NZ' => array( '554', 'New Zealand', 'NZL' ),
+		'OM' => array( '512', 'Oman', 'OMN' ),
+		'PA' => array( '591', 'Panama', 'PAN' ),
+		'PE' => array( '604', 'Peru', 'PER' ),
+		'PF' => array( '258', 'French Polynesia', 'PYF' ),
+		'PG' => array( '598', 'Papua New Guinea', 'PNG' ),
+		'PH' => array( '608', 'Philippines', 'PHL' ),
+		'PK' => array( '586', 'Pakistan', 'PAK' ),
+		'PL' => array( '616', 'Poland', 'POL' ),
+		'PM' => array( '666', 'Saint Pierre and Miquelon', 'SPM' ),
+		'PN' => array( '612', 'Pitcairn', 'PCN' ),
+		'PR' => array( '630', 'Puerto Rico', 'PRI' ),
+		'PS' => array( '275', 'Palestine', 'PSE' ),
+		'PT' => array( '620', 'Portugal', 'PRT' ),
+		'PW' => array( '585', 'Palau', 'PLW' ),
+		'PY' => array( '600', 'Paraguay', 'PRY' ),
+		'QA' => array( '634', 'Qatar', 'QAT' ),
+		'RE' => array( '638', 'Réunion', 'REU' ),
+		'RO' => array( '642', 'Romania', 'ROU' ),
+		'RS' => array( '688', 'Serbia', 'SRB' ),
+		'RU' => array( '643', 'Russia', 'RUS' ),
+		'RW' => array( '646', 'Rwanda', 'RWA' ),
+		'SA' => array( '682', 'Saudi Arabia', 'SAU' ),
+		'SB' => array( '090', 'Solomon Islands', 'SLB' ),
+		'SC' => array( '690', 'Seychelles', 'SYC' ),
+		'SD' => array( '729', 'Sudan', 'SDN' ),
+		'SE' => array( '752', 'Sweden', 'SWE' ),
+		'SG' => array( '702', 'Singapore', 'SGP' ),
+		'SH' => array( '654', 'Saint Helena, Ascension and Tristan da Cunha', 'SHN' ),
+		'SI' => array( '705', 'Slovenia', 'SVN' ),
+		'SJ' => array( '744', 'Svalbard and Jan Mayen', 'SJM' ),
+		'SK' => array( '703', 'Slovakia', 'SVK' ),
+		'SL' => array( '694', 'Sierra Leone', 'SLE' ),
+		'SM' => array( '674', 'San Marino', 'SMR' ),
+		'SN' => array( '686', 'Senegal', 'SEN' ),
+		'SO' => array( '706', 'Somalia', 'SOM' ),
+		'SR' => array( '740', 'Suriname', 'SUR' ),
+		'SS' => array( '728', 'South Sudan', 'SSD' ),
+		'ST' => array( '678', 'Sao Tome and Principe', 'STP' ),
+		'SV' => array( '222', 'El Salvador', 'SLV' ),
+		'SX' => array( '534', 'Sint Maarten (Dutch part)', 'SXM' ),
+		'SY' => array( '760', 'Syria', 'SYR' ),
+		'SZ' => array( '748', 'Eswatini', 'SWZ' ),
+		'TC' => array( '796', 'Turks and Caicos Islands', 'TCA' ),
+		'TD' => array( '148', 'Chad', 'TCD' ),
+		'TF' => array( '260', 'French Southern Territories', 'ATF' ),
+		'TG' => array( '768', 'Togo', 'TGO' ),
+		'TH' => array( '764', 'Thailand', 'THA' ),
+		'TJ' => array( '762', 'Tajikistan', 'TJK' ),
+		'TK' => array( '772', 'Tokelau', 'TKL' ),
+		'TL' => array( '626', 'Timor-Leste', 'TLS' ),
+		'TM' => array( '795', 'Turkmenistan', 'TKM' ),
+		'TN' => array( '788', 'Tunisia', 'TUN' ),
+		'TO' => array( '776', 'Tonga', 'TON' ),
+		'TR' => array( '792', 'Turkey', 'TUR' ),
+		'TT' => array( '780', 'Trinidad and Tobago', 'TTO' ),
+		'TV' => array( '798', 'Tuvalu', 'TUV' ),
+		'TW' => array( '158', 'Taiwan', 'TWN' ),
+		'TZ' => array( '834', 'Tanzania', 'TZA' ),
+		'UA' => array( '804', 'Ukraine', 'UKR' ),
+		'UG' => array( '800', 'Uganda', 'UGA' ),
+		'UM' => array( '581', 'United States Minor Outlying Islands', 'UMI' ),
+		'US' => array( '840', 'United States', 'USA' ),
+		'UY' => array( '858', 'Uruguay', 'URY' ),
+		'UZ' => array( '860', 'Uzbekistan', 'UZB' ),
+		'VA' => array( '336', 'Holy See', 'VAT' ),
+		'VC' => array( '670', 'Saint Vincent and the Grenadines', 'VCT' ),
+		'VE' => array( '862', 'Venezuela', 'VEN' ),
+		'VG' => array( '092', 'Virgin Islands (British)', 'VGB' ),
+		'VI' => array( '850', 'Virgin Islands (U.S.)', 'VIR' ),
+		'VN' => array( '704', 'Vietnam', 'VNM' ),
+		'VU' => array( '548', 'Vanuatu', 'VUT' ),
+		'WF' => array( '876', 'Wallis and Futuna', 'WLF' ),
+		'WS' => array( '882', 'Samoa', 'WSM' ),
+		'YE' => array( '887', 'Yemen', 'YEM' ),
+		'YT' => array( '175', 'Mayotte', 'MYT' ),
+		'ZA' => array( '710', 'South Africa', 'ZAF' ),
+		'ZM' => array( '894', 'Zambia', 'ZMB' ),
+		'ZW' => array( '716', 'Zimbabwe', 'ZWE' ),
+	);
+
+	/**
+	 * ISO 3166-1 country name aliases and common variations => Alpha-2.
+	 *
+	 * @var array<string, string>
+	 */
+	private static array $country_aliases = array(
+		'bolivia, plurinational state of'         => 'BO',
+		'bosnia and herz.'                        => 'BA',
+		'brunei darussalam'                       => 'BN',
+		'central african rep.'                    => 'CF',
+		'congo, democratic republic of the'       => 'CD',
+		'cote d\'ivoire'                          => 'CI',
+		'czech republic'                          => 'CZ',
+		'côte d\'ivoire'                          => 'CI',
+		'dem. rep. congo'                         => 'CD',
+		'dominican rep.'                          => 'DO',
+		'eq. guinea'                              => 'GQ',
+		'falkland is.'                            => 'FK',
+		'falkland islands (malvinas)'             => 'FK',
+		'fr. s. antarctic lands'                  => 'TF',
+		'great britain'                           => 'GB',
+		'iran, islamic republic of'               => 'IR',
+		'ivory coast'                             => 'CI',
+		'korea, democratic people\'s republic of' => 'KP',
+		'korea, north'                            => 'KP',
+		'korea, republic of'                      => 'KR',
+		'korea, south'                            => 'KR',
+		'lao people\'s democratic republic'       => 'LA',
+		'macedonia'                               => 'MK',
+		'micronesia, federated states of'         => 'FM',
+		'moldova, republic of'                    => 'MD',
+		'netherlands, kingdom of the'             => 'NL',
+		'north korea'                             => 'KP',
+		'palestine, state of'                     => 'PS',
+		'republic of korea'                       => 'KR',
+		'russian federation'                      => 'RU',
+		's. sudan'                                => 'SS',
+		'solomon is.'                             => 'SB',
+		'south korea'                             => 'KR',
+		'syrian arab republic'                    => 'SY',
+		'taiwan, province of china'               => 'TW',
+		'tanzania, united republic of'            => 'TZ',
+		'türkiye'                                 => 'TR',
+		'u.k.'                                    => 'GB',
+		'u.s.'                                    => 'US',
+		'u.s.a.'                                  => 'US',
+		'uae'                                     => 'AE',
+		'uk'                                      => 'GB',
+		'united kingdom of great britain and northern ireland' => 'GB',
+		'united states of america'                => 'US',
+		'usa'                                     => 'US',
+		'venezuela, bolivarian republic of'       => 'VE',
+		'viet nam'                                => 'VN',
+		'w. sahara'                               => 'EH',
+	);
+
+	/**
 	 * Normalizes arbitrary tabular input into a list of associative records.
 	 *
 	 * @param mixed $data Raw input data (array of records, associative map, object, or JSON string).
@@ -572,6 +885,89 @@ final class Graph implements ServiceInterface {
 						'fips' => $info['fips'],
 						'name' => $info['name'],
 						'code' => $code,
+					);
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Resolves a country identifier into standardized TopoJSON ID, Alpha-2 code, Alpha-3 code, and full country name.
+	 *
+	 * Accepts ISO 3166-1 Alpha-2 code (`'US'`, `'ES'`), Alpha-3 code (`'USA'`, `'ESP'`),
+	 * numeric ISO/TopoJSON ID (840, 724, `'840'`, `'032'`), or common country names (`'United States'`, `'Russia'`, `'Spain'`).
+	 *
+	 * @param mixed $val Country code, numeric ID, or country name.
+	 * @return array{id: string, name: string, alpha2: string, alpha3: string}|null Resolved metadata, or `null` if unrecognized.
+	 */
+	private function resolve_country( $val ): ?array {
+		if ( null === $val || '' === $val ) {
+			return null;
+		}
+
+		if ( is_int( $val ) || ( is_string( $val ) && ctype_digit( trim( $val ) ) ) ) {
+			$numeric_id = sprintf( '%03d', (int) $val );
+			foreach ( self::$countries as $alpha2 => $info ) {
+				if ( $info[0] === $numeric_id ) {
+					return array(
+						'id'     => $info[0],
+						'name'   => $info[1],
+						'alpha2' => $alpha2,
+						'alpha3' => $info[2],
+					);
+				}
+			}
+			return null;
+		}
+
+		if ( is_string( $val ) ) {
+			$trimmed = trim( $val );
+			$upper   = strtoupper( $trimmed );
+
+			if ( isset( self::$countries[ $upper ] ) ) {
+				return array(
+					'id'     => self::$countries[ $upper ][0],
+					'name'   => self::$countries[ $upper ][1],
+					'alpha2' => $upper,
+					'alpha3' => self::$countries[ $upper ][2],
+				);
+			}
+
+			if ( 3 === strlen( $upper ) ) {
+				foreach ( self::$countries as $alpha2 => $info ) {
+					if ( $info[2] === $upper ) {
+						return array(
+							'id'     => $info[0],
+							'name'   => $info[1],
+							'alpha2' => $alpha2,
+							'alpha3' => $info[2],
+						);
+					}
+				}
+			}
+
+			$lower = strtolower( $trimmed );
+			if ( isset( self::$country_aliases[ $lower ] ) ) {
+				$alpha2 = self::$country_aliases[ $lower ];
+				if ( isset( self::$countries[ $alpha2 ] ) ) {
+					return array(
+						'id'     => self::$countries[ $alpha2 ][0],
+						'name'   => self::$countries[ $alpha2 ][1],
+						'alpha2' => $alpha2,
+						'alpha3' => self::$countries[ $alpha2 ][2],
+					);
+				}
+			}
+
+			foreach ( self::$countries as $alpha2 => $info ) {
+				if ( strtolower( $info[1] ) === $lower ) {
+					return array(
+						'id'     => $info[0],
+						'name'   => $info[1],
+						'alpha2' => $alpha2,
+						'alpha3' => $info[2],
 					);
 				}
 			}
@@ -860,11 +1256,13 @@ final class Graph implements ServiceInterface {
 	/**
 	 * Renders a complete offline choropleth World Map with base geography and heat layer.
 	 *
-	 * Resolves ISO numeric country identifiers against pre-bundled TopoJSON geometries.
+	 * Automatically resolves ISO 3166-1 alpha-2 codes (`'US'`, `'ES'`), alpha-3 codes (`'USA'`, `'ESP'`),
+	 * numeric TopoJSON IDs (840, 724, `'032'`), or common country names (`'United States'`, `'Russia'`)
+	 * against pre-bundled TopoJSON geometries, generating tooltips and choropleth layers.
 	 *
 	 * TODO: Documentation and examples.
 	 *
-	 * @param mixed $data    List of associative records containing a numeric country `'id'` and a numeric metric value.
+	 * @param mixed $data    List of associative records or dictionary with country identifiers and metrics.
 	 * @param array $options Optional map settings: `'title'`, `'key'`, `'value'`, `'label'`, `'scheme'`, `'projection'`, `'height'`, `'legend_title'`.
 	 * @return void
 	 */
@@ -872,21 +1270,52 @@ final class Graph implements ServiceInterface {
 		$records = $this->normalize_records( $data );
 		$first   = $records[0];
 
-		$key_field = isset( $options['key'] ) ? (string) $options['key'] : ( isset( $first['id'] ) ? 'id' : array_keys( $first )[0] );
+		// Auto-detect key field.
+		$key_field = isset( $options['key'] ) ? (string) $options['key'] : null;
+		if ( null === $key_field ) {
+			$candidate_keys = array( 'country', 'country_code', 'code', 'iso', 'iso_code', 'alpha2', 'alpha_2', 'alpha3', 'alpha_3', 'id', 'country_name' );
+			foreach ( $candidate_keys as $candidate ) {
+				if ( array_key_exists( $candidate, $first ) ) {
+					$key_field = $candidate;
+					break;
+				}
+			}
+
+			if ( null === $key_field ) {
+				foreach ( $first as $k => $v ) {
+					if ( null !== $this->resolve_country( $v ) ) {
+						$key_field = $k;
+						break;
+					}
+				}
+			}
+
+			if ( null === $key_field ) {
+				$key_field = array_keys( $first )[0];
+			}
+		}
 
 		// Auto-detect value metric field.
 		$val_field = isset( $options['value'] ) ? (string) $options['value'] : null;
 		if ( null === $val_field ) {
 			foreach ( $first as $k => $v ) {
-				if ( $k !== $key_field && ( is_int( $v ) || is_float( $v ) || is_numeric( $v ) ) ) {
+				if ( $k !== $key_field && 'id' !== strtolower( $k ) && ! str_ends_with( strtolower( $k ), '_id' ) && ( is_int( $v ) || is_float( $v ) || ( is_string( $v ) && is_numeric( $v ) ) ) ) {
 					$val_field = $k;
 					break;
 				}
 			}
-			$val_field = $val_field ?? array_keys( $first )[1] ?? $key_field;
+			if ( null === $val_field ) {
+				foreach ( $first as $k => $v ) {
+					if ( $k !== $key_field && ( is_int( $v ) || is_float( $v ) || ( is_string( $v ) && is_numeric( $v ) ) ) ) {
+						$val_field = $k;
+						break;
+					}
+				}
+			}
+			$val_field = $val_field ?? ( array_keys( $first )[1] ?? $key_field );
 		}
 
-		// Auto-detect label field for tooltip.
+		// Auto-detect optional extra label field.
 		$label_field = isset( $options['label'] ) ? (string) $options['label'] : null;
 		if ( null === $label_field ) {
 			foreach ( $first as $k => $v ) {
@@ -897,18 +1326,61 @@ final class Graph implements ServiceInterface {
 			}
 		}
 
+		// Normalize each record with standardized numeric ISO 3166-1 TopoJSON ID and country metadata.
+		$normalized_records = array();
+		foreach ( $records as $row ) {
+			$raw_key  = $row[ $key_field ] ?? null;
+			$resolved = $this->resolve_country( $raw_key );
+
+			if ( null !== $resolved ) {
+				$row['id'] = $resolved['id'];
+				if ( ! isset( $row['country_name'] ) ) {
+					$row['country_name'] = $resolved['name'];
+				}
+				if ( ! isset( $row['country_code'] ) ) {
+					$row['country_code'] = $resolved['alpha2'];
+				}
+			} elseif ( ! isset( $row['id'] ) ) {
+				$row['id'] = is_numeric( $raw_key ) ? sprintf( '%03d', (int) $raw_key ) : (string) $raw_key;
+			} else {
+				$row['id'] = is_numeric( $row['id'] ) ? sprintf( '%03d', (int) $row['id'] ) : (string) $row['id'];
+			}
+
+			$normalized_records[] = $row;
+		}
+
 		$title      = isset( $options['title'] ) ? (string) $options['title'] : 'World Map';
 		$scheme     = isset( $options['scheme'] ) ? (string) $options['scheme'] : self::SCHEME_BLUES;
 		$height     = isset( $options['height'] ) ? (int) $options['height'] : 480;
 		$projection = isset( $options['projection'] ) ? (string) $options['projection'] : 'equalEarth';
 
 		$lookup_fields = array( $val_field );
+		if ( isset( $normalized_records[0]['country_name'] ) && ! in_array( 'country_name', $lookup_fields, true ) ) {
+			$lookup_fields[] = 'country_name';
+		}
+		if ( isset( $normalized_records[0]['country_code'] ) && ! in_array( 'country_code', $lookup_fields, true ) ) {
+			$lookup_fields[] = 'country_code';
+		}
 		if ( ! empty( $label_field ) && ! in_array( $label_field, $lookup_fields, true ) ) {
 			$lookup_fields[] = $label_field;
 		}
 
 		$tooltips = array();
-		if ( ! empty( $label_field ) ) {
+		if ( in_array( 'country_name', $lookup_fields, true ) ) {
+			$tooltips[] = array(
+				'field' => 'country_name',
+				'type'  => 'nominal',
+				'title' => 'Country',
+			);
+		}
+		if ( in_array( 'country_code', $lookup_fields, true ) ) {
+			$tooltips[] = array(
+				'field' => 'country_code',
+				'type'  => 'nominal',
+				'title' => 'Code',
+			);
+		}
+		if ( ! empty( $label_field ) && ! in_array( $label_field, array( 'country_name', 'country_code', 'country' ), true ) ) {
 			$tooltips[] = array(
 				'field' => $label_field,
 				'type'  => 'nominal',
@@ -951,8 +1423,8 @@ final class Graph implements ServiceInterface {
 				array(
 					'lookup' => 'id',
 					'from'   => array(
-						'data'   => array( 'values' => $records ),
-						'key'    => $key_field,
+						'data'   => array( 'values' => $normalized_records ),
+						'key'    => 'id',
 						'fields' => $lookup_fields,
 					),
 				),
