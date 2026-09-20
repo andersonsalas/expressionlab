@@ -1,0 +1,44 @@
+/* stylelint-disable */
+
+.chartWrapper {
+  margin: 1.25rem 0 1.75rem;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  background-color: var(--ifm-card-background-color, #fff);
+  padding: 1.25rem;
+  border-radius: 0;
+  overflow-x: auto;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+[data-theme='dark'] .chartWrapper {
+  background-color: #16181a;
+  border-color: var(--ifm-color-emphasis-300);
+}
+
+.chartContainer {
+  width: 100%;
+  min-height: 200px;
+  display: block;
+}
+
+.chartContainer :global(.vega-embed) {
+  width: 100% !important;
+  display: block !important;
+}
+
+.chartContainer svg {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}
+
+.error {
+  color: var(--ifm-color-danger, #e53935);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.875rem;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background-color: rgb(229 57 53 / 8%);
+  border: 1px solid rgb(229 57 53 / 20%);
+}
