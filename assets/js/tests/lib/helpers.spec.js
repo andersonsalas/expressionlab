@@ -1,4 +1,4 @@
-import { arrayBufferToBase64, base64ToArrayBuffer, deriveKey, getUniqueSnippetName, normalizeSnippet, __, sprintf } from '../../lib/helpers.js';
+import { arrayBufferToBase64, base64ToArrayBuffer, deriveKey, getUniqueSnippetName, normalizeSnippet, sanitizeSvg, __, sprintf } from '../../lib/helpers.js';
 
 import { ed25519 } from '@noble/curves/ed25519.js';
 
@@ -173,3 +173,29 @@ describe('Helpers - i18n & Translation', () => {
     });
   });
 });
+
+describe('Helpers - SVG Sanitization', () => {
+  test('returns empty string for null, undefined, or non-string input', () => {
+    expect(sanitizeSvg(null)).toBe('');
+    expect(sanitizeSvg(undefined)).toBe('');
+    expect(sanitizeSvg('')).toBe('');
+    expect(sanitizeSvg(123)).toBe('');
+  });
+
+  test('preserves legitimate SVG structure and elements', () => {
+    const validSvg = '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="red"></circle><text>Label</text></svg>';
+    const result = sanitizeSvg(validSvg);
+    expect(result).toContain('<circle');
+    expect(result).toContain('<text>Label</text>');
+  });
+
+  test('strips dangerous script elements, foreignObject, and event handlers', () => {
+    const maliciousSvg = '<svg><script>alert("xss")</script><foreignObject><div>bad</div></foreignObject><g onload="alert(1)"><circle cx="10" cy="10" r="5"></circle></g></svg>';
+    const sanitized = sanitizeSvg(maliciousSvg);
+    expect(sanitized).not.toContain('<script');
+    expect(sanitized).not.toContain('<foreignObject');
+    expect(sanitized).not.toContain('onload');
+    expect(sanitized).toContain('<circle');
+  });
+});
+

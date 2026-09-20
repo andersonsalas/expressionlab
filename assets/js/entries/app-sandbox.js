@@ -125,13 +125,25 @@ document.addEventListener('DOMContentLoaded', function () {
    */
   const handleDownload = (msg) => {
     debugLog('Processing download request from sandbox:', msg);
-    const { content, filename, mimeType = 'text/plain;charset=utf-8;' } = msg.payload;
+    const { content, filename = 'download.txt', mimeType = 'text/plain;charset=utf-8;' } = msg.payload;
+
+    // Sanitize filename: extract basename, strip directory traversal, and remove unsafe characters.
+    let safeFilename = String(filename || 'download.txt').replace(/^.*[\\/]/, '').replace(/[^a-zA-Z0-9._-]/g, '_');
+    if (!safeFilename || safeFilename === '.' || safeFilename === '..') {
+      safeFilename = 'download.txt';
+    }
+
+    // Neutralize dangerous executable extensions
+    const dangerousExtensions = /\.(html?|php\d?|phtml|phar|sh|bash|exe|bat|cmd|vbs|js|mjs)$/i;
+    if (dangerousExtensions.test(safeFilename)) {
+      safeFilename = safeFilename.replace(/\.[^.]+$/, '.txt');
+    }
 
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', filename);
+    link.setAttribute('download', safeFilename);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();

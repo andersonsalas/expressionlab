@@ -100,12 +100,14 @@
     "pinia": "^3.0.3",
     "thememirror": "^2.0.1",
     "unicode-emoji-json": "^0.8.0",
+    "us-atlas": "^3.0.1",
     "vega": "^6.2.0",
     "vega-embed": "^7.1.0",
     "vega-interpreter": "^2.2.1",
     "vega-lite": "^6.4.2",
     "vue-json-pretty": "^2.6.0",
     "vue-router": "^5.0.7",
-    "vue-virtual-scroller": "^2.0.0-beta.8"
+    "vue-virtual-scroller": "^2.0.0-beta.8",
+    "world-atlas": "^2.0.2"
   }
 }

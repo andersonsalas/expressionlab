@@ -580,3 +580,69 @@ html[data-theme='light'] .markdown table th code {
 [data-theme='dark'] .markdown table th code {
   color: #f1fa8c !important;
 }
+
+#vg-tooltip-element {
+  box-sizing: border-box;
+}
+
+#vg-tooltip-element table {
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: table !important;
+  width: auto !important;
+}
+
+#vg-tooltip-element table thead,
+#vg-tooltip-element table tbody,
+#vg-tooltip-element table tr {
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+#vg-tooltip-element table th,
+#vg-tooltip-element table td {
+  border: none !important;
+  background: transparent !important;
+  padding: 2px 6px !important;
+  margin: 0 !important;
+  font-size: 11px;
+}
+
+#vg-tooltip-element table td.key {
+  color: #64748b !important;
+  font-weight: 500 !important;
+  text-align: right !important;
+  padding-right: 6px !important;
+}
+
+#vg-tooltip-element table td.value {
+  color: #0f172a !important;
+  font-weight: 600 !important;
+  text-align: left !important;
+}
+
+/* Dark theme overrides for Vega tooltips */
+#vg-tooltip-element.dark-theme,
+[data-theme='dark'] #vg-tooltip-element {
+  background-color: rgba(22, 24, 26, 0.95) !important;
+  border: 1px solid #334155 !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 40%), 0 2px 4px -2px rgb(0 0 0 / 40%) !important;
+  color: #f1f5f9 !important;
+}
+
+#vg-tooltip-element.dark-theme table td.key,
+[data-theme='dark'] #vg-tooltip-element table td.key {
+  color: #94a3b8 !important;
+}
+
+#vg-tooltip-element.dark-theme table td.value,
+[data-theme='dark'] #vg-tooltip-element table td.value {
+  color: #f8fafc !important;
+}
+

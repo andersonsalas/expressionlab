@@ -70,6 +70,26 @@ const config = {
     ],
   ],
 
+  plugins: [
+    function webpackFallbackPlugin() {
+      return {
+        name: 'webpack-fallback-plugin',
+        configureWebpack() {
+          return {
+            resolve: {
+              alias: {
+                canvas: false,
+              },
+              fallback: {
+                canvas: false,
+              },
+            },
+          };
+        },
+      };
+    },
+  ],
+
   themes: [
     '@docusaurus/theme-mermaid',
     [

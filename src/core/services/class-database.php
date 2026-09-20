@@ -1247,6 +1247,7 @@ final class Database implements ServiceInterface {
 				'data'  => array(
 					'$schema'     => 'https://vega.github.io/schema/vega-lite/v6.json',
 					'description' => 'Tables distribution by rows',
+					'title'       => 'Tables by Row Count',
 					'width'       => 'container',
 					'height'      => 300,
 					'padding'     => 20,
@@ -1266,11 +1267,7 @@ final class Database implements ServiceInterface {
 							'field'  => 'name',
 							'type'   => 'nominal',
 							'legend' => array(
-								'title'         => 'Table Name',
-								'titleFontSize' => 14,
-								'labelFontSize' => 13,
-								'labelFont'     => 'Cascadia Mono, monospace',
-								'titleFont'     => 'Roboto Slab, serif',
+								'title' => 'Table Name',
 							),
 						),
 					),
@@ -1307,6 +1304,7 @@ final class Database implements ServiceInterface {
 				'data'  => array(
 					'$schema'     => 'https://vega.github.io/schema/vega-lite/v6.json',
 					'description' => 'Tables distribution by size',
+					'title'       => 'Tables by Size (MB)',
 					'width'       => 'container',
 					'height'      => 300,
 					'padding'     => 20,
@@ -1326,11 +1324,7 @@ final class Database implements ServiceInterface {
 							'field'  => 'name',
 							'type'   => 'nominal',
 							'legend' => array(
-								'title'         => 'Table Name',
-								'titleFontSize' => 14,
-								'labelFontSize' => 13,
-								'labelFont'     => 'Cascadia Mono, monospace',
-								'titleFont'     => 'Roboto Slab, serif',
+								'title' => 'Table Name',
 							),
 						),
 					),

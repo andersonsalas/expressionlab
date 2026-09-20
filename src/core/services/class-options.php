@@ -509,6 +509,7 @@ class Options {
 						'data'  => array(
 							'$schema'     => 'https://vega.github.io/schema/vega-lite/v6.json',
 							'description' => 'Prefix distribution graph',
+							'title'       => 'Option Prefix Distribution',
 							'width'       => 'container',
 							'height'      => 400,
 							'padding'     => 5,
@@ -524,12 +525,8 @@ class Options {
 									'field' => 'prefix',
 									'type'  => 'nominal',
 									'axis'  => array(
-										'title'         => 'Prefix',
-										'labelAngle'    => -45,
-										'titleFontSize' => 14,
-										'labelFontSize' => 13,
-										'labelFont'     => 'Cascadia Mono, monospace',
-										'titleFont'     => 'Roboto Slab, serif',
+										'title'      => 'Prefix',
+										'labelAngle' => -45,
 									),
 									'sort'  => '-y',
 								),
@@ -537,11 +534,7 @@ class Options {
 									'field' => 'count',
 									'type'  => 'quantitative',
 									'axis'  => array(
-										'title'         => 'Count',
-										'titleFontSize' => 14,
-										'labelFontSize' => 13,
-										'labelFont'     => 'Cascadia Mono, monospace',
-										'titleFont'     => 'Roboto Slab, serif',
+										'title' => 'Count',
 									),
 								),
 								'color' => array(
@@ -574,6 +567,7 @@ class Options {
 						'data'  => array(
 							'$schema'     => 'https://vega.github.io/schema/vega-lite/v6.json',
 							'description' => 'Autoload distribution graph',
+							'title'       => 'Autoload Distribution',
 							'width'       => 'container',
 							'height'      => 300,
 							'padding'     => 20,
@@ -593,11 +587,7 @@ class Options {
 									'field'  => 'autoload',
 									'type'   => 'nominal',
 									'legend' => array(
-										'title'         => 'Autoload distribution',
-										'titleFontSize' => 14,
-										'labelFontSize' => 13,
-										'labelFont'     => 'Cascadia Mono, monospace',
-										'titleFont'     => 'Roboto Slab, serif',
+										'title' => 'Autoload distribution',
 									),
 								),
 							),

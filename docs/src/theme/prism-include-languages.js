@@ -29,7 +29,7 @@ export default function prismIncludeLanguages(PrismObject) {
       greedy: true,
     },
     keyword: /\b(?:prog|set|var|fn|args|map|filter|show|isset|unset|reduce)\b/,
-    'class-name': /\b(?:Posts|Users|Database|Options|NetworkOptions|Media|Files|Http|Console|NetworkSites)\b/,
+    'class-name': /\b(?:Posts|Users|Database|Options|NetworkOptions|Media|Files|Http|IPLookup|Graph|Console|NetworkSites)\b/,
     boolean: /\b(?:true|false)\b/,
     null: {
       pattern: /\bnull\b/,

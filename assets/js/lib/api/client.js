@@ -330,19 +330,28 @@ export function handleClipboardCopy(text, html = null) {
  * @param {string} mimeType 
  */
 export function handleDownload(content, filename, mimeType = 'text/plain;charset=utf-8;') {
+  let safeFilename = String(filename || 'download.txt').replace(/^.*[\\/]/, '').replace(/[^a-zA-Z0-9._-]/g, '_');
+  if (!safeFilename || safeFilename === '.' || safeFilename === '..') {
+    safeFilename = 'download.txt';
+  }
+  const dangerousExtensions = /\.(html?|php\d?|phtml|phar|sh|bash|exe|bat|cmd|vbs|js|mjs)$/i;
+  if (dangerousExtensions.test(safeFilename)) {
+    safeFilename = safeFilename.replace(/\.[^.]+$/, '.txt');
+  }
+
   if ( ! isSandboxEnabled() ) {
     const blob = new Blob([content], { type: mimeType });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', filename);
+    link.setAttribute('download', safeFilename);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   } else {
     window.parent.postMessage(
-      { message_id: generateMessageId(), type: 'download', payload: { content, filename, mimeType } },
+      { message_id: generateMessageId(), type: 'download', payload: { content, filename: safeFilename, mimeType } },
       getWpOrigin()
     );
   }

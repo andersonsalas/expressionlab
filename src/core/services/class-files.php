@@ -569,6 +569,7 @@ final class Files {
 					'data'  => array(
 						'$schema'     => 'https://vega.github.io/schema/vega-lite/v6.json',
 						'description' => 'Files extension size distribution graph',
+						'title'       => 'Disk Size Distribution by Extension',
 						'width'       => 'container',
 						'height'      => 300,
 						'padding'     => 20,
@@ -588,11 +589,7 @@ final class Files {
 								'field'  => 'extension',
 								'type'   => 'nominal',
 								'legend' => array(
-									'title'         => 'Extension',
-									'titleFontSize' => 14,
-									'labelFontSize' => 13,
-									'labelFont'     => 'Cascadia Mono, monospace',
-									'titleFont'     => 'Roboto Slab, serif',
+									'title' => 'Extension',
 								),
 							),
 						),

@@ -62,6 +62,22 @@ export function sanitizeIcon(icon) {
   return DOMPurify.sanitize(icon, { USE_PROFILES: { svg: true } });
 }
 
+/**
+ * Sanitizes an SVG markup string using DOMPurify with the SVG profile,
+ * stripping script tags, foreignObject elements, and executable event attributes.
+ *
+ * @param {string} svgString Raw SVG markup.
+ * @return {string} Sanitized SVG markup string.
+ */
+export function sanitizeSvg(svgString) {
+  if (!svgString || typeof svgString !== 'string') {
+    return '';
+  }
+  return DOMPurify.sanitize(svgString, {
+    USE_PROFILES: { svg: true, svgFilters: true },
+  });
+}
+
 export function sanitizeHtml(html) {
   return DOMPurify.sanitize(
     html,
