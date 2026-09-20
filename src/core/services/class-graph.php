@@ -245,6 +245,9 @@ final class Graph implements ServiceInterface {
 	 * @return mixed Constant value when defined; otherwise null.
 	 */
 	public function __get( string $name ) {
+		if ( ! preg_match( '/^[A-Z][A-Z0-9_]*$/', $name ) ) {
+			return null;
+		}
 		if ( defined( "self::$name" ) ) {
 			return constant( "self::$name" );
 		}
@@ -1619,6 +1622,7 @@ final class Graph implements ServiceInterface {
 		// Normalize each record with standardized numeric ISO 3166-1 TopoJSON ID and country metadata.
 		$normalized_records = array();
 		foreach ( $records as $row ) {
+			LanguageEngine::get()->tick();
 			$raw_key  = $row[ $key_field ] ?? null;
 			$resolved = $this->resolve_country( $raw_key );
 
@@ -1719,7 +1723,7 @@ final class Graph implements ServiceInterface {
 					),
 				),
 				array(
-					'filter' => "isValid(datum['{$val_field}'])",
+					'filter' => 'isValid(datum[\'' . preg_replace( '/[^a-zA-Z0-9_]/', '', $val_field ) . '\'])',
 				),
 			),
 			'mark'      => array(
@@ -1866,6 +1870,7 @@ final class Graph implements ServiceInterface {
 		// Normalize each record with standardized FIPS id and state metadata.
 		$normalized_records = array();
 		foreach ( $records as $row ) {
+			LanguageEngine::get()->tick();
 			$raw_key  = $row[ $key_field ] ?? null;
 			$resolved = $this->resolve_us_state( $raw_key );
 
@@ -1964,7 +1969,7 @@ final class Graph implements ServiceInterface {
 					),
 				),
 				array(
-					'filter' => "isValid(datum['{$val_field}'])",
+					'filter' => 'isValid(datum[\'' . preg_replace( '/[^a-zA-Z0-9_]/', '', $val_field ) . '\'])',
 				),
 			),
 			'mark'      => array(

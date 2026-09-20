@@ -263,6 +263,36 @@ describe('GraphVisualization.vue', () => {
     wrapper.unmount();
   });
 
+  it('skips __proto__, constructor, and prototype keys in resolveLocalDatasets', async () => {
+    const wrapper = await mountGraph({
+      data: {
+        type: 'graph',
+        data: {
+          mark: 'bar',
+          __proto__: { url: 'evil' },
+          constructor: { url: 'evil' },
+          prototype: { url: 'evil' },
+        },
+      },
+    });
+
+    expect(({}).url).toBeUndefined();
+    expect(embed).toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it('does not crash on deeply nested specs beyond depth limit', async () => {
+    const spec = { mark: 'bar', data: { values: [{ x: 1 }] } };
+    let current = spec;
+    for (let i = 0; i < 50; i++) {
+      current.nested = { layer: [{ data: { url: 'countries-110m.json' } }] };
+      current = current.nested.layer[0];
+    }
+    const wrapper = await mountGraph({ data: { type: 'graph', data: spec } });
+    expect(embed).toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
   describe('CSP Sandbox Loader', () => {
     it('resolves internal datasets asynchronously through loader.load()', async () => {
       const wrapper = await mountGraph();
@@ -289,6 +319,19 @@ describe('GraphVisualization.vue', () => {
       await expect(loader.sanitize('https://safe.local/data.json')).resolves.toEqual({
         url: 'https://safe.local/data.json',
       });
+      wrapper.unmount();
+    });
+
+    it('blocks javascript:, data:, blob:, and protocol-relative URLs', async () => {
+      const wrapper = await mountGraph();
+
+      const [, , options] = embed.mock.calls[0];
+      const loader = options.loader;
+
+      await expect(loader.load('javascript:alert(1)')).rejects.toThrow('External URL blocked');
+      await expect(loader.load('data:text/html,<script>alert(1)</script>')).rejects.toThrow('External URL blocked');
+      await expect(loader.load('blob:http://evil.com/uuid')).rejects.toThrow('External URL blocked');
+      await expect(loader.load('//evil.com/data.json')).rejects.toThrow('External URL blocked');
       wrapper.unmount();
     });
   });
@@ -380,6 +423,51 @@ describe('GraphVisualization.vue', () => {
       JSON.stringify({ $schema: 'compiled-vega-schema' }, null, 2),
       'application/json'
     );
+    wrapper.unmount();
+  });
+
+  it('sanitizes SVG before download export, stripping script tags and onload handlers', async () => {
+    const maliciousSvg = '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script><foreignObject>evil</foreignObject><g onload="steal()"><text>safe</text></g></svg>';
+    const mockMaliciousView = {
+      toSVG: jest.fn().mockResolvedValue(maliciousSvg),
+      toImageURL: jest.fn(),
+    };
+
+    embed.mockImplementationOnce(async (el) => {
+      const actionsDiv = document.createElement('div');
+      actionsDiv.className = 'vega-actions';
+
+      const svgLink = document.createElement('a');
+      svgLink.textContent = 'Save as SVG';
+      actionsDiv.appendChild(svgLink);
+      el.appendChild(actionsDiv);
+
+      return {
+        finalize: mockFinalize,
+        view: mockMaliciousView,
+        vgSpec: {},
+      };
+    });
+
+    const wrapper = await mountGraph({
+      data: {
+        type: 'graph',
+        data: { mark: 'bar' },
+      },
+    });
+
+    const link = wrapper.find('.vega-actions a');
+    await link.trigger('click');
+
+    expect(mockMaliciousView.toSVG).toHaveBeenCalled();
+    expect(handleDownload).toHaveBeenCalled();
+    const [downloadedSvg, filename, mimeType] = handleDownload.mock.calls[handleDownload.mock.calls.length - 1];
+    expect(filename).toBe('visualization.svg');
+    expect(mimeType).toBe('image/svg+xml');
+    expect(downloadedSvg).not.toContain('<script');
+    expect(downloadedSvg).not.toContain('<foreignObject');
+    expect(downloadedSvg).not.toContain('onload');
+    expect(downloadedSvg).toContain('<text>safe</text>');
     wrapper.unmount();
   });
 

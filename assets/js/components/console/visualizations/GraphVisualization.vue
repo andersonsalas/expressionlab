@@ -3,6 +3,7 @@ import { onMounted, ref, watch, onUnmounted, nextTick } from 'vue';
 import embed from 'vega-embed';
 import { expressionInterpreter } from 'vega-interpreter';
 import { handleDownload, handleOpenTab } from '../../../lib/api/client.js';
+import { sanitizeSvg } from '../../../lib/helpers.js';
 import countries110m from 'world-atlas/countries-110m.json';
 import land110m from 'world-atlas/land-110m.json';
 import states10m from 'us-atlas/states-10m.json';
@@ -28,8 +29,11 @@ const isVisible = () => chartRef.value && chartRef.value.offsetParent !== null;
  *
  * @param {object} obj Vega specification or nested object.
  */
-const resolveLocalDatasets = (obj) => {
-    if (!obj || typeof obj !== 'object') return;
+const RESOLVE_MAX_DEPTH = 32;
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+const resolveLocalDatasets = (obj, depth = 0) => {
+    if (!obj || typeof obj !== 'object' || depth > RESOLVE_MAX_DEPTH) return;
 
     if (obj.data && typeof obj.data === 'object' && obj.data.url) {
         const url = String(obj.data.url);
@@ -46,8 +50,9 @@ const resolveLocalDatasets = (obj) => {
     }
 
     for (const key of Object.keys(obj)) {
+        if (UNSAFE_KEYS.has(key)) continue;
         if (typeof obj[key] === 'object' && obj[key] !== null) {
-            resolveLocalDatasets(obj[key]);
+            resolveLocalDatasets(obj[key], depth + 1);
         }
     }
 };
@@ -159,7 +164,7 @@ const drawChart = async () => {
                         
                         if (text === 'Save as SVG') {
                             const svg = await result.view.toSVG();
-                            handleDownload(svg, 'visualization.svg', 'image/svg+xml');
+                            handleDownload(sanitizeSvg(svg), 'visualization.svg', 'image/svg+xml');
                         } else if (text === 'Save as PNG') {
                             const url = await result.view.toImageURL('png');
                             const res = await fetch(url);

@@ -969,4 +969,34 @@ class GraphTest extends WP_UnitTestCase {
 		$this->assertEquals( 'start', $viz['data']['encoding']['x']['field'] );
 		$this->assertEquals( 'end', $viz['data']['encoding']['x2']['field'] );
 	}
+
+	public function test_magic_getter_rejects_invalid_names() {
+		$g = new Graph();
+		$this->assertNull( $g->{'__proto__'} );
+		$this->assertNull( $g->{'constructor'} );
+		$this->assertNull( $g->{"null\x00byte"} );
+		$this->assertNull( $g->{'ExpressionLab\\Core\\LanguageEngine::class'} );
+		$this->assertNull( $g->{'lowercase'} );
+	}
+
+	public function test_worldmap_sanitizes_field_names_in_filter_expressions() {
+		$data = array(
+			array(
+				'country'                => 'US',
+				"val'])||true||datum['x" => 100,
+			),
+		);
+		$this->graph->worldmap( $data, array( 'value' => "val'])||true||datum['x" ) );
+		$viz    = LanguageEngine::get()->get_visualizations()[0];
+		$filter = $viz['data']['layer'][1]['transform'][1]['filter'];
+		$this->assertStringNotContainsString( "')", $filter );
+		$this->assertMatchesRegularExpression( '/^isValid\(datum\[\'[a-zA-Z0-9_]+\'\]\)$/', $filter );
+	}
+
+	public function test_render_deeply_nested_json_throws_gracefully() {
+		$nested = str_repeat( '{"a":', 600 ) . '"val"' . str_repeat( '}', 600 );
+		$this->expectException( \InvalidArgumentException::class );
+		$this->graph->render( $nested );
+	}
 }
+
