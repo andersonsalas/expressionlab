@@ -24,10 +24,15 @@ return array(
 			->exclude(
 				array(
 					'doc',
+					'docs',
+					'documentation',
+					'example',
+					'examples',
 					'test',
-					'test_old',
 					'tests',
+					'Test',
 					'Tests',
+					'test_old',
 					'vendor-bin',
 				)
 			)
