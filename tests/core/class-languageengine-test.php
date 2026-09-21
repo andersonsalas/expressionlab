@@ -303,4 +303,84 @@ class LanguageEngineTest extends WP_UnitTestCase {
 
         $this->assertEmpty( $debug_messages );
     }
+
+    public function test_magic_and_internal_methods_are_rejected() {
+        $magic_methods = array(
+            '__construct',
+            '__destruct',
+            '__clone',
+            '__wakeup',
+            '__sleep',
+            '__serialize',
+            '__unserialize',
+            '__invoke',
+            '__set_state',
+            '__debugInfo',
+        );
+
+        foreach ( $magic_methods as $method ) {
+            $thrown = false;
+            try {
+                $this->engine->evaluate( "Database.{$method}()" );
+            } catch ( \Symfony\Component\ExpressionLanguage\SyntaxError $e ) {
+                $thrown = true;
+                $this->assertStringContainsString(
+                    'Access to magic method or internal property',
+                    $e->getMessage()
+                );
+                $this->assertStringContainsString(
+                    $method,
+                    $e->getMessage()
+                );
+            }
+
+            $this->assertTrue( $thrown, "Expected SyntaxError when calling {$method}()" );
+        }
+    }
+
+    public function test_magic_methods_are_rejected_case_insensitively() {
+        $variants = array(
+            'Database.__CONSTRUCT()',
+            'Database.__Construct()',
+            'Database.__DESTRUCT()',
+            'Posts.__Clone()',
+        );
+
+        foreach ( $variants as $expr ) {
+            $thrown = false;
+            try {
+                $this->engine->evaluate( $expr );
+            } catch ( \Symfony\Component\ExpressionLanguage\SyntaxError $e ) {
+                $thrown = true;
+            }
+
+            $this->assertTrue( $thrown, "Expected SyntaxError for expression: {$expr}" );
+        }
+    }
+
+    public function test_magic_methods_are_rejected_with_nullsafe_operator() {
+        $this->expectException( \Symfony\Component\ExpressionLanguage\SyntaxError::class );
+        $this->expectExceptionMessage( 'Access to magic method or internal property' );
+        $this->engine->evaluate( 'Database?.__construct()' );
+    }
+
+    public function test_magic_properties_are_rejected() {
+        $this->expectException( \Symfony\Component\ExpressionLanguage\SyntaxError::class );
+        $this->expectExceptionMessage( 'Access to magic method or internal property' );
+        $this->engine->evaluate( 'Database.__construct' );
+    }
+
+    public function test_magic_methods_are_rejected_in_nested_expressions() {
+        $this->expectException( \Symfony\Component\ExpressionLanguage\SyntaxError::class );
+        $this->expectExceptionMessage( 'Access to magic method or internal property' );
+        $this->engine->evaluate( 'prog[ set["db", Database], var["db"].__destruct() ]' );
+    }
+
+    public function test_legitimate_member_access_functions_normally() {
+        $result = $this->engine->evaluate( "ExpressionLab.loopback('hello')" );
+        $this->assertSame( 'hello', $result['result'] );
+
+        $nullsafe_result = $this->engine->evaluate( "ExpressionLab?.loopback('world')" );
+        $this->assertSame( 'world', $nullsafe_result['result'] );
+    }
 }
