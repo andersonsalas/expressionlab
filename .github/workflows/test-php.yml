@@ -58,8 +58,11 @@ jobs:
           coverage: none
           tools: composer:v2
 
+      - name: Validate Composer configuration
+        run: composer validate --strict --check-lock
+
       - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-progress --no-interaction
+        run: composer install --prefer-dist --no-progress --no-interaction --no-scripts
 
       - name: Install Subversion (SVN)
         run: sudo apt-get update -y && sudo apt-get install -y subversion

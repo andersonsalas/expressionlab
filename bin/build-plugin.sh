@@ -3,16 +3,34 @@
 set -euo pipefail
 set +x
 
+cleanup() {
+	local exit_code=$?
+	unset SIGNING_KEY 2>/dev/null || true
+	if [ -d "${STAGING_DIR:-}" ]; then
+		rm -rf "$STAGING_DIR"
+	fi
+	exit "$exit_code"
+}
+trap cleanup EXIT
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+export EXPRESSION_LAB_BUILD=1
 
 BUILD_DIR="$ROOT_DIR/build"
 STAGING_DIR="$BUILD_DIR/staging"
 DIST_DIR="$BUILD_DIR/dist/expressionlab"
+
 # Extract version from expressionlab.php or use argument if provided.
 VERSION="${1:-$(grep -m1 "Version:" "$ROOT_DIR/expressionlab.php" | awk -F: '{print $2}' | tr -d ' \r\n')}"
 if [ -z "$VERSION" ]; then
     echo "ERROR: Could not determine plugin version from expressionlab.php." >&2
+    exit 1
+fi
+
+if ! echo "$VERSION" | grep -qE '^[0-9A-Za-z.+\-]+$'; then
+    echo "ERROR: Invalid version string: '$VERSION'. Only alphanumeric, dots, hyphens, and plus signs are allowed." >&2
     exit 1
 fi
 
@@ -22,18 +40,23 @@ if [ -z "$SIGNING_KEY" ]; then
     exit 1
 fi
 
-# Validate signing key format.
 if ! echo "$SIGNING_KEY" | grep -qE '^[0-9a-fA-F]{128}$'; then
     echo "ERROR: EXPRESSION_LAB_SIGNING_KEY must be exactly 128 hexadecimal characters (64-byte Ed25519 secret key)." >&2
     exit 1
 fi
+
+unset EXPRESSION_LAB_SIGNING_KEY
 
 ZIP_NAME="expressionlab-${VERSION}.zip"
 ZIP_FILE="$BUILD_DIR/$ZIP_NAME"
 MANIFEST_FILE="$BUILD_DIR/update.json"
 
 echo "Compiling frontend assets with Webpack Encore..."
-pnpm --dir "$ROOT_DIR" run build
+(
+	unset EXPRESSION_LAB_SIGNING_KEY
+	unset SIGNING_KEY
+	pnpm --dir "$ROOT_DIR" run build
+)
 
 echo "Preparing staging environment with production dependencies..."
 rm -rf "$BUILD_DIR"
@@ -47,12 +70,18 @@ cp "$ROOT_DIR/expressionlab.php" "$STAGING_DIR/"
 cp "$ROOT_DIR/scoper.inc.php" "$STAGING_DIR/"
 
 # Install production dependencies only (no dev-tools)
-composer install \
-    --working-dir="$STAGING_DIR" \
-    --no-dev \
-    --prefer-dist \
-    --no-interaction \
-    --optimize-autoloader
+(
+	unset EXPRESSION_LAB_SIGNING_KEY
+	unset SIGNING_KEY
+	composer install \
+		--working-dir="$STAGING_DIR" \
+		--no-dev \
+		--prefer-dist \
+		--no-interaction \
+		--optimize-autoloader
+)
+
+find "$STAGING_DIR/vendor" -type d \( -name "tests" -o -name "Tests" -o -name "test" -o -name "Test" -o -name "doc" -o -name "docs" -o -name "example" -o -name "examples" \) -exec rm -rf {} + 2>/dev/null || true
 
 echo "Running PHP-Scoper on vendor dependencies..."
 PHP_SCOPER_BIN="$ROOT_DIR/vendor-bin/php-scoper/vendor/bin/php-scoper"
@@ -65,41 +94,49 @@ if [ ! -f "$PHP_SCOPER_BIN" ]; then
     exit 1
 fi
 
-"$PHP_SCOPER_BIN" add-prefix \
-    --working-dir="$STAGING_DIR" \
-    --output-dir="$DIST_DIR" \
-    --force
+(
+	unset EXPRESSION_LAB_SIGNING_KEY
+	unset SIGNING_KEY
+	"$PHP_SCOPER_BIN" add-prefix \
+		--working-dir="$STAGING_DIR" \
+		--output-dir="$DIST_DIR" \
+		--force
+)
 
 echo "Copying plugin source files and prefixing vendor references..."
 cp "$ROOT_DIR/expressionlab.php" "$DIST_DIR/expressionlab.php"
 cp -r "$ROOT_DIR/src" "$DIST_DIR/src"
 
-php -r '
-$srcDir = $argv[1];
-$iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($srcDir));
-foreach ($iterator as $file) {
-    if ($file->isFile() && $file->getExtension() === "php") {
-        $content = file_get_contents($file->getPathname());
-        $updated = preg_replace(
-            "/(?<!Vendor\\\\)(Symfony|phpDocumentor)\\\\/",
-            "ExpressionLab\\\\Vendor\\\\$1\\\\",
-            $content
-        );
-        if ($updated !== $content) {
-            file_put_contents($file->getPathname(), $updated);
-        }
-    }
-}
-' "$DIST_DIR/src"
+(
+	unset EXPRESSION_LAB_SIGNING_KEY
+	unset SIGNING_KEY
+	php "$SCRIPT_DIR/build-prefix-vendor.php" "$DIST_DIR" "$DIST_DIR/src" "$DIST_DIR/expressionlab.php"
+)
 
 echo "Generating optimized production autoloader (classmap)..."
+
 # Include vendor in classmap so Composer maps prefixed classes
-sed -i 's/"src\/"/"src\/", "vendor\/"/' "$DIST_DIR/composer.json"
-composer dump-autoload \
-    --working-dir="$DIST_DIR" \
-    --classmap-authoritative \
-    --no-dev \
-    --no-interaction
+sed -i -E 's#"src(\\)?/"\s*#"src/", "vendor/"#' "$DIST_DIR/composer.json"
+if ! grep -qE '"vendor(\\)?/"' "$DIST_DIR/composer.json"; then
+    echo "ERROR: Failed to inject vendor/ into composer.json classmap." >&2
+    exit 1
+fi
+(
+	unset EXPRESSION_LAB_SIGNING_KEY
+	unset SIGNING_KEY
+	composer dump-autoload \
+		--working-dir="$DIST_DIR" \
+		--classmap-authoritative \
+		--no-dev \
+		--no-interaction
+)
+
+echo "Verifying compiled production artifact integrity..."
+(
+	unset EXPRESSION_LAB_SIGNING_KEY
+	unset SIGNING_KEY
+	php "$SCRIPT_DIR/build-verify-artifact.php" "$DIST_DIR"
+)
 
 echo "Copying compiled assets and static files..."
 mkdir -p "$DIST_DIR/assets"
@@ -134,12 +171,20 @@ rm -f "$DIST_DIR/composer.json" "$DIST_DIR/composer.lock"
 
 echo "Packaging final ZIP ($ZIP_NAME)..."
 rm -f "$ZIP_FILE"
-(cd "$BUILD_DIR/dist" && zip -r -q "$ZIP_FILE" expressionlab)
+(
+	unset EXPRESSION_LAB_SIGNING_KEY
+	unset SIGNING_KEY
+	cd "$BUILD_DIR/dist" && zip -r -q "$ZIP_FILE" expressionlab
+)
 
 # Clean up intermediate staging directory
 rm -rf "$STAGING_DIR"
 
 ZIP_SHA256=$(sha256sum "$ZIP_FILE" | awk '{print $1}')
+if ! echo "$ZIP_SHA256" | grep -qE '^[0-9a-f]{64}$'; then
+    echo "ERROR: SHA-256 checksum computation failed or produced invalid output." >&2
+    exit 1
+fi
 CHANGELOG_FILE="$ROOT_DIR/CHANGELOG.md"
 RELEASE_NOTES_FILE="$BUILD_DIR/RELEASE_NOTES.md"
 
@@ -150,101 +195,11 @@ TESTED_WP=$(grep -m1 "Tested up to:" "$ROOT_DIR/expressionlab.php" | awk -F: '{p
 
 echo "Generating release manifest ($MANIFEST_FILE)..."
 
-SIGN_RESULT=$(EXPRESSION_LAB_SIGNING_KEY="$SIGNING_KEY" php -r '
-$manifestFile     = $argv[1];
-$version          = $argv[2];
-$sha256           = $argv[3];
-$zipName          = $argv[4];
-$changelogFile    = $argv[5];
-$zipFilePath      = $argv[6];
-$releaseNotesFile = $argv[7] ?? "";
-$requiresWp       = $argv[8] ?? "6.4";
-$testedWp         = $argv[9] ?? "6.9.4";
-$requiresPhp      = $argv[10] ?? "8.2";
+SIGN_RESULT=$(printf '%s' "$SIGNING_KEY" | php "$SCRIPT_DIR/build-release-manifest.php" \
+    "$MANIFEST_FILE" "$VERSION" "$ZIP_SHA256" "$ZIP_NAME" "$CHANGELOG_FILE" \
+    "$ZIP_FILE" "$RELEASE_NOTES_FILE" "$REQUIRES_WP" "$TESTED_WP" "$REQUIRES_PHP")
 
-// Read signing key from environment variable (CWE-214 mitigation).
-$signingKeyHex = getenv( "EXPRESSION_LAB_SIGNING_KEY" ) ?: "";
-
-$data = [];
-if ( file_exists( $manifestFile ) ) {
-    $data = json_decode( file_get_contents( $manifestFile ), true ) ?: [];
-}
-
-$data["name"]         = $data["name"] ?? "Expression Lab";
-$data["slug"]         = "expressionlab";
-$data["version"]      = $version;
-$data["download_url"] = "https://github.com/andersonsalas/expressionlab/releases/download/v{$version}/{$zipName}";
-$data["sha256"]       = $sha256;
-$data["requires"]     = $requiresWp;
-$data["tested"]       = $testedWp;
-$data["requires_php"] = $requiresPhp;
-$data["last_updated"] = date( "Y-m-d" );
-
-// Sign ZIP file with Ed25519 if secret key is present
-$signed = "no";
-if ( ! empty( $signingKeyHex ) && ctype_xdigit( $signingKeyHex ) && strlen( $signingKeyHex ) === 128 && function_exists( "sodium_crypto_sign_detached" ) ) {
-    try {
-        $secretKeyBin = sodium_hex2bin( $signingKeyHex );
-        $zipBytes     = file_get_contents( $zipFilePath );
-        $signatureBin = sodium_crypto_sign_detached( $zipBytes, $secretKeyBin );
-        $data["signature"] = sodium_bin2hex( $signatureBin );
-        $signed = "yes";
-    } catch ( \Throwable $e ) {
-        $signed = "error: " . $e->getMessage();
-    }
-}
-
-// Extract current version changes from CHANGELOG.md
-$changelogHtml        = "<h4>{$version}</h4><p>Release {$version}.</p>";
-$releaseNotesMarkdown = "Release {$version}.";
-
-if ( file_exists( $changelogFile ) ) {
-    $changelogContent = file_get_contents( $changelogFile );
-    $regex            = "/##\s*\[?" . preg_quote( $version, "/" ) . "\]?[^\r\n]*\r?\n(.*?)(?=\r?\n##\s*\[|\z)/s";
-    if ( preg_match( $regex, $changelogContent, $matches ) ) {
-        $sectionText = trim( $matches[1] );
-        if ( ! empty( $sectionText ) ) {
-            $releaseNotesMarkdown = $sectionText;
-        }
-        $lines       = explode( "\n", $sectionText );
-        $html        = "<h4>{$version}</h4>";
-        $currentList = [];
-
-        foreach ( $lines as $line ) {
-            $line = trim( $line );
-            if ( str_starts_with( $line, "###" ) ) {
-                if ( ! empty( $currentList ) ) {
-                    $html .= "<ul>" . implode( "", $currentList ) . "</ul>";
-                    $currentList = [];
-                }
-                $header = htmlspecialchars( trim( substr( $line, 3 ) ) );
-                $html  .= "<p><strong>{$header}</strong></p>";
-            } elseif ( str_starts_with( $line, "-" ) || str_starts_with( $line, "*" ) ) {
-                $item          = htmlspecialchars( trim( substr( $line, 1 ) ) );
-                $currentList[] = "<li>{$item}</li>";
-            }
-        }
-        if ( ! empty( $currentList ) ) {
-            $html .= "<ul>" . implode( "", $currentList ) . "</ul>";
-        }
-        $changelogHtml = $html;
-    }
-}
-
-if ( ! empty( $releaseNotesFile ) ) {
-    file_put_contents( $releaseNotesFile, $releaseNotesMarkdown . PHP_EOL );
-}
-
-if ( ! isset( $data["sections"] ) ) {
-    $data["sections"] = [
-        "description" => "Expression Lab is a sandboxed REPL console for WordPress.",
-    ];
-}
-$data["sections"]["changelog"] = $changelogHtml;
-
-file_put_contents( $manifestFile, json_encode( $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) . PHP_EOL );
-echo $signed;
-' "$MANIFEST_FILE" "$VERSION" "$ZIP_SHA256" "$ZIP_NAME" "$CHANGELOG_FILE" "$ZIP_FILE" "$RELEASE_NOTES_FILE" "$REQUIRES_WP" "$TESTED_WP" "$REQUIRES_PHP")
+unset SIGNING_KEY
 
 echo "Build completed successfully!"
 echo "    Version:       $VERSION"
