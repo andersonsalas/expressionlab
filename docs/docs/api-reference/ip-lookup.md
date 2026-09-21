@@ -8,12 +8,6 @@ sidebar_position: 9
 
 Resolve IPv4 and IPv6 addresses to ISO 3166-1 alpha-2 country codes using a local MaxMind GeoLite2 binary database.
 
----
-
-:::info
-The **IP Lookup** service is available starting from version `v0.0.3-alpha`.
-:::
-
 Requires a GeoLite2 database created by MaxMind, available from [https://www.maxmind.com](https://www.maxmind.com). MaxMind and GeoLite2 are registered trademarks of MaxMind, Inc.
 
 ---

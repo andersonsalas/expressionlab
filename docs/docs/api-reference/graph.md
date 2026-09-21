@@ -8,12 +8,6 @@ sidebar_position: 10
 
 Compiles and renders interactive [Vega-Lite](https://vega.github.io/vega-lite/) visualizations in the console, combining high-level builders for rapid data exploration with custom declarative chart definitions.
 
----
-
-:::info
-The **Graph** service is available starting from version `v0.0.3-alpha`.
-:::
-
 The `Graph` service bridges Expression Lab with the client-side Vega-Lite runtime. It transforms JSON payloads and structured language arrays into reactive charts, offering both turnkey builders for common visualizations and direct access to the raw Vega-Lite compiler.
 
 * **Vega-Lite compiler access**: Compiles custom declarative specifications through `Graph.render()`.
@@ -442,7 +436,7 @@ Graph.worldmap(
 #### Automatic Country Code Resolution
 
 The method resolves country identifiers into standard TopoJSON numeric geometry IDs (`id`):
-* **ISO 3166-1 Alpha-2**: `'US'`, `'ES'`, `'DE'`, `'FR'`, `'JP'`. Output from [IPLookup.to_country()](./ip-lookup#iplookupto_country) binds directly into this method.
+* **ISO 3166-1 Alpha-2**: `'US'`, `'ES'`, `'DE'`, `'FR'`, `'JP'`. Output from [IPLookup.to_country()](./ip-lookup.md#iplookupto_country) binds directly into this method.
 * **ISO 3166-1 Alpha-3**: `'USA'`, `'ESP'`, `'DEU'`, `'FRA'`, `'JPN'`.
 * **Standard Country Names**: `'United States'`, `'Germany'`, `'Spain'`.
 * **Numeric TopoJSON IDs**: `'840'`, `'724'`, `'276'`.
