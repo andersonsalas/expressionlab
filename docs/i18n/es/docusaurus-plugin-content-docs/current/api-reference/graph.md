@@ -8,12 +8,6 @@ sidebar_position: 10
 
 Compila y renderiza visualizaciones interactivas de [Vega-Lite](https://vega.github.io/vega-lite/) en la consola, combinando constructores de alto nivel para una rápida exploración de datos con definiciones de gráficos declarativas personalizadas.
 
----
-
-:::info
-El servicio **Graph** está disponible a partir de la versión `v0.0.3-alpha`.
-:::
-
 El servicio `Graph` conecta Expression Lab con el runtime de Vega-Lite en el lado del cliente. Transforma payloads JSON y arrays estructurados del lenguaje en gráficos reactivos, ofreciendo tanto constructores listos para usar para visualizaciones comunes como acceso directo al compilador nativo de Vega-Lite.
 
 * **Acceso al compilador de Vega-Lite**: Compila especificaciones declarativas personalizadas mediante `Graph.render()`.
@@ -430,7 +424,7 @@ Graph.pie([
 
 ### Graph.worldmap()
 
-Renderiza un mapa coroplético mundial de dos capas sin conexión proyectado sobre una [proyección Equal Earth](https://en.wikipedia.org/wiki/Equal_Earth_projection).
+Renderiza un mapa coroplético mundial de dos capas sin conexión proyectado sobre una [proyección Equal Earth](https://es.wikipedia.org/wiki/Proyecci%C3%B3n_Equal_Earth).
 
 ```elscriptsignature
 Graph.worldmap(
@@ -442,7 +436,7 @@ Graph.worldmap(
 #### Resolución automática de códigos de país
 
 El método normaliza identificadores de países a identificadores numéricos de geometría TopoJSON estándar (`id`):
-* **ISO 3166-1 Alfa-2**: `'US'`, `'ES'`, `'DE'`, `'FR'`, `'JP'`. La salida de [IPLookup.to_country()](./ip-lookup#iplookupto_country) enlaza directamente con este método.
+* **ISO 3166-1 Alfa-2**: `'US'`, `'ES'`, `'DE'`, `'FR'`, `'JP'`. La salida de [IPLookup.to_country()](./ip-lookup.md#iplookupto_country) enlaza directamente con este método.
 * **ISO 3166-1 Alfa-3**: `'USA'`, `'ESP'`, `'DEU'`, `'FRA'`, `'JPN'`.
 * **Nombres estándar de países**: `'United States'`, `'Germany'`, `'Spain'`.
 * **Identificadores numéricos TopoJSON**: `'840'`, `'724'`, `'276'`.
@@ -535,7 +529,7 @@ Graph.worldmap({
 
 ### Graph.usa()
 
-Renderiza un mapa coroplético de dos capas sin conexión de los Estados Unidos utilizando una [proyección Albers USA](https://en.wikipedia.org/wiki/Albers_projection).
+Renderiza un mapa coroplético de dos capas sin conexión de los Estados Unidos utilizando una [proyección Albers USA](https://es.wikipedia.org/wiki/Proyecci%C3%B3n_de_Albers).
 
 ```elscriptsignature
 Graph.usa(
