@@ -25,9 +25,12 @@ use ExpressionLab\Core\Ast\ReduceNode;
 use Symfony\Component\ExpressionLanguage\Node\NameNode;
 use Symfony\Component\ExpressionLanguage\Node\Node;
 use Symfony\Component\ExpressionLanguage\Node\GetAttrNode;
+use Symfony\Component\ExpressionLanguage\Node\ConstantNode;
+use Symfony\Component\ExpressionLanguage\Node\ArgumentsNode;
 use Symfony\Component\ExpressionLanguage\Parser;
 use Symfony\Component\ExpressionLanguage\Token;
 use Symfony\Component\ExpressionLanguage\TokenStream;
+use Symfony\Component\ExpressionLanguage\SyntaxError;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	die( 'No direct script access allowed' );
@@ -91,12 +94,13 @@ class LanguageParser extends Parser {
 	/**
 	 * Overrides postfix expression parsing to intercept special forms and invocations.
 	 *
-	 * Handles three postfix cases in a unified loop:
+	 * Handles four postfix cases in a unified loop:
 	 * 1. Special form keywords (`prog[...]`, `fn[...]`, etc.) - intercepted
 	 *    when a NameNode matches a registered keyword followed by `[`.
-	 * 2. Standard property/method access (`.`, `?.`) and array indexing (`[`)
-	 *    - delegated to the parent `parsePostfixExpression()`.
-	 * 3. Direct expression invocation (`(`) - wraps the callee node in a
+	 * 2. Member access (`.`, `?.`) - resolves properties and method calls
+	 *    while restricting access to internal and magic methods.
+	 * 3. Array indexing (`[`) - resolves array element access.
+	 * 4. Direct expression invocation (`(`) - wraps the callee node in a
 	 *    `CallNode` with parsed arguments. Enables `var['fn'](args)`,
 	 *    `(fn[['x'], body])(7)`, and curried chains `f(1)(2)`.
 	 *
@@ -104,6 +108,7 @@ class LanguageParser extends Parser {
 	 *
 	 * @param Node $node The primary expression node.
 	 * @return GetAttrNode|Node The resulting AST node.
+	 * @throws \Symfony\Component\ExpressionLanguage\SyntaxError If member name is invalid or refers to a restricted internal method.
 	 */
 	public function parsePostfixExpression( Node $node ): GetAttrNode|Node {
 		// 1. Intercept special form keywords (prog, set, fn, etc.) followed by '['.
@@ -129,10 +134,51 @@ class LanguageParser extends Parser {
 		$token  = $stream->current;
 
 		while ( Token::PUNCTUATION_TYPE === $token->type ) {
-			if ( '.' === $token->value || '?.' === $token->value || '[' === $token->value ) {
-				// Delegate property/method access and array indexing to parent.
-				// The parent loop consumes consecutive '.'/'.?'/'[' tokens.
-				$node  = parent::parsePostfixExpression( $node );
+			if ( '.' === $token->value || '?.' === $token->value ) {
+				$is_null_safe = '?.' === $token->value;
+				$stream->next();
+				$token = $stream->current;
+				$stream->next();
+
+				if (
+					Token::NAME_TYPE !== $token->type
+					&& ( Token::OPERATOR_TYPE !== $token->type || ! preg_match( '/[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*/A', $token->value ) )
+				) {
+					throw new SyntaxError(
+						esc_html( 'Expected name.' ),
+						absint( $token->cursor ),
+						esc_html( $stream->getExpression() )
+					);
+				}
+
+				if ( str_starts_with( strtolower( $token->value ), '__' ) ) {
+					throw new SyntaxError(
+						esc_html( sprintf( 'Access to magic method or internal property "%s" is not allowed.', esc_html( $token->value ) ) ),
+						absint( $token->cursor ),
+						esc_html( $stream->getExpression() )
+					);
+				}
+
+				$arg = new ConstantNode( $token->value, true, $is_null_safe );
+
+				$arguments = new ArgumentsNode();
+				if ( $stream->current->test( Token::PUNCTUATION_TYPE, '(' ) ) {
+					$type = GetAttrNode::METHOD_CALL;
+					foreach ( $this->parseArguments()->nodes as $n ) {
+						$arguments->addElement( $n );
+					}
+				} else {
+					$type = GetAttrNode::PROPERTY_CALL;
+				}
+
+				$node  = new GetAttrNode( $node, $arg, $arguments, $type );
+				$token = $stream->current;
+			} elseif ( '[' === $token->value ) {
+				$stream->next();
+				$arg = $this->parseExpression();
+				$stream->expect( Token::PUNCTUATION_TYPE, ']' );
+
+				$node  = new GetAttrNode( $node, $arg, new ArgumentsNode(), GetAttrNode::ARRAY_CALL );
 				$token = $stream->current;
 			} elseif ( '(' === $token->value ) {
 				// Direct expression invocation: expr(arg1, arg2, ...).
