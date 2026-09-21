@@ -5,6 +5,7 @@ set +x
 
 cleanup() {
 	local exit_code=$?
+	unset SIGNING_KEY 2>/dev/null || true
 	if [ -d "${STAGING_DIR:-}" ]; then
 		rm -rf "$STAGING_DIR"
 	fi
@@ -180,6 +181,10 @@ rm -f "$ZIP_FILE"
 rm -rf "$STAGING_DIR"
 
 ZIP_SHA256=$(sha256sum "$ZIP_FILE" | awk '{print $1}')
+if ! echo "$ZIP_SHA256" | grep -qE '^[0-9a-f]{64}$'; then
+    echo "ERROR: SHA-256 checksum computation failed or produced invalid output." >&2
+    exit 1
+fi
 CHANGELOG_FILE="$ROOT_DIR/CHANGELOG.md"
 RELEASE_NOTES_FILE="$BUILD_DIR/RELEASE_NOTES.md"
 

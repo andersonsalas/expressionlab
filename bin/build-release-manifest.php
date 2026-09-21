@@ -25,6 +25,12 @@ if ( $argc < 7 ) {
 $manifest_file      = $argv[1];
 $version            = $argv[2];
 $sha256             = $argv[3];
+
+if ( ! ctype_xdigit( $sha256 ) || 64 !== strlen( $sha256 ) ) {
+	fwrite( STDERR, "Error: Invalid SHA-256 hash. Exactly 64 hexadecimal characters required.\n" );
+	exit( 1 );
+}
+
 $zip_name           = $argv[4];
 $changelog_file     = $argv[5];
 $zip_file_path      = $argv[6];
