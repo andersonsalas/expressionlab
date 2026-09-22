@@ -31,17 +31,21 @@
     "message": "Descubre una consola interactiva y DSL declarativo para inspeccionar el núcleo y los datos de WordPress de forma segura, sin escribir PHP directo ni usar eval().",
     "description": "Main description on landing page"
   },
+  "homepage.hero.cta.download": {
+    "message": "Descargar plugin",
+    "description": "Primary CTA button to download page"
+  },
   "homepage.hero.cta.start": {
-    "message": "Primeros Pasos",
-    "description": "Primary CTA button to getting started"
+    "message": "Primeros pasos",
+    "description": "Secondary CTA button to getting started"
   },
   "homepage.hero.cta.github": {
     "message": "Ver en GitHub",
     "description": "Secondary CTA button to github"
   },
   "homepage.hero.notice": {
-    "message": "Fase Alpha: destinado estrictamente a desarrollo local e inspección en staging.",
-    "description": "Alpha stage notice below CTA buttons"
+    "message": "Diseñado para desarrollo local y sitios de prueba.",
+    "description": "Notice below CTA buttons"
   },
   "homepage.features.queries.badge": {
     "message": "01 // INSPECCIÓN",
@@ -98,5 +102,45 @@
   "installation.currentVersion": {
     "message": "Versión actual: {version}",
     "description": "Label indicating the current plugin version below the download button"
+  },
+  "download.meta.title": {
+    "message": "Descargar Expression Lab",
+    "description": "Meta title for download page"
+  },
+  "download.meta.description": {
+    "message": "Descarga la última versión de Expression Lab para WordPress.",
+    "description": "Meta description for download page"
+  },
+  "download.title": {
+    "message": "Gracias por descargar Expression Lab",
+    "description": "Main title on download page"
+  },
+  "download.notice": {
+    "message": "La descarga comenzará en breve. Si no funciona, prueba este {directLink}.",
+    "description": "Notice about automatic download with direct link fallback"
+  },
+  "download.notice.directLink": {
+    "message": "enlace directo",
+    "description": "Direct link anchor text on download page"
+  },
+  "download.help": {
+    "message": "¿Tienes dudas? Consulta la sección {quickStart}.",
+    "description": "Help prompt with link to Quick Start section"
+  },
+  "download.help.quickStart": {
+    "message": "Inicio rápido",
+    "description": "Quick Start link text on download page"
+  },
+  "download.alpha.title": {
+    "message": "Expression Lab está en fase alfa",
+    "description": "Alpha notice card title"
+  },
+  "download.alpha.description": {
+    "message": "Se recomienda su uso únicamente en entornos locales y de staging. {learnMore}.",
+    "description": "Alpha notice card description with link to security docs"
+  },
+  "download.alpha.learnMore": {
+    "message": "Más información",
+    "description": "Learn more link in alpha notice card"
   }
 }

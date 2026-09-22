@@ -23,13 +23,6 @@ export default function Footer() {
             WordPress® is a registered trademark of the WordPress Foundation. Expression Lab is not affiliated with, sponsored by, or endorsed by the WordPress Foundation.
           </Translate>
         </p>
-        <p className={styles.paragraph}>
-          <Translate
-            id="footer.disclaimer"
-            description="Footer experimental software and warranty disclaimer">
-            {'Expression Lab is experimental software provided under the GPLv2 license "as is", without warranty of any kind. It is not audited by independent security firms and is strictly not intended for production, governmental, or mission-critical environments.'}
-          </Translate>
-        </p>
       </div>
     </footer>
   );

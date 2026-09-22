@@ -5,6 +5,22 @@
 const { themes: prismThemes } = require('prism-react-renderer');
 const packageJson = require('./package.json');
 
+/**
+ * Remove italic styles from a prism theme
+ * @param {import('prism-react-renderer').PrismTheme} theme
+ * @returns {import('prism-react-renderer').PrismTheme}
+ */
+const removeItalicsFromTheme = (theme) => ({
+  ...theme,
+  styles: (theme.styles || []).map((entry) => {
+    if (entry.style && entry.style.fontStyle === 'italic') {
+      const { fontStyle: _fontStyle, ...rest } = entry.style;
+      return { ...entry, style: rest };
+    }
+    return entry;
+  }),
+});
+
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Expression Lab',
@@ -144,8 +160,8 @@ const config = {
         links: [],
       },
       prism: {
-        theme: prismThemes.github,
-        darkTheme: prismThemes.dracula,
+        theme: removeItalicsFromTheme(prismThemes.github),
+        darkTheme: removeItalicsFromTheme(prismThemes.dracula),
         additionalLanguages: ['php', 'json', 'bash', 'yaml'],
       },
     }),

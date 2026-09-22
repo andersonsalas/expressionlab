@@ -4,6 +4,7 @@ import Link from '@docusaurus/Link';
 import useBaseUrl from '@docusaurus/useBaseUrl';
 import Layout from '@theme/Layout';
 import Translate, { translate } from '@docusaurus/Translate';
+import FlaskIcon from '@site/static/img/flask-icon.svg';
 import styles from './index.module.css';
 
 const FEATURES = [
@@ -71,7 +72,7 @@ function HeroSection() {
           <div className={styles.heroContent}>
             <div className={styles.eyebrow}>
               <Translate id="homepage.hero.eyebrow" description="Eyebrow subtitle in hero">
-                Developer tooling for WordPress
+                Diagnostic environment for WordPress
               </Translate>
             </div>
             <h1 className={styles.heroTitle}>
@@ -92,25 +93,28 @@ function HeroSection() {
             <div className={styles.actions}>
               <Link
                 className={clsx('button', styles.buttonPrimary)}
-                to="/docs/getting-started/installation">
-                <Translate id="homepage.hero.cta.start" description="Primary CTA button to getting started">
-                  Getting Started
+                to="/download">
+                <Translate id="homepage.hero.cta.download" description="Primary CTA button to download page">
+                  Download Plugin
                 </Translate>
               </Link>
               <Link
                 className={clsx('button', styles.buttonSecondary)}
-                href="https://github.com/andersonsalas/expressionlab">
-                <Translate id="homepage.hero.cta.github" description="Secondary CTA button to github">
-                  View on GitHub
+                to="/docs/getting-started/installation">
+                <Translate id="homepage.hero.cta.start" description="Secondary CTA button to getting started">
+                  Getting Started
                 </Translate>
               </Link>
             </div>
             <div className={styles.heroNotice}>
-              <Translate
-                id="homepage.hero.notice"
-                description="Alpha stage notice below CTA buttons">
-                Alpha stage - Intended strictly for local development and staging inspection.
-              </Translate>
+              <FlaskIcon className={styles.heroNoticeIcon} aria-hidden="true" />
+              <span>
+                <Translate
+                  id="homepage.hero.notice"
+                  description="Notice below CTA buttons">
+                  Built for local development and staging workflows.
+                </Translate>
+              </span>
             </div>
           </div>
           <div className={styles.heroVisualContainer}>
