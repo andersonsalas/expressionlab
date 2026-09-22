@@ -93,16 +93,16 @@ function HeroSection() {
             <div className={styles.actions}>
               <Link
                 className={clsx('button', styles.buttonPrimary)}
-                to="/docs/getting-started/installation">
-                <Translate id="homepage.hero.cta.start" description="Primary CTA button to getting started">
-                  Getting Started
+                to="/download">
+                <Translate id="homepage.hero.cta.download" description="Primary CTA button to download page">
+                  Download Plugin
                 </Translate>
               </Link>
               <Link
                 className={clsx('button', styles.buttonSecondary)}
-                href="https://github.com/andersonsalas/expressionlab">
-                <Translate id="homepage.hero.cta.github" description="Secondary CTA button to github">
-                  View on GitHub
+                to="/docs/getting-started/installation">
+                <Translate id="homepage.hero.cta.start" description="Secondary CTA button to getting started">
+                  Getting Started
                 </Translate>
               </Link>
             </div>
