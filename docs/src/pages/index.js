@@ -4,6 +4,7 @@ import Link from '@docusaurus/Link';
 import useBaseUrl from '@docusaurus/useBaseUrl';
 import Layout from '@theme/Layout';
 import Translate, { translate } from '@docusaurus/Translate';
+import FlaskIcon from '@site/static/img/flask-icon.svg';
 import styles from './index.module.css';
 
 const FEATURES = [
@@ -71,7 +72,7 @@ function HeroSection() {
           <div className={styles.heroContent}>
             <div className={styles.eyebrow}>
               <Translate id="homepage.hero.eyebrow" description="Eyebrow subtitle in hero">
-                Developer tooling for WordPress
+                Diagnostic environment for WordPress
               </Translate>
             </div>
             <h1 className={styles.heroTitle}>
@@ -106,11 +107,14 @@ function HeroSection() {
               </Link>
             </div>
             <div className={styles.heroNotice}>
-              <Translate
-                id="homepage.hero.notice"
-                description="Alpha stage notice below CTA buttons">
-                Alpha stage - Intended strictly for local development and staging inspection.
-              </Translate>
+              <FlaskIcon className={styles.heroNoticeIcon} aria-hidden="true" />
+              <span>
+                <Translate
+                  id="homepage.hero.notice"
+                  description="Notice below CTA buttons">
+                  Built for local development and staging workflows.
+                </Translate>
+              </span>
             </div>
           </div>
           <div className={styles.heroVisualContainer}>

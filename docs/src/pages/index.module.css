@@ -28,13 +28,10 @@
 }
 
 .eyebrow {
-  font-family: var(--ifm-font-family-monospace);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ifm-color-primary);
-  margin-bottom: 0.875rem;
+  font-size: 1rem;
+  font-weight: normal;
+  color: var(--ifm-font-color-base);
+  margin-bottom: 6px;
   display: inline-flex;
   align-items: center;
 }
@@ -119,7 +116,16 @@
   margin-top: 1.125rem;
   font-size: 0.8125rem;
   line-height: 1.5;
-  color: var(--ifm-color-emphasis-600);
+  color: var(--ifm-font-color-base);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.heroNoticeIcon {
+  width: 26px;
+  height: auto;
+  flex-shrink: 0;
 }
 
 .heroVisualContainer {

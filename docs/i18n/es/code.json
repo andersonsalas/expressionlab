@@ -40,8 +40,8 @@
     "description": "Secondary CTA button to github"
   },
   "homepage.hero.notice": {
-    "message": "Fase Alpha: destinado estrictamente a desarrollo local e inspección en staging.",
-    "description": "Alpha stage notice below CTA buttons"
+    "message": "Diseñado para desarrollo local y sitios de prueba.",
+    "description": "Notice below CTA buttons"
   },
   "homepage.features.queries.badge": {
     "message": "01 // INSPECCIÓN",
