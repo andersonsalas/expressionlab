@@ -531,9 +531,13 @@ const setEditorValue = (val) => {
   if (!view) return;
   isProgrammaticUpdate = true;
   const tr = view.state.update({
-    changes: { from: 0, to: view.state.doc.length, insert: val }
+    changes: { from: 0, to: view.state.doc.length, insert: val },
+    selection: { anchor: 0, head: 0 }
   });
   view.dispatch(tr);
+  if (view.scrollDOM) {
+    view.scrollDOM.scrollTop = 0;
+  }
   isProgrammaticUpdate = false;
 };
 
@@ -660,9 +664,12 @@ watch(isOpen, async (open) => {
       }
       setTimeout(() => { 
         if (view) {
-          const length = view.state.doc.length;
-          view.dispatch({ selection: { anchor: length, head: length }, scrollIntoView: true });
+          view.dispatch({ selection: { anchor: 0, head: 0 } });
+          if (view.scrollDOM) {
+            view.scrollDOM.scrollTop = 0;
+          }
           view.focus(); 
+          view.requestMeasure();
         } 
       }, 100);
     });
@@ -683,9 +690,12 @@ watch(activeSnippet, (newSnippet) => {
       initCodeMirror();
       setTimeout(() => { 
         if (view) {
-          const length = view.state.doc.length;
-          view.dispatch({ selection: { anchor: length, head: length }, scrollIntoView: true });
+          view.dispatch({ selection: { anchor: 0, head: 0 } });
+          if (view.scrollDOM) {
+            view.scrollDOM.scrollTop = 0;
+          }
           view.focus(); 
+          view.requestMeasure();
         } 
       }, 100);
     } else if (view) {
@@ -695,11 +705,12 @@ watch(activeSnippet, (newSnippet) => {
       }
       setTimeout(() => { 
         if (view) {
-          const length = view.state.doc.length;
           view.dispatch({ 
-            selection: { anchor: length, head: length }, 
-            scrollIntoView: true 
+            selection: { anchor: 0, head: 0 }
           });
+          if (view.scrollDOM) {
+            view.scrollDOM.scrollTop = 0;
+          }
           view.focus(); 
           view.requestMeasure();
         } 
