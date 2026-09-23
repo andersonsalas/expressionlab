@@ -446,6 +446,210 @@ Returns an array of associative arrays with the following structure:
 Media.stats()
 ```
 
+<VegaLite spec={{
+  "$schema": "https://vega.github.io/schema/vega/v6.json",
+  "description": "Media distribution graph",
+  "autosize": {
+    "type": "fit-x",
+    "contains": "padding"
+  },
+  "background": "white",
+  "padding": 20,
+  "height": 300,
+  "title": {
+    "anchor": "start",
+    "text": "Media Distribution by MIME Type"
+  },
+  "style": "view",
+  "data": [
+    {
+      "name": "source_0",
+      "values": [
+        {
+          "mime_type": "image/jpeg",
+          "count": 3
+        },
+        {
+          "mime_type": "image/png",
+          "count": 1
+        },
+        {
+          "mime_type": "image/webp",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "data_0",
+      "source": "source_0",
+      "transform": [
+        {
+          "type": "stack",
+          "groupby": [],
+          "field": "count",
+          "sort": {
+            "field": [
+              "mime_type"
+            ],
+            "order": [
+              "ascending"
+            ]
+          },
+          "as": [
+            "count_start",
+            "count_end"
+          ],
+          "offset": "zero"
+        },
+        {
+          "type": "filter",
+          "expr": "isValid(datum[\"count\"]) && isFinite(+datum[\"count\"])"
+        }
+      ]
+    }
+  ],
+  "signals": [
+    {
+      "name": "width",
+      "init": "isFinite(containerSize()[0]) ? containerSize()[0] : 300",
+      "on": [
+        {
+          "update": "isFinite(containerSize()[0]) ? containerSize()[0] : 300",
+          "events": "window:resize"
+        }
+      ]
+    }
+  ],
+  "marks": [
+    {
+      "name": "marks",
+      "type": "arc",
+      "style": [
+        "arc"
+      ],
+      "from": {
+        "data": "data_0"
+      },
+      "encode": {
+        "update": {
+          "tooltip": {
+            "signal": "{\"count\": format(datum[\"count\"], \"\"), \"mime_type\": isValid(datum[\"mime_type\"]) ? isArray(datum[\"mime_type\"]) ? join(datum[\"mime_type\"], '\\n') : datum[\"mime_type\"] : \"\"+datum[\"mime_type\"]}"
+          },
+          "fill": {
+            "scale": "color",
+            "field": "mime_type"
+          },
+          "description": {
+            "signal": "\"count: \" + (format(datum[\"count\"], \"\")) + \"; mime_type: \" + (isValid(datum[\"mime_type\"]) ? isArray(datum[\"mime_type\"]) ? join(datum[\"mime_type\"], ' ') : datum[\"mime_type\"] : \"\"+datum[\"mime_type\"])"
+          },
+          "x": {
+            "signal": "width",
+            "mult": 0.5
+          },
+          "y": {
+            "signal": "height",
+            "mult": 0.5
+          },
+          "outerRadius": {
+            "signal": "min(width,height)/2"
+          },
+          "innerRadius": {
+            "value": 0
+          },
+          "startAngle": {
+            "scale": "theta",
+            "field": "count_end"
+          },
+          "endAngle": {
+            "scale": "theta",
+            "field": "count_start"
+          }
+        }
+      }
+    }
+  ],
+  "scales": [
+    {
+      "name": "theta",
+      "type": "linear",
+      "domain": {
+        "data": "data_0",
+        "fields": [
+          "count_start",
+          "count_end"
+        ]
+      },
+      "range": [
+        0,
+        6.283185307179586
+      ],
+      "zero": true
+    },
+    {
+      "name": "color",
+      "type": "ordinal",
+      "domain": {
+        "data": "data_0",
+        "field": "mime_type",
+        "sort": true
+      },
+      "range": "category"
+    }
+  ],
+  "legends": [
+    {
+      "title": "MIME Type",
+      "fill": "color",
+      "symbolType": "circle"
+    }
+  ],
+  "config": {
+    "axis": {
+      "titleFont": "Roboto Slab, serif",
+      "titleFontSize": 13,
+      "titleFontWeight": "bold",
+      "labelFont": "Cascadia Mono, monospace",
+      "labelFontSize": 12,
+      "gridColor": "#E5E5E5",
+      "tickColor": "#888888",
+      "domainColor": "#888888"
+    },
+    "axisBottom": {
+      "labelAngle": -45
+    },
+    "legend": {
+      "titleFont": "Roboto Slab, serif",
+      "titleFontSize": 13,
+      "titleFontWeight": "bold",
+      "labelFont": "Cascadia Mono, monospace",
+      "labelFontSize": 12
+    },
+    "style": {
+      "guide-label": {
+        "font": "system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif"
+      },
+      "guide-title": {
+        "font": "system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif"
+      },
+      "group-title": {
+        "font": "Roboto Slab, serif",
+        "fontSize": 16,
+        "fontWeight": "bold",
+        "fill": "#1e293b"
+      },
+      "group-subtitle": {
+        "font": "system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif"
+      },
+      "cell": {
+        "stroke": "transparent"
+      },
+      "text": {
+        "font": "system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif"
+      }
+    }
+  }
+}} />
+
 ---
 
 ## Attachment Model Properties
