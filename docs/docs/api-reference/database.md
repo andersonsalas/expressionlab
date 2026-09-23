@@ -843,530 +843,58 @@ Database.table_list()
 </div>
 
 <VegaLite spec={{
-  "$schema": "https://vega.github.io/schema/vega/v6.json",
-  "description": "Tables distribution by rows",
-  "autosize": {
-    "type": "fit-x",
-    "contains": "padding"
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+  "title": "Tables by Row Count",
+  "width": "container",
+  "height": 280,
+  "data": {
+    "values": [
+      { "name": "wp_options", "rows": 143 },
+      { "name": "wp_usermeta", "rows": 20 },
+      { "name": "wp_posts", "rows": 8 },
+      { "name": "wp_postmeta", "rows": 8 },
+      { "name": "wp_users", "rows": 1 },
+      { "name": "wp_comments", "rows": 0 },
+      { "name": "wp_commentmeta", "rows": 0 },
+      { "name": "wp_terms", "rows": 0 },
+      { "name": "wp_term_taxonomy", "rows": 0 },
+      { "name": "wp_term_relationships", "rows": 0 },
+      { "name": "wp_termmeta", "rows": 0 },
+      { "name": "wp_links", "rows": 0 }
+    ]
   },
-  "background": "white",
-  "padding": 20,
-  "height": 300,
-  "title": {
-    "anchor": "start",
-    "text": "Tables by Row Count"
-  },
-  "style": "view",
-  "data": [
-    {
-      "name": "source_0",
-      "values": [
-        {
-          "name": "wp_options",
-          "engine": "InnoDB",
-          "rows": 143,
-          "size": "1.09 MB"
-        },
-        {
-          "name": "wp_usermeta",
-          "engine": "InnoDB",
-          "rows": 20,
-          "size": "0.05 MB"
-        },
-        {
-          "name": "wp_postmeta",
-          "engine": "InnoDB",
-          "rows": 8,
-          "size": "0.05 MB"
-        },
-        {
-          "name": "wp_posts",
-          "engine": "InnoDB",
-          "rows": 8,
-          "size": "0.09 MB"
-        },
-        {
-          "name": "wp_users",
-          "engine": "InnoDB",
-          "rows": 1,
-          "size": "0.06 MB"
-        },
-        {
-          "name": "wp_commentmeta",
-          "engine": "InnoDB",
-          "rows": 0,
-          "size": "0.05 MB"
-        },
-        {
-          "name": "wp_comments",
-          "engine": "InnoDB",
-          "rows": 0,
-          "size": "0.09 MB"
-        },
-        {
-          "name": "wp_links",
-          "engine": "InnoDB",
-          "rows": 0,
-          "size": "0.03 MB"
-        },
-        {
-          "name": "wp_term_relationships",
-          "engine": "InnoDB",
-          "rows": 0,
-          "size": "0.03 MB"
-        },
-        {
-          "name": "wp_term_taxonomy",
-          "engine": "InnoDB",
-          "rows": 0,
-          "size": "0.05 MB"
-        },
-        {
-          "name": "wp_termmeta",
-          "engine": "InnoDB",
-          "rows": 0,
-          "size": "0.05 MB"
-        },
-        {
-          "name": "wp_terms",
-          "engine": "InnoDB",
-          "rows": 0,
-          "size": "0.05 MB"
-        }
-      ]
-    },
-    {
-      "name": "data_0",
-      "source": "source_0",
-      "transform": [
-        {
-          "type": "stack",
-          "groupby": [],
-          "field": "rows",
-          "sort": {
-            "field": [
-              "name"
-            ],
-            "order": [
-              "ascending"
-            ]
-          },
-          "as": [
-            "rows_start",
-            "rows_end"
-          ],
-          "offset": "zero"
-        },
-        {
-          "type": "filter",
-          "expr": "isValid(datum[\"rows\"]) && isFinite(+datum[\"rows\"])"
-        }
-      ]
-    }
-  ],
-  "signals": [
-    {
-      "name": "width",
-      "init": "isFinite(containerSize()[0]) ? containerSize()[0] : 300",
-      "on": [
-        {
-          "update": "isFinite(containerSize()[0]) ? containerSize()[0] : 300",
-          "events": "window:resize"
-        }
-      ]
-    }
-  ],
-  "marks": [
-    {
-      "name": "marks",
-      "type": "arc",
-      "style": [
-        "arc"
-      ],
-      "from": {
-        "data": "data_0"
-      },
-      "encode": {
-        "update": {
-          "tooltip": {
-            "signal": "{\"rows\": format(datum[\"rows\"], \"\"), \"name\": isValid(datum[\"name\"]) ? isArray(datum[\"name\"]) ? join(datum[\"name\"], '\\n') : datum[\"name\"] : \"\"+datum[\"name\"]}"
-          },
-          "fill": {
-            "scale": "color",
-            "field": "name"
-          },
-          "description": {
-            "signal": "\"rows: \" + (format(datum[\"rows\"], \"\")) + \"; name: \" + (isValid(datum[\"name\"]) ? isArray(datum[\"name\"]) ? join(datum[\"name\"], ' ') : datum[\"name\"] : \"\"+datum[\"name\"])"
-          },
-          "x": {
-            "signal": "width",
-            "mult": 0.5
-          },
-          "y": {
-            "signal": "height",
-            "mult": 0.5
-          },
-          "outerRadius": {
-            "signal": "min(width,height)/2"
-          },
-          "innerRadius": {
-            "value": 0
-          },
-          "startAngle": {
-            "scale": "theta",
-            "field": "rows_end"
-          },
-          "endAngle": {
-            "scale": "theta",
-            "field": "rows_start"
-          }
-        }
-      }
-    }
-  ],
-  "scales": [
-    {
-      "name": "theta",
-      "type": "linear",
-      "domain": {
-        "data": "data_0",
-        "fields": [
-          "rows_start",
-          "rows_end"
-        ]
-      },
-      "range": [
-        0,
-        6.283185307179586
-      ],
-      "zero": true
-    },
-    {
-      "name": "color",
-      "type": "ordinal",
-      "domain": {
-        "data": "data_0",
-        "field": "name",
-        "sort": true
-      },
-      "range": "category"
-    }
-  ],
-  "legends": [
-    {
-      "title": "Table Name",
-      "fill": "color",
-      "symbolType": "circle"
-    }
-  ],
-  "config": {
-    "axis": {
-      "titleFont": "Roboto Slab, serif",
-      "titleFontSize": 13,
-      "titleFontWeight": "bold",
-      "labelFont": "Cascadia Mono, monospace",
-      "labelFontSize": 12,
-      "gridColor": "#E5E5E5",
-      "tickColor": "#888888",
-      "domainColor": "#888888"
-    },
-    "axisBottom": {
-      "labelAngle": -45
-    },
-    "legend": {
-      "titleFont": "Roboto Slab, serif",
-      "titleFontSize": 13,
-      "titleFontWeight": "bold",
-      "labelFont": "Cascadia Mono, monospace",
-      "labelFontSize": 12
-    },
-    "style": {
-      "guide-label": {
-        "font": "system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif"
-      },
-      "guide-title": {
-        "font": "system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif"
-      },
-      "group-title": {
-        "font": "Roboto Slab, serif",
-        "fontSize": 16,
-        "fontWeight": "bold",
-        "fill": "#1e293b"
-      },
-      "group-subtitle": {
-        "font": "system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif"
-      },
-      "cell": {
-        "stroke": "transparent"
-      },
-      "text": {
-        "font": "system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif"
-      }
-    }
+  "mark": { "type": "arc", "tooltip": true },
+  "encoding": {
+    "theta": { "field": "rows", "type": "quantitative", "stack": true },
+    "color": { "field": "name", "type": "nominal", "scale": { "scheme": "tableau10" }, "legend": { "title": "Table Name" } }
   }
 }} />
 
 <VegaLite spec={{
-  "$schema": "https://vega.github.io/schema/vega/v6.json",
-  "description": "Tables distribution by size",
-  "autosize": {
-    "type": "fit-x",
-    "contains": "padding"
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+  "title": "Tables by Size (MB)",
+  "width": "container",
+  "height": 280,
+  "data": {
+    "values": [
+      { "name": "wp_options", "size": 1.09 },
+      { "name": "wp_posts", "size": 0.09 },
+      { "name": "wp_comments", "size": 0.09 },
+      { "name": "wp_users", "size": 0.06 },
+      { "name": "wp_usermeta", "size": 0.05 },
+      { "name": "wp_postmeta", "size": 0.05 },
+      { "name": "wp_commentmeta", "size": 0.05 },
+      { "name": "wp_terms", "size": 0.05 },
+      { "name": "wp_term_taxonomy", "size": 0.05 },
+      { "name": "wp_termmeta", "size": 0.05 },
+      { "name": "wp_links", "size": 0.03 },
+      { "name": "wp_term_relationships", "size": 0.03 }
+    ]
   },
-  "background": "white",
-  "padding": 20,
-  "height": 300,
-  "title": {
-    "anchor": "start",
-    "text": "Tables by Size (MB)"
-  },
-  "style": "view",
-  "data": [
-    {
-      "name": "source_0",
-      "values": [
-        {
-          "name": "wp_options",
-          "engine": "InnoDB",
-          "rows": 143,
-          "size": 1.09
-        },
-        {
-          "name": "wp_comments",
-          "engine": "InnoDB",
-          "rows": 0,
-          "size": 0.09
-        },
-        {
-          "name": "wp_posts",
-          "engine": "InnoDB",
-          "rows": 8,
-          "size": 0.09
-        },
-        {
-          "name": "wp_users",
-          "engine": "InnoDB",
-          "rows": 1,
-          "size": 0.06
-        },
-        {
-          "name": "wp_commentmeta",
-          "engine": "InnoDB",
-          "rows": 0,
-          "size": 0.05
-        },
-        {
-          "name": "wp_postmeta",
-          "engine": "InnoDB",
-          "rows": 8,
-          "size": 0.05
-        },
-        {
-          "name": "wp_term_taxonomy",
-          "engine": "InnoDB",
-          "rows": 0,
-          "size": 0.05
-        },
-        {
-          "name": "wp_termmeta",
-          "engine": "InnoDB",
-          "rows": 0,
-          "size": 0.05
-        },
-        {
-          "name": "wp_terms",
-          "engine": "InnoDB",
-          "rows": 0,
-          "size": 0.05
-        },
-        {
-          "name": "wp_usermeta",
-          "engine": "InnoDB",
-          "rows": 20,
-          "size": 0.05
-        },
-        {
-          "name": "wp_links",
-          "engine": "InnoDB",
-          "rows": 0,
-          "size": 0.03
-        },
-        {
-          "name": "wp_term_relationships",
-          "engine": "InnoDB",
-          "rows": 0,
-          "size": 0.03
-        }
-      ]
-    },
-    {
-      "name": "data_0",
-      "source": "source_0",
-      "transform": [
-        {
-          "type": "stack",
-          "groupby": [],
-          "field": "size",
-          "sort": {
-            "field": [
-              "name"
-            ],
-            "order": [
-              "ascending"
-            ]
-          },
-          "as": [
-            "size_start",
-            "size_end"
-          ],
-          "offset": "zero"
-        },
-        {
-          "type": "filter",
-          "expr": "isValid(datum[\"size\"]) && isFinite(+datum[\"size\"])"
-        }
-      ]
-    }
-  ],
-  "signals": [
-    {
-      "name": "width",
-      "init": "isFinite(containerSize()[0]) ? containerSize()[0] : 300",
-      "on": [
-        {
-          "update": "isFinite(containerSize()[0]) ? containerSize()[0] : 300",
-          "events": "window:resize"
-        }
-      ]
-    }
-  ],
-  "marks": [
-    {
-      "name": "marks",
-      "type": "arc",
-      "style": [
-        "arc"
-      ],
-      "from": {
-        "data": "data_0"
-      },
-      "encode": {
-        "update": {
-          "tooltip": {
-            "signal": "{\"size\": format(datum[\"size\"], \"\"), \"name\": isValid(datum[\"name\"]) ? isArray(datum[\"name\"]) ? join(datum[\"name\"], '\\n') : datum[\"name\"] : \"\"+datum[\"name\"]}"
-          },
-          "fill": {
-            "scale": "color",
-            "field": "name"
-          },
-          "description": {
-            "signal": "\"size: \" + (format(datum[\"size\"], \"\")) + \"; name: \" + (isValid(datum[\"name\"]) ? isArray(datum[\"name\"]) ? join(datum[\"name\"], ' ') : datum[\"name\"] : \"\"+datum[\"name\"])"
-          },
-          "x": {
-            "signal": "width",
-            "mult": 0.5
-          },
-          "y": {
-            "signal": "height",
-            "mult": 0.5
-          },
-          "outerRadius": {
-            "signal": "min(width,height)/2"
-          },
-          "innerRadius": {
-            "value": 0
-          },
-          "startAngle": {
-            "scale": "theta",
-            "field": "size_end"
-          },
-          "endAngle": {
-            "scale": "theta",
-            "field": "size_start"
-          }
-        }
-      }
-    }
-  ],
-  "scales": [
-    {
-      "name": "theta",
-      "type": "linear",
-      "domain": {
-        "data": "data_0",
-        "fields": [
-          "size_start",
-          "size_end"
-        ]
-      },
-      "range": [
-        0,
-        6.283185307179586
-      ],
-      "zero": true
-    },
-    {
-      "name": "color",
-      "type": "ordinal",
-      "domain": {
-        "data": "data_0",
-        "field": "name",
-        "sort": true
-      },
-      "range": "category"
-    }
-  ],
-  "legends": [
-    {
-      "title": "Table Name",
-      "fill": "color",
-      "symbolType": "circle"
-    }
-  ],
-  "config": {
-    "axis": {
-      "titleFont": "Roboto Slab, serif",
-      "titleFontSize": 13,
-      "titleFontWeight": "bold",
-      "labelFont": "Cascadia Mono, monospace",
-      "labelFontSize": 12,
-      "gridColor": "#E5E5E5",
-      "tickColor": "#888888",
-      "domainColor": "#888888"
-    },
-    "axisBottom": {
-      "labelAngle": -45
-    },
-    "legend": {
-      "titleFont": "Roboto Slab, serif",
-      "titleFontSize": 13,
-      "titleFontWeight": "bold",
-      "labelFont": "Cascadia Mono, monospace",
-      "labelFontSize": 12
-    },
-    "style": {
-      "guide-label": {
-        "font": "system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif"
-      },
-      "guide-title": {
-        "font": "system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif"
-      },
-      "group-title": {
-        "font": "Roboto Slab, serif",
-        "fontSize": 16,
-        "fontWeight": "bold",
-        "fill": "#1e293b"
-      },
-      "group-subtitle": {
-        "font": "system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif"
-      },
-      "cell": {
-        "stroke": "transparent"
-      },
-      "text": {
-        "font": "system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif"
-      }
-    }
+  "mark": { "type": "arc", "tooltip": true },
+  "encoding": {
+    "theta": { "field": "size", "type": "quantitative", "stack": true },
+    "color": { "field": "name", "type": "nominal", "scale": { "scheme": "tableau10" }, "legend": { "title": "Table Name" } }
   }
 }} />
 

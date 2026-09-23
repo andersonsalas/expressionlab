@@ -28,6 +28,11 @@ function normalizeSpec(obj, isDark = false) {
     }
   }
 
+  // Remove hardcoded white/opaque backgrounds to respect Docusaurus dark/light theme
+  if (obj.background && (obj.background === 'white' || obj.background === '#fff' || obj.background === '#ffffff')) {
+    delete obj.background;
+  }
+
   // Sanitize encoding tooltip boolean warning in Vega-Lite v6
   if (obj.encoding && obj.encoding.tooltip === true) {
     delete obj.encoding.tooltip;
