@@ -36,6 +36,7 @@ jest.mock('@codemirror/view', () => ({
         destroy: jest.fn(),
         focus: jest.fn(),
         requestMeasure: jest.fn(),
+        scrollDOM: { scrollTop: 0 },
         dom: { addEventListener: jest.fn() }
       };
     }),
@@ -468,6 +469,64 @@ describe('LibraryModal.vue', () => {
     expect(libraryList.scrollTop).toBe(500);
 
     window.HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+  });
+
+  it('does not scroll to the bottom of the code editor when selecting a snippet', async () => {
+    jest.useFakeTimers();
+    const { handleLocalStorage } = require('../../../lib/api/client.js');
+    handleLocalStorage.mockImplementation((method, key) => {
+      if (method === 'getItem' && key === 'el_snippets') {
+        return Promise.resolve(JSON.stringify([
+          { id: 'snippet-1', name: 'Snippet 1', code: 'line 1\nline 2\nline 3' },
+          { id: 'snippet-2', name: 'Snippet 2', code: 'prog[\n  long snippet code here\n]' }
+        ]));
+      }
+      return Promise.resolve(null);
+    });
+
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'library' }
+      }
+    });
+
+    const wrapper = mount(LibraryModal, {
+      global: {
+        plugins: [pinia]
+      }
+    });
+
+    await flushPromises();
+    await nextTick();
+    jest.advanceTimersByTime(150);
+
+    const { EditorView } = require('@codemirror/view');
+    const editorInstance = EditorView.mock.results[0]?.value;
+    expect(editorInstance).toBeDefined();
+
+    editorInstance.dispatch.mockClear();
+
+    const snippetItems = wrapper.findAll('.library-list-item');
+    const snippet2Item = snippetItems.filter(w => w.text().includes('Snippet 2'))[0];
+    await snippet2Item.trigger('click');
+    await flushPromises();
+    await nextTick();
+    jest.advanceTimersByTime(150);
+
+    const dispatchCalls = editorInstance.dispatch.mock.calls;
+    for (const call of dispatchCalls) {
+      const arg = call[0];
+      if (arg && typeof arg === 'object') {
+        expect(arg.scrollIntoView).toBeFalsy();
+        if (arg.selection) {
+          expect(arg.selection.anchor).toBe(0);
+          expect(arg.selection.head).toBe(0);
+        }
+      }
+    }
+
+    expect(editorInstance.scrollDOM.scrollTop).toBe(0);
+    jest.useRealTimers();
   });
 });
 
