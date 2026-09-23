@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Expression Lab
  * Description: Expression Lab is a sandboxed diagnostics and data inspection environment for WordPress. It features a Domain-Specific Language for evaluating expressions and visualization capabilities.
- * Version: 0.0.2-alpha
+ * Version: 0.0.3-alpha
  * Author: Anderson Salas
  * Author URI: https://andersonsalas.com
  * Plugin URI: https://expressionlab.io
@@ -27,7 +27,7 @@ if ( ! defined( 'EXPRESSION_LAB_VERSION' ) ) {
 	 *
 	 * @var string
 	 */
-	define( 'EXPRESSION_LAB_VERSION', '0.0.2-alpha' );
+	define( 'EXPRESSION_LAB_VERSION', '0.0.3-alpha' );
 }
 
 if ( ! defined( 'EXPRESSION_LAB_PUBLIC_KEY' ) ) {

@@ -74,7 +74,10 @@ const config = {
           routeBasePath: 'docs', // Serve documentation under /docs/
           versions: {
             current: {
-              label: '0.0.2-alpha',
+              label: 'Next',
+            },
+            '0.0.3-alpha': {
+              label: '0.0.3-alpha',
             },
           },
         },
