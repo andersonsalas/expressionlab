@@ -132,15 +132,11 @@
     "description": "Quick Start link text on download page"
   },
   "download.alpha.title": {
-    "message": "Expression Lab está en fase alfa",
+    "message": "Versión alfa y modelo de seguridad",
     "description": "Alpha notice card title"
   },
   "download.alpha.description": {
-    "message": "Se recomienda su uso únicamente en entornos locales y de staging. {learnMore}.",
-    "description": "Alpha notice card description with link to security docs"
-  },
-  "download.alpha.learnMore": {
-    "message": "Más información",
-    "description": "Learn more link in alpha notice card"
+    "message": "Conoce la arquitectura de seguridad, restricciones y diseño del entorno.",
+    "description": "Notice informing about experimental and alpha status of Expression Lab"
   }
 }

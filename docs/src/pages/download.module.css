@@ -1,3 +1,4 @@
+/* stylelint-disable */
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600;700&display=swap');
 
 .downloadMain {
@@ -49,22 +50,42 @@
 }
 
 .alphaNoticeCard {
+  --card-border-color: #dcdfe4;
   margin-top: 3.5rem;
   padding: 1.5rem 1.75rem;
   border-radius: 8px;
-  border: 1px solid #dcdfe4;
+  border: 1px solid var(--card-border-color);
   background-color: var(--ifm-card-background-color, #ffffff);
   display: flex;
   align-items: center;
   gap: 1.75rem;
   text-align: left;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  text-decoration: none !important;
+  color: inherit !important;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 [data-theme='dark'] .alphaNoticeCard {
-  border-color: #47474c;
+  --card-border-color: #47474c;
+  border-color: var(--card-border-color);
   background-color: #1b1b1d;
   box-shadow: none;
+}
+
+.alphaNoticeCard:hover {
+  border-color: var(--ifm-link-color, #3858e9) !important;
+  text-decoration: none !important;
+  color: inherit !important;
+}
+
+.alphaNoticeCard,
+.alphaNoticeCard:hover,
+.alphaNoticeCard:focus,
+.alphaNoticeCard:active,
+.alphaNoticeCard * {
+  text-decoration: none !important;
 }
 
 .alphaIcon {
@@ -74,6 +95,7 @@
 }
 
 .alphaContent {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -84,6 +106,7 @@
   font-weight: 700;
   color: var(--ifm-heading-color);
   margin: 0;
+  text-decoration: none !important;
 }
 
 .alphaDescription {
@@ -91,6 +114,33 @@
   line-height: 1.55;
   color: var(--ifm-font-color-base);
   margin: 0;
+  text-decoration: none !important;
+}
+
+.alphaNoticeCard:hover .alphaTitle,
+.alphaNoticeCard:focus .alphaTitle {
+  color: var(--ifm-heading-color) !important;
+  text-decoration: none !important;
+}
+
+.alphaNoticeCard:hover .alphaDescription,
+.alphaNoticeCard:focus .alphaDescription {
+  color: var(--ifm-font-color-base) !important;
+  text-decoration: none !important;
+}
+
+.alphaChevron {
+  width: 14px;
+  height: 24px;
+  margin-left: auto;
+  flex-shrink: 0;
+  stroke: var(--ifm-font-color-base);
+  transition: stroke 0.15s ease;
+}
+
+.alphaNoticeCard:hover .alphaChevron,
+.alphaNoticeCard:focus .alphaChevron {
+  stroke: var(--ifm-link-color, #3858e9) !important;
 }
 
 @media screen and (max-width: 640px) {
@@ -103,13 +153,17 @@
   }
 
   .alphaNoticeCard {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-    padding: 1.25rem;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1.25rem 1rem;
   }
 
   .alphaIcon {
-    width: 40px;
+    width: 38px;
+  }
+
+  .alphaChevron {
+    width: 12px;
+    height: 20px;
   }
 }

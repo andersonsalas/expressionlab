@@ -6,6 +6,21 @@ import Translate, { translate } from '@docusaurus/Translate';
 import FlaskIcon from '@site/static/img/flask-icon.svg';
 import styles from './download.module.css';
 
+function ChevronRightIcon(props) {
+  return (
+    <svg
+      viewBox="0 0 16 28"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}>
+      <polyline points="2 2 14 14 2 26" />
+    </svg>
+  );
+}
+
 export default function Download() {
   const { siteConfig } = useDocusaurusContext();
   const version = siteConfig.customFields.pluginVersion;
@@ -92,38 +107,28 @@ export default function Download() {
             </Translate>
           </p>
 
-          <div className={styles.alphaNoticeCard}>
+          <Link
+            to="/docs/security/security-and-environment"
+            className={styles.alphaNoticeCard}>
             <FlaskIcon className={styles.alphaIcon} aria-hidden="true" />
             <div className={styles.alphaContent}>
               <h2 className={styles.alphaTitle}>
                 <Translate
                   id="download.alpha.title"
                   description="Alpha notice card title">
-                  Expression Lab is in alpha
+                  Alpha Release & Security Model
                 </Translate>
               </h2>
               <p className={styles.alphaDescription}>
                 <Translate
                   id="download.alpha.description"
-                  description="Alpha notice card description with link to security docs"
-                  values={{
-                    learnMore: (
-                      <Link
-                        to="/docs/security/security-and-environment"
-                        className={styles.downloadLink}>
-                        <Translate
-                          id="download.alpha.learnMore"
-                          description="Learn more link in alpha notice card">
-                          More information
-                        </Translate>
-                      </Link>
-                    ),
-                  }}>
-                  {'Recommended for use in local and staging environments only. {learnMore}.'}
+                  description="Notice informing about experimental and alpha status of Expression Lab">
+                  Explore the security architecture, safeguards, and sandbox design.
                 </Translate>
               </p>
             </div>
-          </div>
+            <ChevronRightIcon className={styles.alphaChevron} aria-hidden="true" />
+          </Link>
         </div>
       </main>
     </Layout>
