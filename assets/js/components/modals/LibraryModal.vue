@@ -114,6 +114,7 @@ const useLocalFileSystem = ref(false);
 const fsPermissionPending = ref(false);
 const fsDirName = ref('');
 const showImportExportMenu = ref(false);
+const libraryListRef = ref(null);
 
 const loadSnippets = async () => {
   const savedUseFs = await handleLocalStorage('getItem', USE_LOCAL_FS_KEY);
@@ -354,6 +355,7 @@ const handleImportSnippets = async () => {
 
   if (addedSnippets.length > 0) {
     activeSnippetId.value = addedSnippets[0].id;
+    await scrollToActiveSnippet();
     await uiStore.showDialog({
       type: 'success',
       title: __('Import Complete'),
@@ -393,6 +395,32 @@ const selectSnippet = async (id) => {
   activeSnippetId.value = id;
 };
 
+const scrollToActiveSnippet = async (smooth = true) => {
+  await nextTick();
+  if (!libraryListRef.value) return;
+
+  const activeEl = libraryListRef.value.querySelector('.library-list-item.active');
+  if (activeEl) {
+    if (typeof activeEl.scrollIntoView === 'function') {
+      activeEl.scrollIntoView({
+        behavior: smooth ? 'smooth' : 'auto',
+        block: 'nearest'
+      });
+    } else {
+      libraryListRef.value.scrollTop = libraryListRef.value.scrollHeight;
+    }
+  } else {
+    if (typeof libraryListRef.value.scrollTo === 'function') {
+      libraryListRef.value.scrollTo({
+        top: libraryListRef.value.scrollHeight,
+        behavior: smooth ? 'smooth' : 'auto'
+      });
+    } else {
+      libraryListRef.value.scrollTop = libraryListRef.value.scrollHeight;
+    }
+  }
+};
+
 const createSnippet = async () => {
   if (hasUnsavedChanges.value) {
     const action = await uiStore.showDialog({
@@ -422,6 +450,7 @@ const createSnippet = async () => {
   activeSnippetId.value = newSnippet.id;
   searchQuery.value = '';
   await persistSnippets();
+  await scrollToActiveSnippet();
 };
 
 const saveActiveSnippet = async () => {
@@ -719,7 +748,10 @@ onUnmounted(() => {
             {{ __('Add Snippet') }}
           </div>
 
-          <div class="library-list">
+          <div
+            ref="libraryListRef"
+            class="library-list"
+          >
             <div
               v-for="snippet in filteredSnippets"
               :key="snippet.id"

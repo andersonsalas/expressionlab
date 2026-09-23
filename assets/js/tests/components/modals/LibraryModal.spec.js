@@ -406,4 +406,68 @@ describe('LibraryModal.vue', () => {
     expect(uiStore.snippetToInsert).toBe('testCode()');
     expect(uiStore.activeModal).toBeNull();
   });
+
+  it('automatically scrolls the snippet list when adding a new snippet', async () => {
+    const scrollIntoViewMock = jest.fn();
+    window.HTMLElement.prototype.scrollIntoView = scrollIntoViewMock;
+
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'library' }
+      }
+    });
+
+    const wrapper = mount(LibraryModal, {
+      global: {
+        plugins: [pinia]
+      }
+    });
+
+    await flushPromises();
+    await nextTick();
+
+    const createBtn = wrapper.find('.btn-create');
+    expect(createBtn.exists()).toBe(true);
+
+    await createBtn.trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    expect(scrollIntoViewMock).toHaveBeenCalledWith(expect.objectContaining({
+      block: 'nearest'
+    }));
+  });
+
+  it('falls back to scrolling container scrollTop if scrollIntoView is not available', async () => {
+    const originalScrollIntoView = window.HTMLElement.prototype.scrollIntoView;
+    delete window.HTMLElement.prototype.scrollIntoView;
+
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'library' }
+      }
+    });
+
+    const wrapper = mount(LibraryModal, {
+      global: {
+        plugins: [pinia]
+      }
+    });
+
+    await flushPromises();
+    await nextTick();
+
+    const libraryList = wrapper.find('.library-list').element;
+    Object.defineProperty(libraryList, 'scrollHeight', { value: 500, configurable: true });
+
+    const createBtn = wrapper.find('.btn-create');
+    await createBtn.trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    expect(libraryList.scrollTop).toBe(500);
+
+    window.HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+  });
 });
+
