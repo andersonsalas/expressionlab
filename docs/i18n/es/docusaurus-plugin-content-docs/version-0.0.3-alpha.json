@@ -1,7 +1,7 @@
 {
   "version.label": {
-    "message": "Próxima",
-    "description": "The label for version current"
+    "message": "0.0.3-alpha",
+    "description": "The label for version 0.0.3-alpha"
   },
   "sidebar.docsSidebar.category.Getting Started": {
     "message": "Primeros pasos",
