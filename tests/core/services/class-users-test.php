@@ -99,9 +99,7 @@ class UsersTest extends WP_UnitTestCase {
 	}
 
 	public function test_list_returns_array() {
-		$this->factory->user->create_many( 3, array(
-			'user_login' => 'list_test_user_',
-		) );
+		$this->factory->user->create_many( 3 );
 
 		$result = $this->users->list();
 
