@@ -73,6 +73,7 @@
 			border-bottom: solid 1px $border-color;
 			padding: 8px 12px;
 			height: 36px;
+			background: #fff;
 
 			.codicon {
 				font-size: 18px !important;
@@ -265,72 +266,50 @@
 
 	.library-sidebar-footer {
 		border-top: 1px solid $border-color;
-		background: #f4f5f7;
-		padding: 8px 10px;
+		background: #fff;
+		padding: 0;
+		height: 36px;
 		display: flex;
-		flex-direction: column;
-		gap: 6px;
+		align-items: center;
 		position: relative;
 		font-size: 14px;
-
-		.library-fs-container {
-			display: flex;
-			align-items: center;
-		}
-
-		.library-fs-checkbox-label {
-			display: flex;
-			align-items: center;
-			gap: 10px;
-			color: #5f5f5f;
-			cursor: pointer;
-			user-select: none;
-			margin: 0;
-
-			.library-fs-text {
-				white-space: nowrap;
-				overflow: hidden;
-				text-overflow: ellipsis;
-				color: #5f5f5f;
-			}
-
-			&:hover {
-				.library-fs-text {
-					color: black;
-				}
-			}
-		}
+		box-sizing: border-box;
 
 		.library-import-export-wrapper {
 			position: relative;
 			display: flex;
 			align-items: center;
-			justify-content: space-between;
-
-			.import-icon {
-				color: #878787;
-				font-size: 18px !important;
-				text-decoration: none !important;
-			}
+			width: 100%;
+			height: 100%;
 		}
 
 		.library-import-export-btn {
-			background: none;
+			background: #fff;
 			border: none;
 			cursor: pointer;
-			display: inline-flex;
+			display: flex;
 			align-items: center;
-			gap: 9px;
-			padding: 3px 0;
+			justify-content: flex-start;
+			padding: 8px 12px;
+			width: 100%;
+			height: 100%;
+			font-size: 14px;
+			font-family: inherit;
+			user-select: none;
+			color: inherit !important;
 			text-decoration: none;
-			transition: color 0.15s ease;
-			color: #5f5f5f;
+			transition: background-color 0.15s ease;
 
-			.codicon {
-				font-size: 14px;
+			.codicon,
+			.import-icon {
+				font-size: 18px !important;
+				margin-right: 6px;
+				color: #888;
+				text-decoration: none !important;
 			}
 
 			&:hover {
+				background: #eaeaea;
 				color: black;
 			}
 		}
@@ -338,7 +317,7 @@
 		.library-dropdown-menu {
 			position: absolute;
 			bottom: calc(100% + 4px);
-			left: 0;
+			left: 12px;
 			width: 160px;
 			background: #fff;
 			border: 1px solid black;
@@ -361,7 +340,7 @@
 
 				.codicon {
 					font-size: 18px;
-					color: black;
+					color: #888;
 				}
 
 				&:hover {
@@ -373,6 +352,194 @@
 					}
 				}
 			}
+		}
+	}
+
+	.library-main-tags {
+		height: 36px;
+		border-top: 1px solid $border-color;
+		background: #fafafa;
+		display: flex;
+		align-items: center;
+		padding: 0 10px;
+		gap: 8px;
+		position: relative;
+		box-sizing: border-box;
+
+		.tags-icon {
+			color: #888;
+			font-size: 18px;
+			display: flex;
+			align-items: center;
+			flex-shrink: 0;
+		}
+
+		.tag-input-container {
+			flex: 1;
+			height: 100%;
+			display: flex;
+			align-items: center;
+			position: relative;
+			min-width: 0;
+		}
+
+		.tag-chips-wrapper {
+			display: flex;
+			align-items: center;
+			gap: 5px;
+			width: 100%;
+			height: 100%;
+			overflow: auto hidden;
+			scrollbar-width: none;
+
+			&::-webkit-scrollbar {
+				display: none;
+			}
+		}
+
+		.tag-chip {
+			display: inline-flex;
+			align-items: center;
+			gap: 4px;
+			background: #e9ecef;
+			color: #333;
+			padding: 2px 7px;
+			border-radius: 3px;
+			font-size: 14px;
+			line-height: 1.4;
+			white-space: nowrap;
+			flex-shrink: 0;
+			user-select: none;
+			border: 1px solid #ced4da;
+
+			.tag-chip-label {
+				max-width: 150px;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+
+			.tag-remove-btn {
+				background: transparent;
+				border: none;
+				cursor: pointer;
+				padding: 0;
+				margin: 0;
+				display: flex;
+				align-items: center;
+				color: #666;
+
+				// stylelint-disable-next-line no-descending-specificity
+				.codicon {
+					font-size: 14px;
+				}
+
+				&:hover {
+					color: #d32f2f;
+				}
+			}
+
+			&:hover {
+				background: #e0e4e7;
+				border-color: #909aa3;
+			}
+		}
+
+		.tag-inline-input {
+			border: none !important;
+			outline: none !important;
+			box-shadow: none !important;
+			background: transparent;
+			font-size: 14px;
+			min-width: 80px;
+			flex: 1;
+			height: 28px;
+			padding: 0 4px;
+			color: #333;
+
+			&::placeholder {
+				color: #aaa;
+			}
+		}
+
+		.tag-suggestions-dropdown {
+			position: absolute;
+			bottom: calc(100% + 4px);
+			left: 0;
+			min-width: 160px;
+			max-width: 280px;
+			max-height: 180px;
+			overflow-y: auto;
+			background: #fff;
+			border: 1px solid black;
+			z-index: 100;
+			border-radius: 0;
+			padding: 1px;
+
+			.tag-suggestion-item {
+				display: flex;
+				align-items: center;
+				gap: 6px;
+				padding: 5px 10px;
+				font-size: 14px;
+				cursor: pointer;
+				color: black;
+
+				// stylelint-disable-next-line no-descending-specificity
+				.codicon {
+					font-size: 16px;
+					color: #777;
+				}
+
+				&.active,
+				&:hover {
+					background: $wordpress-primary;
+					color: #fff;
+
+					.codicon {
+						color: #fff;
+					}
+				}
+			}
+		}
+	}
+
+	.modal-footer {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+
+		.library-fs-container {
+			display: flex;
+			align-items: center;
+		}
+
+		.library-fs-checkbox-label {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			cursor: pointer;
+			user-select: none;
+			margin: 0;
+			margin-left: 4px;
+
+			.library-fs-text {
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				font-size: 14px;
+			}
+
+			&:hover {
+				.library-fs-text {
+					color: black;
+				}
+			}
+		}
+
+		.modal-footer-actions {
+			display: flex;
+			align-items: center;
+			gap: 8px;
 		}
 	}
 

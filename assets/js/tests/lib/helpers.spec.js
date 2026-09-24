@@ -91,6 +91,14 @@ describe('Helpers - Snippets', () => {
       expect(untitled.id).toBe('Untitled');
       expect(untitled.name).toBe('Untitled');
     });
+
+    test('normalizes tags array and defaults to empty array', () => {
+      const withTags = normalizeSnippet({ name: 'Test', tags: [' d3 ', 'charts', '', 123] });
+      expect(withTags.tags).toEqual(['d3', 'charts']);
+
+      const withoutTags = normalizeSnippet({ name: 'Test' });
+      expect(withoutTags.tags).toEqual([]);
+    });
   });
 
   describe('getUniqueSnippetName', () => {
