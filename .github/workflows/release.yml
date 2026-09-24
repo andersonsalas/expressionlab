@@ -9,9 +9,26 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-pipeline
+  cancel-in-progress: false
+
 jobs:
+  test-php:
+    name: Run PHP Tests
+    uses: ./.github/workflows/test-php.yml
+
+  test-js:
+    name: Run JS Tests
+    uses: ./.github/workflows/test-js.yml
+
+  lint:
+    name: Run Linters
+    uses: ./.github/workflows/lint.yml
+
   release:
     name: Build and Publish Release
+    needs: [test-php, test-js, lint]
     runs-on: ubuntu-latest
     env:
       CF_R2_BUCKET_NAME: expressionlab-updates
