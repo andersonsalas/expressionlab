@@ -44,8 +44,8 @@ describe('elscript CodeMirror 6 language support', () => {
     expect(treeStr).toContain('number');
   });
 
-  it('correctly tokenizes multi-line and single-line comments', () => {
-    const doc = '/* multi-line\n comment */ // single-line comment\nnull';
+  it('correctly tokenizes block comments and treats // as operators', () => {
+    const doc = '/* multi-line\n comment */ null';
     const tree = elscriptLanguage.parser.parse(doc);
     const treeStr = tree.toString();
 

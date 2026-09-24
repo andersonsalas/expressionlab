@@ -49,7 +49,14 @@ export const elscriptMode = {
     return {
       inBlockComment: false,
       stringQuote: null,
+      bracketDepth: 0,
     };
+  },
+  indent(state, textAfter, cx) {
+    const unit = cx?.unit || 4;
+    const closing = /^[\]})]/.test(textAfter);
+    const depth = closing ? Math.max(0, state.bracketDepth - 1) : state.bracketDepth;
+    return depth * unit;
   },
   token(stream, state) {
     // 1. Whitespace (outside of string literals)
@@ -94,13 +101,7 @@ export const elscriptMode = {
       return 'comment';
     }
 
-    // 5. Line comment
-    if (stream.match('//')) {
-      stream.skipToEnd();
-      return 'comment';
-    }
-
-    // 6. Strings start: single and double quoted with backslash escapes
+    // 5. Strings start: single and double quoted with backslash escapes
     if (stream.match('\'') || stream.match('"')) {
       const quote = stream.current();
       state.stringQuote = quote;
@@ -116,25 +117,31 @@ export const elscriptMode = {
       return 'string';
     }
 
-    // 7. Numbers: integers, floats, scientific notation, leading dot decimals
+    // 6. Numbers: integers, floats, scientific notation, leading dot decimals
     if (stream.match(/^[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?/) || stream.match(/^\.[0-9]+([eE][+-]?[0-9]+)?/)) {
       return 'number';
     }
 
-    // 8. Operators: ~ (string concatenation), arithmetic, comparison, logical
+    // 7. Operators: ~ (string concatenation), arithmetic, comparison, logical
     if (stream.match(/^([~+\-*%!=]=?|<=|>=|<|>|&&|\|\||\?\?|\?|\/)/)) {
       return 'operator';
     }
 
-    // 9. Delimiters, brackets and punctuation
+    // 8. Delimiters, brackets and punctuation
     if (stream.match(/^[[\](){}]/)) {
+      const b = stream.current();
+      if (b === '[' || b === '{' || b === '(') {
+        state.bracketDepth++;
+      } else if (b === ']' || b === '}' || b === ')') {
+        state.bracketDepth = Math.max(0, state.bracketDepth - 1);
+      }
       return 'bracket';
     }
     if (stream.match(/^[,;.:]/)) {
       return 'punctuation';
     }
 
-    // 10. Identifiers, keywords, built-ins, and literals
+    // 9. Identifiers, keywords, built-ins, and literals
     if (stream.match(/^[a-zA-Z_$][a-zA-Z0-9_$]*/)) {
       const word = stream.current();
       if (KEYWORDS.has(word)) {
