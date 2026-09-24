@@ -54,8 +54,12 @@ async function checkUnsavedAndProceed(callback) {
     });
     if (action === 'cancel') return;
     if (action === 'confirm') {
-      await saveActiveSnippet();
+      const saved = await saveActiveSnippet();
+      if (!saved) return;
     } else if (action === 'deny') {
+      if (activeSnippet.value) {
+        activeSnippet.value.name = activeSnippet.value.id;
+      }
       unsavedSnippetIds.clear();
     }
   }
@@ -116,6 +120,19 @@ const fsDirName = ref('');
 const showImportExportMenu = ref(false);
 const libraryListRef = ref(null);
 
+const deduplicateSnippets = (list) => {
+  const existingNames = new Set();
+  return (Array.isArray(list) ? list : []).map(s => {
+    const normalized = normalizeSnippet(s);
+    const uniqueName = getUniqueSnippetName(normalized.name, existingNames);
+    return {
+      ...normalized,
+      id: uniqueName,
+      name: uniqueName
+    };
+  });
+};
+
 const loadSnippets = async () => {
   const savedUseFs = await handleLocalStorage('getItem', USE_LOCAL_FS_KEY);
   if (savedUseFs === 'true') {
@@ -124,7 +141,7 @@ const loadSnippets = async () => {
     if (result && result.success && Array.isArray(result.snippets)) {
       fsPermissionPending.value = false;
       fsDirName.value = result.dirName || '';
-      snippets.value = result.snippets.map(normalizeSnippet);
+      snippets.value = deduplicateSnippets(result.snippets);
       if (snippets.value.length > 0) {
         if (!activeSnippet.value) {
           activeSnippetId.value = snippets.value[0].id;
@@ -141,7 +158,7 @@ const loadSnippets = async () => {
         if (permRes && permRes.success && Array.isArray(permRes.snippets)) {
           fsPermissionPending.value = false;
           fsDirName.value = permRes.dirName || '';
-          snippets.value = permRes.snippets.map(normalizeSnippet);
+          snippets.value = deduplicateSnippets(permRes.snippets);
           if (snippets.value.length > 0) {
             if (!activeSnippet.value) {
               activeSnippetId.value = snippets.value[0].id;
@@ -166,7 +183,7 @@ const loadSnippets = async () => {
     if (raw !== null && raw !== undefined) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        snippets.value = parsed.map(normalizeSnippet);
+        snippets.value = deduplicateSnippets(parsed);
         if (snippets.value.length > 0) {
           if (!activeSnippet.value) {
             activeSnippetId.value = snippets.value[0].id;
@@ -191,7 +208,7 @@ const grantFsPermission = async () => {
   if (res && res.success && Array.isArray(res.snippets)) {
     fsPermissionPending.value = false;
     fsDirName.value = res.dirName || '';
-    snippets.value = res.snippets.map(normalizeSnippet);
+    snippets.value = deduplicateSnippets(res.snippets);
     if (snippets.value.length > 0) {
       activeSnippetId.value = snippets.value[0].id;
     } else {
@@ -247,7 +264,7 @@ const handleToggleLocalFs = async () => {
       useLocalFileSystem.value = true;
       fsPermissionPending.value = false;
       fsDirName.value = res.dirName || '';
-      snippets.value = (res.snippets || []).map(normalizeSnippet);
+      snippets.value = deduplicateSnippets(res.snippets || []);
       unsavedSnippetIds.clear();
       if (snippets.value.length > 0) {
         activeSnippetId.value = snippets.value[0].id;
@@ -264,7 +281,7 @@ const handleToggleLocalFs = async () => {
       const raw = await handleLocalStorage('getItem', SNIPPETS_STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        snippets.value = (Array.isArray(parsed) ? parsed : []).map(normalizeSnippet);
+        snippets.value = deduplicateSnippets(parsed);
       } else {
         snippets.value = [];
       }
@@ -387,8 +404,12 @@ const selectSnippet = async (id) => {
     });
     if (action === 'cancel') return;
     if (action === 'confirm') {
-      await saveActiveSnippet();
+      const saved = await saveActiveSnippet();
+      if (!saved) return;
     } else if (action === 'deny') {
+      if (activeSnippet.value) {
+        activeSnippet.value.name = activeSnippet.value.id;
+      }
       unsavedSnippetIds.delete(activeSnippetId.value);
     }
   }
@@ -433,8 +454,12 @@ const createSnippet = async () => {
     });
     if (action === 'cancel') return;
     if (action === 'confirm') {
-      await saveActiveSnippet();
+      const saved = await saveActiveSnippet();
+      if (!saved) return;
     } else if (action === 'deny') {
+      if (activeSnippet.value) {
+        activeSnippet.value.name = activeSnippet.value.id;
+      }
       unsavedSnippetIds.delete(activeSnippetId.value);
     }
   }
@@ -454,15 +479,31 @@ const createSnippet = async () => {
 };
 
 const saveActiveSnippet = async () => {
-  if (activeSnippet.value && view) {
-    activeSnippet.value.code = getEditorValue();
-    const trimmedName = (activeSnippet.value.name || __('Untitled')).trim() || __('Untitled');
-    activeSnippet.value.name = trimmedName;
-    activeSnippet.value.id = trimmedName;
-    unsavedSnippetIds.delete(activeSnippetId.value);
-    activeSnippetId.value = trimmedName;
-    await persistSnippets();
+  if (!activeSnippet.value || !view) return false;
+
+  const trimmedName = (activeSnippet.value.name || __('Untitled')).trim() || __('Untitled');
+
+  const isDuplicate = snippets.value.some(
+    s => s.id !== activeSnippetId.value && (s.name || '').trim().toLowerCase() === trimmedName.toLowerCase()
+  );
+
+  if (isDuplicate) {
+    await uiStore.showDialog({
+      type: 'warning',
+      title: __('Duplicate Snippet Name'),
+      message: sprintf(__('A snippet named "%s" already exists. Please choose a different name.'), trimmedName),
+      confirmText: __('OK')
+    });
+    return false;
   }
+
+  activeSnippet.value.code = getEditorValue();
+  activeSnippet.value.name = trimmedName;
+  activeSnippet.value.id = trimmedName;
+  unsavedSnippetIds.delete(activeSnippetId.value);
+  activeSnippetId.value = trimmedName;
+  await persistSnippets();
+  return true;
 };
 
 const handleGlobalKeydown = (e) => {
@@ -847,6 +888,7 @@ onUnmounted(() => {
               class="snippet-title-input"
               :placeholder="__('Snippet title')"
               @input="onTitleInput"
+              @keydown.enter.prevent="saveActiveSnippet"
             >
             <div class="library-main-actions">
               <button

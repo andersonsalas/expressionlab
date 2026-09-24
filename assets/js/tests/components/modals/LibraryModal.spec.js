@@ -528,5 +528,96 @@ describe('LibraryModal.vue', () => {
     expect(editorInstance.scrollDOM.scrollTop).toBe(0);
     jest.useRealTimers();
   });
+
+  it('prevents saving and displays a warning dialog when renaming to a duplicate snippet name', async () => {
+    const { handleLocalStorage } = require('../../../lib/api/client.js');
+    handleLocalStorage.mockImplementation((method, key) => {
+      if (method === 'getItem' && key === 'el_snippets') {
+        return Promise.resolve(JSON.stringify([
+          { id: 'First Snippet', name: 'First Snippet', code: 'code1()' },
+          { id: 'Second Snippet', name: 'Second Snippet', code: 'code2()' }
+        ]));
+      }
+      return Promise.resolve(null);
+    });
+
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'library' }
+      }
+    });
+
+    const wrapper = mount(LibraryModal, {
+      global: {
+        plugins: [pinia]
+      }
+    });
+
+    await flushPromises();
+    await nextTick();
+
+    const items = wrapper.findAll('.library-list-item');
+    const secondItem = items.filter(w => w.text().includes('Second Snippet'))[0];
+    await secondItem.trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    const titleInput = wrapper.find('.snippet-title-input');
+    await titleInput.setValue('First Snippet');
+
+    const uiStore = useUiStore();
+    uiStore.showDialog.mockClear();
+
+    const saveBtn = wrapper.find('.library-main-actions button[title="Save"]');
+    await saveBtn.trigger('click');
+    await flushPromises();
+
+    expect(uiStore.showDialog).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'warning',
+      title: 'Duplicate Snippet Name',
+      message: expect.stringContaining('First Snippet')
+    }));
+
+    const setItemCalls = handleLocalStorage.mock.calls.filter(c => c[0] === 'setItem' && c[1] === 'el_snippets');
+    if (setItemCalls.length > 0) {
+      const lastPayload = JSON.parse(setItemCalls[setItemCalls.length - 1][2]);
+      const ids = lastPayload.map(s => s.id);
+      expect(new Set(ids).size).toBe(ids.length);
+    }
+  });
+
+  it('deduplicates duplicate snippet names on load automatically', async () => {
+    const { handleLocalStorage } = require('../../../lib/api/client.js');
+    handleLocalStorage.mockImplementation((method, key) => {
+      if (method === 'getItem' && key === 'el_snippets') {
+        return Promise.resolve(JSON.stringify([
+          { id: 'New Snippet', name: 'New Snippet', code: '1' },
+          { id: 'New Snippet', name: 'New Snippet', code: '2' },
+          { id: 'New Snippet', name: 'New Snippet', code: '3' }
+        ]));
+      }
+      return Promise.resolve(null);
+    });
+
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'library' }
+      }
+    });
+
+    const wrapper = mount(LibraryModal, {
+      global: {
+        plugins: [pinia]
+      }
+    });
+
+    await flushPromises();
+    await nextTick();
+
+    expect(wrapper.text()).toContain('New Snippet');
+    expect(wrapper.text()).toContain('New Snippet (1)');
+    expect(wrapper.text()).toContain('New Snippet (2)');
+  });
 });
+
 
