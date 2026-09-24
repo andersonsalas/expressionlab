@@ -7,13 +7,45 @@ on:
   pull_request:
     branches:
       - master
+  workflow_call:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
+  changes:
+    name: Detect PHP Changes
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ github.event_name == 'workflow_call' || steps.filter.outputs.php == 'true' }}
+    steps:
+      - name: Clone repository (required for push event diff)
+        if: github.event_name == 'push'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Detect file changes
+        if: github.event_name != 'workflow_call'
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: filter
+        with:
+          token: ${{ github.token }}
+          filters: |
+            php:
+              - 'expressionlab.php'
+              - 'src/**'
+              - 'tests/**'
+              - 'bin/install-wp-tests.sh'
+              - 'composer.json'
+              - 'composer.lock'
+              - 'phpunit.xml.dist'
+              - 'scoper.inc.php'
+              - '.github/workflows/test-php.yml'
+
   test-php:
     name: "PHP ${{ matrix.php }} / WP ${{ matrix.wp }}"
+    needs: changes
+    if: needs.changes.outputs.should_run == 'true'
     runs-on: ubuntu-latest
 
     strategy:
@@ -84,3 +116,29 @@ jobs:
 
       - name: Run Multisite tests
         run: WP_MULTISITE=1 vendor/bin/phpunit --exclude-group singlesite
+
+  test-php-status:
+    name: PHP Tests
+    needs: [changes, test-php]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify PHP test results
+        run: |
+          changes_result="${{ needs.changes.result }}"
+          tests_result="${{ needs.test-php.result }}"
+          echo "Changes detection status: $changes_result"
+          echo "PHP tests matrix status: $tests_result"
+
+          if [ "$changes_result" != "success" ]; then
+            echo "Error: Changes detection job did not succeed."
+            exit 1
+          fi
+
+          if [ "$tests_result" = "success" ] || [ "$tests_result" = "skipped" ]; then
+            echo "PHP tests passed successfully or were safely skipped (no PHP changes)."
+            exit 0
+          else
+            echo "Error: PHP tests failed."
+            exit 1
+          fi
