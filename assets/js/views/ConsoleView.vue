@@ -123,6 +123,10 @@ const clearConsole = () => {
   nextTick(() => scrollBufferToBottom(true));
 };
 
+const handleFormatCode = () => {
+  editorRef.value?.formatCode();
+};
+
 const handleExecute = (input) => {
   userScrolledUp = false;
   loading.value = true;
@@ -324,6 +328,16 @@ onUnmounted(() => {
           >
             <div class="codicon codicon-circle-slash" />
             <span>{{ __('Clear') }}</span>
+          </div>
+        </div>
+        <div class="console-toolbar-group">
+          <div
+            class="console-toolbar-button"
+            :title="__('Format code (Shift+Alt+F)')"
+            @click="handleFormatCode"
+          >
+            <div class="codicon codicon-wand" />
+            <span>{{ __('Format') }}</span>
           </div>
         </div>
         <div class="console-toolbar-group">

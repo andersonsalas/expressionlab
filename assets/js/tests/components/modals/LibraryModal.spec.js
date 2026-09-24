@@ -787,7 +787,40 @@ describe('LibraryModal.vue', () => {
     const lastSavedData = JSON.parse(setItemCalls[setItemCalls.length - 1][2]);
     expect(lastSavedData[0].tags).toEqual(['init', 'newtag']);
   });
+
+  it('renders Format button in header actions and triggers format on click', async () => {
+    const { handleLocalStorage } = require('../../../lib/api/client.js');
+    handleLocalStorage.mockImplementation((method, key) => {
+      if (method === 'getItem' && key === 'el_snippets') {
+        return Promise.resolve(JSON.stringify([
+          { id: '1', name: 'Snippet 1', code: 'prog[set[\'x\', 1], var[\'x\']]' }
+        ]));
+      }
+      return Promise.resolve(null);
+    });
+
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'library' }
+      }
+    });
+
+    const wrapper = mount(LibraryModal, {
+      global: {
+        plugins: [pinia]
+      }
+    });
+    await flushPromises();
+
+    const formatBtn = wrapper.find('.library-main-actions button[title*="Format"]');
+    expect(formatBtn.exists()).toBe(true);
+    expect(formatBtn.find('.codicon-wand').exists()).toBe(true);
+
+    await formatBtn.trigger('click');
+    await flushPromises();
+  });
 });
+
 
 
 
