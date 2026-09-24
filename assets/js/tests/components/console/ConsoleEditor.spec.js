@@ -1,5 +1,6 @@
 let mockCapturedEnterKeymap = [];
 let mockCapturedUpDownKeymap = [];
+let mockCapturedFormatKeymap = [];
 
 jest.mock('@codemirror/state', () => ({
   EditorState: {
@@ -61,6 +62,7 @@ jest.mock('@codemirror/view', () => {
         list.forEach((k) => {
           if (k && k.key === 'Enter') mockCapturedEnterKeymap.push(k);
           if (k && (k.key === 'Alt-ArrowUp' || k.key === 'Alt-ArrowDown')) mockCapturedUpDownKeymap.push(k);
+          if (k && k.key === 'Shift-Alt-f') mockCapturedFormatKeymap.push(k);
         });
         return {};
       }),
@@ -195,5 +197,18 @@ describe('ConsoleEditor.vue', () => {
 
     downBinding.run();
     expect(wrapper.emitted('history-down')).toBeTruthy();
+  });
+
+  it('exposes formatCode and registers Shift-Alt-f format keymap', async () => {
+    const wrapper = mount(ConsoleEditor, {
+      global: {
+        plugins: [createTestingPinia()],
+      },
+    });
+
+    expect(typeof wrapper.vm.formatCode).toBe('function');
+    const formatBinding = mockCapturedFormatKeymap.find((k) => k.key === 'Shift-Alt-f');
+    expect(formatBinding).toBeDefined();
+    expect(typeof formatBinding.run).toBe('function');
   });
 });

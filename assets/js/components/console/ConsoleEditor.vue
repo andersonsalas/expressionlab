@@ -9,6 +9,7 @@ import { autocompletion, snippet, closeCompletion } from '@codemirror/autocomple
 import { createCompletionSource } from '../../lib/autocomplete.js';
 import { history as cmHistory, historyKeymap, indentWithTab, insertNewlineAndIndent } from '@codemirror/commands';
 import { vsCodeLight } from '@fsegurai/codemirror-theme-bundle';
+import { formatEditorDocument } from '../../lib/codemirror/format-command.js';
 
 const uiStore = useUiStore();
 
@@ -43,6 +44,11 @@ const setEditorValue = (val) => {
     changes: { from: 0, to: view.state.doc.length, insert: val }
   });
   view.dispatch(tr);
+};
+
+const formatCode = () => {
+  if (!view) return false;
+  return formatEditorDocument(view);
 };
 
 const insertSnippet = (text, options = {}) => {
@@ -104,6 +110,7 @@ defineExpose({
     setEditorValue,
     insertSnippet,
     moveCursorToEnd,
+    formatCode,
     focus: () => view?.focus()
 });
 
@@ -152,6 +159,15 @@ onMounted(() => {
       }
     ];
 
+    const formatKeymap = [
+      {
+        key: 'Shift-Alt-f',
+        run: (cmView) => {
+          return formatEditorDocument(cmView);
+        }
+      }
+    ];
+
     const state = EditorState.create({
       doc: '',
       extensions: [
@@ -159,7 +175,7 @@ onMounted(() => {
         vsCodeLight,
         cmHistory(),
         autocompletion({ override: [cmCompletionSource] }),
-        keymap.of([indentWithTab, ...historyKeymap, ...enterKeymap, ...upDownHistoryKeymap]),
+        keymap.of([indentWithTab, ...historyKeymap, ...enterKeymap, ...upDownHistoryKeymap, ...formatKeymap]),
         indentUnit.of('    '),
         EditorState.tabSize.of(4),
         EditorView.lineWrapping,

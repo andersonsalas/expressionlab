@@ -10,6 +10,7 @@ import { vsCodeLight } from '@fsegurai/codemirror-theme-bundle';
 import { history, historyKeymap, indentWithTab, insertNewlineAndIndent } from '@codemirror/commands';
 import { autocompletion, snippet as cmSnippet, closeCompletion } from '@codemirror/autocomplete';
 import { createCompletionSource } from '../../lib/autocomplete.js';
+import { formatEditorDocument } from '../../lib/codemirror/format-command.js';
 import {
   handleLocalStorage,
   handleDownload,
@@ -686,6 +687,17 @@ const destroyCodeMirror = () => {
   }
 };
 
+const formatActiveSnippetCode = () => {
+  if (!view) return;
+  const changed = formatEditorDocument(view);
+  if (changed && activeSnippet.value) {
+    activeSnippet.value.code = view.state.doc.toString();
+    if (activeSnippetId.value !== null) {
+      unsavedSnippetIds.add(activeSnippetId.value);
+    }
+  }
+};
+
 const initCodeMirror = () => {
   destroyCodeMirror();
   if (!editorContainer.value) return;
@@ -711,7 +723,8 @@ const initCodeMirror = () => {
         indentWithTab, 
         ...historyKeymap, 
         ...enterKeymap,
-        { key: 'Mod-s', run: () => { saveActiveSnippet(); return true; } }
+        { key: 'Mod-s', run: () => { saveActiveSnippet(); return true; } },
+        { key: 'Shift-Alt-f', run: () => { formatActiveSnippetCode(); return true; } }
       ]),
       indentUnit.of('    '),
       EditorState.tabSize.of(4),
@@ -927,6 +940,12 @@ onUnmounted(() => {
               @keydown.enter.prevent="saveActiveSnippet"
             >
             <div class="library-main-actions">
+              <button
+                :title="__('Format code (Shift+Alt+F)')"
+                @click="formatActiveSnippetCode"
+              >
+                <div class="codicon codicon-wand" />
+              </button>
               <button
                 :title="__('Save')"
                 @click="saveActiveSnippet"
