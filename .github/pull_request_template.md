@@ -1,12 +1,6 @@
 ### Description
 
-Briefly describe the change, problem solved, or feature added.
-
-### Type of Change
-
-- [ ] `fix/<description>`: Bug fix
-- [ ] `improve/<description>`: Performance, documentation, or tooling improvement
-- [ ] `feature/<description>`: New capability or helper
+_Briefly describe the change, problem solved, or feature added._
 
 ### Branch & Contribution Checklist
 

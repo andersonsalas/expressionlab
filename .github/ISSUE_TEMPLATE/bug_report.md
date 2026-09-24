@@ -1,25 +1,24 @@
 ---
 name: Bug Report
 about: Report an unexpected error, unexpected behavior, or broken feature
-title: '[Bug]: '
+title: '[Bug] '
 labels: bug
 ---
 
 ### Describe the Bug
-A clear and concise description of what happened.
+
+_A clear and concise description of what happened._
 
 ### Steps to Reproduce
-1. Go to '...'
-2. Run expression: `...`
-3. See error
+
+_One or more steps to reproduce the issue._
 
 ### Expected Behavior
-A clear description of what you expected to happen instead.
+
+_A clear description of what you expected to happen instead._
 
 ### Environment
+
 * **PHP Version**: 
 * **WordPress Version**: 
 * **Browser**: 
-
-### Additional Context
-Add any other context, screenshots, or error logs here.
