@@ -618,6 +618,176 @@ describe('LibraryModal.vue', () => {
     expect(wrapper.text()).toContain('New Snippet (1)');
     expect(wrapper.text()).toContain('New Snippet (2)');
   });
+
+  it('places use local file system toggle in modal-footer and import/export in sidebar footer', async () => {
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'library' }
+      }
+    });
+
+    const wrapper = mount(LibraryModal, {
+      global: {
+        plugins: [pinia]
+      }
+    });
+
+    await flushPromises();
+
+    expect(wrapper.find('.modal-footer .library-fs-container').exists()).toBe(true);
+    expect(wrapper.find('.library-sidebar-footer .library-fs-container').exists()).toBe(false);
+    expect(wrapper.find('.library-sidebar-footer .library-import-export-wrapper').exists()).toBe(true);
+    expect(wrapper.find('.modal-footer .modal-footer-actions').exists()).toBe(true);
+  });
+
+  it('renders TagInput in library-main-tags with active snippet tags', async () => {
+    const { handleLocalStorage } = require('../../../lib/api/client.js');
+    handleLocalStorage.mockImplementation((method, key) => {
+      if (method === 'getItem' && key === 'el_snippets') {
+        return Promise.resolve(JSON.stringify([
+          { id: 'Math Snippet', name: 'Math Snippet', code: '1+1', tags: ['math', 'calc'] }
+        ]));
+      }
+      return Promise.resolve(null);
+    });
+
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'library' }
+      }
+    });
+
+    const wrapper = mount(LibraryModal, {
+      global: {
+        plugins: [pinia]
+      }
+    });
+
+    await flushPromises();
+    await nextTick();
+
+    const mainTags = wrapper.find('.library-main-tags');
+    expect(mainTags.exists()).toBe(true);
+    expect(mainTags.find('.codicon-tag').exists()).toBe(true);
+
+    const tagChips = mainTags.findAll('.tag-chip');
+    expect(tagChips.length).toBe(2);
+    expect(tagChips[0].text()).toContain('math');
+    expect(tagChips[1].text()).toContain('calc');
+  });
+
+  it('filters snippets by tag:[name] and tag:name syntax', async () => {
+    const { handleLocalStorage } = require('../../../lib/api/client.js');
+    handleLocalStorage.mockImplementation((method, key) => {
+      if (method === 'getItem' && key === 'el_snippets') {
+        return Promise.resolve(JSON.stringify([
+          { id: 'Calc', name: 'Calc', code: '', tags: ['math', 'finance'] },
+          { id: 'Array Map', name: 'Array Map', code: '', tags: ['array', 'utils'] },
+          { id: 'String Trim', name: 'String Trim', code: '', tags: ['string', 'utils'] }
+        ]));
+      }
+      return Promise.resolve(null);
+    });
+
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'library' }
+      }
+    });
+
+    const wrapper = mount(LibraryModal, {
+      global: {
+        plugins: [pinia]
+      }
+    });
+
+    await flushPromises();
+    await nextTick();
+
+    const searchInput = wrapper.find('.library-search-bar input');
+
+    // Filter using tag:[math]
+    await searchInput.setValue('tag:[math]');
+    await nextTick();
+    let visibleItems = wrapper.findAll('.library-list .library-list-item');
+    expect(visibleItems.length).toBe(1);
+    expect(visibleItems[0].text()).toContain('Calc');
+
+    // Filter using tag:utils
+    await searchInput.setValue('tag:utils');
+    await nextTick();
+    visibleItems = wrapper.findAll('.library-list .library-list-item');
+    expect(visibleItems.length).toBe(2);
+    expect(visibleItems.some(i => i.text().includes('Array Map'))).toBe(true);
+    expect(visibleItems.some(i => i.text().includes('String Trim'))).toBe(true);
+
+    // Filter using tag:[utils] Array
+    await searchInput.setValue('tag:[utils] Array');
+    await nextTick();
+    visibleItems = wrapper.findAll('.library-list .library-list-item');
+    expect(visibleItems.length).toBe(1);
+    expect(visibleItems[0].text()).toContain('Array Map');
+
+    // Filter using nonexistent tag
+    await searchInput.setValue('tag:[nonexistent]');
+    await nextTick();
+    expect(wrapper.find('.no-results').exists()).toBe(true);
+  });
+
+  it('marks snippet as unsaved on tag change and saves updated tags to storage', async () => {
+    const { handleLocalStorage } = require('../../../lib/api/client.js');
+    handleLocalStorage.mockImplementation((method, key) => {
+      if (method === 'getItem' && key === 'el_snippets') {
+        return Promise.resolve(JSON.stringify([
+          { id: 'Snippet 1', name: 'Snippet 1', code: 'code()', tags: ['init'] }
+        ]));
+      }
+      return Promise.resolve(null);
+    });
+
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'library' }
+      }
+    });
+
+    const wrapper = mount(LibraryModal, {
+      global: {
+        plugins: [pinia]
+      }
+    });
+
+    await flushPromises();
+    await nextTick();
+
+    expect(wrapper.find('.unsaved-dot').exists()).toBe(false);
+
+    // Add a new tag via the TagInput input
+    const tagInputField = wrapper.find('.tag-inline-input');
+    expect(tagInputField.exists()).toBe(true);
+
+    await tagInputField.setValue('newtag');
+    await tagInputField.trigger('keydown', { key: 'Enter' });
+    await nextTick();
+
+    // Verify unsaved dot is shown
+    expect(wrapper.find('.unsaved-dot').exists()).toBe(true);
+
+    // Click save
+    const saveBtn = wrapper.find('.library-main-actions button[title="Save"]');
+    await saveBtn.trigger('click');
+    await flushPromises();
+
+    // Verify unsaved dot is cleared
+    expect(wrapper.find('.unsaved-dot').exists()).toBe(false);
+
+    // Verify persistSnippets wrote the updated tags
+    const setItemCalls = handleLocalStorage.mock.calls.filter(c => c[0] === 'setItem' && c[1] === 'el_snippets');
+    expect(setItemCalls.length).toBeGreaterThan(0);
+    const lastSavedData = JSON.parse(setItemCalls[setItemCalls.length - 1][2]);
+    expect(lastSavedData[0].tags).toEqual(['init', 'newtag']);
+  });
 });
+
 
 

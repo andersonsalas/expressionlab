@@ -297,14 +297,18 @@ export function getUniqueSnippetName(name, existingNames) {
  * Normalize a snippet object ensuring id is the trimmed name and properties are standardized.
  *
  * @param {object} s 
- * @returns {{ id: string, name: string, code: string }}
+ * @returns {{ id: string, name: string, code: string, tags: string[] }}
  */
 export function normalizeSnippet(s) {
   const defaultUntitled = __('Untitled');
   const name = (s.name || s.title || defaultUntitled).trim() || defaultUntitled;
+  const tags = Array.isArray(s.tags)
+    ? s.tags.filter(t => typeof t === 'string' && t.trim().length > 0).map(t => t.trim())
+    : [];
   return {
     id: name,
     name,
-    code: typeof s.code === 'string' ? s.code : (typeof s.content === 'string' ? s.content : '')
+    code: typeof s.code === 'string' ? s.code : (typeof s.content === 'string' ? s.content : ''),
+    tags
   };
 }

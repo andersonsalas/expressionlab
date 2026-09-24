@@ -22,6 +22,7 @@ import {
   handleRequestFsPermission
 } from '../../lib/api/client.js';
 import { getUniqueSnippetName, normalizeSnippet, debugLog, __, sprintf } from '../../lib/helpers.js';
+import TagInput from '../ui/TagInput.vue';
 
 const props = defineProps({
   closeOnOutsideClick: {
@@ -223,6 +224,24 @@ const onTitleInput = () => {
   }
 };
 
+const onTagChange = () => {
+  if (activeSnippetId.value !== null) {
+    unsavedSnippetIds.add(activeSnippetId.value);
+  }
+};
+
+const allLibraryTags = computed(() => {
+  const tagSet = new Set();
+  for (const s of snippets.value) {
+    if (Array.isArray(s.tags)) {
+      for (const t of s.tags) {
+        if (typeof t === 'string' && t.trim()) tagSet.add(t.trim());
+      }
+    }
+  }
+  return Array.from(tagSet).sort((a, b) => a.localeCompare(b));
+});
+
 const persistSnippets = async () => {
   if (useLocalFileSystem.value) {
     await handleWriteLocalSnippets(snippets.value);
@@ -362,7 +381,8 @@ const handleImportSnippets = async () => {
     const snippetObj = {
       id: uniqueName,
       name: uniqueName,
-      code: typeof item.code === 'string' ? item.code : (typeof item.content === 'string' ? item.content : '')
+      code: typeof item.code === 'string' ? item.code : (typeof item.content === 'string' ? item.content : ''),
+      tags: Array.isArray(item.tags) ? item.tags.filter(t => typeof t === 'string' && t.trim()).map(t => t.trim()) : []
     };
     snippets.value.push(snippetObj);
     addedSnippets.push(snippetObj);
@@ -384,12 +404,41 @@ const handleImportSnippets = async () => {
 
 const filteredSnippets = computed(() => {
   if (!searchQuery.value) return snippets.value;
-  const q = searchQuery.value.toLowerCase();
-  return snippets.value.filter(s => s.name.toLowerCase().includes(q));
+  const rawQuery = searchQuery.value.trim();
+  if (!rawQuery) return snippets.value;
+
+  const tagRegex = /tag:(?:\[([^\]]+)\]|([^\s]+))/gi;
+  const tagFilters = [];
+  let match;
+  while ((match = tagRegex.exec(rawQuery)) !== null) {
+    const tagVal = (match[1] || match[2] || '').trim().toLowerCase();
+    if (tagVal) tagFilters.push(tagVal);
+  }
+  const textQuery = rawQuery.replace(tagRegex, '').trim().toLowerCase();
+
+  return snippets.value.filter(s => {
+    const snippetTags = (Array.isArray(s.tags) ? s.tags : []).map(t => String(t).toLowerCase());
+    const snippetName = (s.name || '').toLowerCase();
+
+    if (tagFilters.length > 0) {
+      const matchesAllTags = tagFilters.every(f => snippetTags.some(t => t.includes(f)));
+      if (!matchesAllTags) return false;
+    }
+
+    if (textQuery) {
+      return snippetName.includes(textQuery) || snippetTags.some(t => t.includes(textQuery));
+    }
+
+    return true;
+  });
 });
 
 const activeSnippet = computed(() => {
-  return snippets.value.find(s => s.id === activeSnippetId.value) || null;
+  const found = snippets.value.find(s => s.id === activeSnippetId.value);
+  if (found && !Array.isArray(found.tags)) {
+    found.tags = [];
+  }
+  return found || null;
 });
 
 const selectSnippet = async (id) => {
@@ -469,7 +518,8 @@ const createSnippet = async () => {
   const newSnippet = {
     id: uniqueName,
     name: uniqueName,
-    code: ''
+    code: '',
+    tags: []
   };
   snippets.value.push(newSnippet);
   activeSnippetId.value = newSnippet.id;
@@ -825,22 +875,8 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <!-- Sidebar Footer: Checkbox & Import/Export -->
+          <!-- Sidebar Footer: Import/Export -->
           <div class="library-sidebar-footer">
-            <div class="library-fs-container">
-              <label
-                class="library-fs-checkbox-label"
-                :title="__('Store snippets in a local folder using native File System API')"
-              >
-                <input
-                  v-model="useLocalFileSystem"
-                  type="checkbox"
-                  class="library-fs-checkbox"
-                  @change="handleToggleLocalFs"
-                >
-                <span class="library-fs-text">{{ __('Use local file system') }}</span>
-              </label>
-            </div>
             <div class="library-import-export-wrapper">
               <button
                 type="button"
@@ -911,6 +947,17 @@ onUnmounted(() => {
               class="snippet-code-editor cm-container cm-lang-elscript"
             />
           </div>
+          <div class="library-main-tags">
+            <span class="tags-icon">
+              <span class="codicon codicon-tag" />
+            </span>
+            <TagInput
+              v-model="activeSnippet.tags"
+              :all-tags="allLibraryTags"
+              :placeholder="__('Add tags...')"
+              @change="onTagChange"
+            />
+          </div>
         </div>
         <div
           v-else
@@ -947,19 +994,35 @@ onUnmounted(() => {
         </div>
       </div>
       <div class="modal-footer">
-        <button
-          class="btn btn-default btn-cancel fw-80px"
-          @click="handleCloseModal"
-        >
-          {{ __('Close') }}
-        </button>
-        <button
-          class="btn btn-primary btn-insert fw-80px"
-          :disabled="!activeSnippet"
-          @click="insertActiveSnippet"
-        >
-          {{ __('Insert') }}
-        </button>
+        <div class="library-fs-container">
+          <label
+            class="library-fs-checkbox-label"
+            :title="__('Store snippets in a local folder using native File System API')"
+          >
+            <input
+              v-model="useLocalFileSystem"
+              type="checkbox"
+              class="library-fs-checkbox"
+              @change="handleToggleLocalFs"
+            >
+            <span class="library-fs-text">{{ __('Use local file system') }}</span>
+          </label>
+        </div>
+        <div class="modal-footer-actions">
+          <button
+            class="btn btn-default btn-cancel fw-80px"
+            @click="handleCloseModal"
+          >
+            {{ __('Close') }}
+          </button>
+          <button
+            class="btn btn-primary btn-insert fw-80px"
+            :disabled="!activeSnippet"
+            @click="insertActiveSnippet"
+          >
+            {{ __('Insert') }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
