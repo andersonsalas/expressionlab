@@ -819,6 +819,75 @@ describe('LibraryModal.vue', () => {
     await formatBtn.trigger('click');
     await flushPromises();
   });
+
+  it('does not mutate activeSnippet.code on format and clears unsaved state when undoing to original code', async () => {
+    const { handleLocalStorage } = require('../../../lib/api/client.js');
+    const { EditorView } = require('@codemirror/view');
+
+    const originalCode = 'prog[set[\'x\', 1], var[\'x\']]';
+    handleLocalStorage.mockImplementation((method, key) => {
+      if (method === 'getItem' && key === 'el_snippets') {
+        return Promise.resolve(JSON.stringify([
+          { id: '1', name: 'Snippet 1', code: originalCode }
+        ]));
+      }
+      return Promise.resolve(null);
+    });
+
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'library' }
+      }
+    });
+
+    const wrapper = mount(LibraryModal, {
+      global: {
+        plugins: [pinia]
+      }
+    });
+    await flushPromises();
+    await nextTick();
+
+    expect(wrapper.find('.unsaved-dot').exists()).toBe(false);
+
+    // Click format button
+    const formatBtn = wrapper.find('.library-main-actions button[title*="Format"]');
+    await formatBtn.trigger('click');
+    await flushPromises();
+
+    // Retrieve the updateListener registered with CodeMirror
+    const listenerCalls = EditorView.updateListener.of.mock.calls;
+    const updateListener = listenerCalls[listenerCalls.length - 1][0];
+
+    // Simulate formatting changes dispatched in editor
+    const formattedCode = 'prog[\n    set[\'x\', 1],\n    var[\'x\']\n]';
+    updateListener({
+      docChanged: true,
+      state: {
+        doc: {
+          toString: () => formattedCode
+        }
+      }
+    });
+    await nextTick();
+
+    // Snippet should now be marked as unsaved
+    expect(wrapper.find('.unsaved-dot').exists()).toBe(true);
+
+    // Simulate undo (Ctrl+Z) in editor back to original code
+    updateListener({
+      docChanged: true,
+      state: {
+        doc: {
+          toString: () => originalCode
+        }
+      }
+    });
+    await nextTick();
+
+    // Snippet should return to clean saved state (no unsaved dot) because baseline code was not corrupted
+    expect(wrapper.find('.unsaved-dot').exists()).toBe(false);
+  });
 });
 
 

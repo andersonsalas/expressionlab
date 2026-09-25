@@ -688,14 +688,8 @@ const destroyCodeMirror = () => {
 };
 
 const formatActiveSnippetCode = () => {
-  if (!view) return;
-  const changed = formatEditorDocument(view);
-  if (changed && activeSnippet.value) {
-    activeSnippet.value.code = view.state.doc.toString();
-    if (activeSnippetId.value !== null) {
-      unsavedSnippetIds.add(activeSnippetId.value);
-    }
-  }
+  if (!view) return false;
+  return formatEditorDocument(view);
 };
 
 const initCodeMirror = () => {
