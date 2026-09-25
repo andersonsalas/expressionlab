@@ -32,6 +32,9 @@ jest.mock('@codemirror/view', () => ({
             return {};
           }),
         },
+        setState: jest.fn((newState) => {
+          currentDoc = newState?.doc?.toString() || '';
+        }),
         dispatch: jest.fn(),
         destroy: jest.fn(),
         focus: jest.fn(),
@@ -887,6 +890,69 @@ describe('LibraryModal.vue', () => {
 
     // Snippet should return to clean saved state (no unsaved dot) because baseline code was not corrupted
     expect(wrapper.find('.unsaved-dot').exists()).toBe(false);
+  });
+
+  it('resets EditorState with view.setState when switching snippets to isolate undo/redo history', async () => {
+    const { handleLocalStorage } = require('../../../lib/api/client.js');
+    const { EditorView } = require('@codemirror/view');
+    const { EditorState } = require('@codemirror/state');
+
+    handleLocalStorage.mockImplementation((method, key) => {
+      if (method === 'getItem' && key === 'el_snippets') {
+        return Promise.resolve(JSON.stringify([
+          { id: '1', name: 'Snippet 1', code: 'code1()' },
+          { id: '2', name: 'Snippet 2', code: 'code2()' }
+        ]));
+      }
+      return Promise.resolve(null);
+    });
+
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'library' }
+      }
+    });
+
+    const wrapper = mount(LibraryModal, {
+      global: {
+        plugins: [pinia]
+      }
+    });
+    await flushPromises();
+    await nextTick();
+
+    const editorInstance = EditorView.mock.results[EditorView.mock.results.length - 1]?.value;
+    expect(editorInstance).toBeDefined();
+    expect(editorInstance.state.doc.toString()).toBe('code1()');
+
+    // Switch to Snippet 2
+    const items = wrapper.findAll('.library-list-item');
+    const snippet2Item = items.filter(w => w.text().includes('Snippet 2'))[0];
+    await snippet2Item.trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    // Verify view.setState was called with a newly created EditorState for Snippet 2
+    expect(editorInstance.setState).toHaveBeenCalled();
+    const lastSetStateCall = editorInstance.setState.mock.calls[editorInstance.setState.mock.calls.length - 1];
+    expect(lastSetStateCall[0].doc.toString()).toBe('code2()');
+    expect(editorInstance.state.doc.toString()).toBe('code2()');
+
+    // Verify EditorState.create was invoked for code2()
+    const stateCreateCalls = EditorState.create.mock.calls;
+    const hasCode2Call = stateCreateCalls.some(call => call[0]?.doc === 'code2()');
+    expect(hasCode2Call).toBe(true);
+
+    // Switch back to Snippet 1
+    const snippet1Item = items.filter(w => w.text().includes('Snippet 1'))[0];
+    await snippet1Item.trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    // Verify view.setState was called with a fresh state for Snippet 1, isolating its history
+    const finalSetStateCall = editorInstance.setState.mock.calls[editorInstance.setState.mock.calls.length - 1];
+    expect(finalSetStateCall[0].doc.toString()).toBe('code1()');
+    expect(editorInstance.state.doc.toString()).toBe('code1()');
   });
 });
 

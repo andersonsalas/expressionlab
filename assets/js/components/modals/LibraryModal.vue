@@ -113,6 +113,7 @@ const USE_LOCAL_FS_KEY = 'el_use_local_fs';
 
 const snippets = ref([]);
 const activeSnippetId = ref(null);
+let currentEditorSnippetId = null;
 const searchQuery = ref('');
 const unsavedSnippetIds = reactive(new Set());
 const hasUnsavedChanges = computed(() => unsavedSnippetIds.has(activeSnippetId.value));
@@ -553,6 +554,7 @@ const saveActiveSnippet = async () => {
   activeSnippet.value.id = trimmedName;
   unsavedSnippetIds.delete(activeSnippetId.value);
   activeSnippetId.value = trimmedName;
+  currentEditorSnippetId = trimmedName;
   await persistSnippets();
   return true;
 };
@@ -619,14 +621,66 @@ const getEditorValue = () => {
   return view.state.doc.toString();
 };
 
+const formatActiveSnippetCode = () => {
+  if (!view) return false;
+  return formatEditorDocument(view);
+};
+
+const createEditorExtensions = () => {
+  const cmCompletionSource = createCompletionSource(
+    () => outlineStore.outlineFlat,
+    () => outlineStore.outlineChained
+  );
+
+  const enterKeymap = [
+    { key: 'Shift-Enter', run: insertNewlineAndIndent },
+    { key: 'Enter', run: insertNewlineAndIndent }
+  ];
+
+  return [
+    elscript(),
+    vsCodeLight,
+    history(),
+    autocompletion({ override: [cmCompletionSource] }),
+    keymap.of([
+      indentWithTab, 
+      ...historyKeymap, 
+      ...enterKeymap,
+      { key: 'Mod-s', run: () => { saveActiveSnippet(); return true; } },
+      { key: 'Shift-Alt-f', run: () => { formatActiveSnippetCode(); return true; } }
+    ]),
+    indentUnit.of('    '),
+    EditorState.tabSize.of(4),
+    EditorView.lineWrapping,
+    EditorView.theme(),
+    bracketMatching(),
+    EditorView.updateListener.of((update) => {
+      if (update.docChanged && !isProgrammaticUpdate) {
+        if (activeSnippetId.value !== null) {
+          const currentCode = update.state.doc.toString();
+          const originalCode = activeSnippet.value?.code || '';
+          if (currentCode !== originalCode) {
+            unsavedSnippetIds.add(activeSnippetId.value);
+          } else {
+            unsavedSnippetIds.delete(activeSnippetId.value);
+          }
+        }
+      }
+    })
+  ];
+};
+
+const createEditorState = (doc = '') => {
+  return EditorState.create({
+    doc,
+    extensions: createEditorExtensions()
+  });
+};
+
 const setEditorValue = (val) => {
   if (!view) return;
   isProgrammaticUpdate = true;
-  const tr = view.state.update({
-    changes: { from: 0, to: view.state.doc.length, insert: val },
-    selection: { anchor: 0, head: 0 }
-  });
-  view.dispatch(tr);
+  view.setState(createEditorState(val));
   if (view.scrollDOM) {
     view.scrollDOM.scrollTop = 0;
   }
@@ -684,62 +738,16 @@ const destroyCodeMirror = () => {
   if (view) {
     view.destroy();
     view = null;
+    currentEditorSnippetId = null;
   }
-};
-
-const formatActiveSnippetCode = () => {
-  if (!view) return false;
-  return formatEditorDocument(view);
 };
 
 const initCodeMirror = () => {
   destroyCodeMirror();
   if (!editorContainer.value) return;
 
-  const cmCompletionSource = createCompletionSource(
-    () => outlineStore.outlineFlat,
-    () => outlineStore.outlineChained
-  );
-
-  const enterKeymap = [
-    { key: 'Shift-Enter', run: insertNewlineAndIndent },
-    { key: 'Enter', run: insertNewlineAndIndent }
-  ];
-
-  const state = EditorState.create({
-    doc: activeSnippet.value?.code || '',
-    extensions: [
-      elscript(),
-      vsCodeLight,
-      history(),
-      autocompletion({ override: [cmCompletionSource] }),
-      keymap.of([
-        indentWithTab, 
-        ...historyKeymap, 
-        ...enterKeymap,
-        { key: 'Mod-s', run: () => { saveActiveSnippet(); return true; } },
-        { key: 'Shift-Alt-f', run: () => { formatActiveSnippetCode(); return true; } }
-      ]),
-      indentUnit.of('    '),
-      EditorState.tabSize.of(4),
-      EditorView.lineWrapping,
-      EditorView.theme(),
-      bracketMatching(),
-      EditorView.updateListener.of((update) => {
-        if (update.docChanged && !isProgrammaticUpdate) {
-          if (activeSnippetId.value !== null) {
-            const currentCode = update.state.doc.toString();
-            const originalCode = activeSnippet.value?.code || '';
-            if (currentCode !== originalCode) {
-              unsavedSnippetIds.add(activeSnippetId.value);
-            } else {
-              unsavedSnippetIds.delete(activeSnippetId.value);
-            }
-          }
-        }
-      })
-    ]
-  });
+  const state = createEditorState(activeSnippet.value?.code || '');
+  currentEditorSnippetId = activeSnippet.value?.id || null;
 
   view = new EditorView({ state, parent: editorContainer.value });
 
@@ -797,22 +805,28 @@ watch(activeSnippet, (newSnippet) => {
         } 
       }, 100);
     } else if (view) {
-      const newCode = newSnippet.code || '';
-      if (getEditorValue() !== newCode) {
-        setEditorValue(newCode);
+      if (newSnippet.id !== currentEditorSnippetId) {
+        currentEditorSnippetId = newSnippet.id;
+        const newCode = newSnippet.code || '';
+        isProgrammaticUpdate = true;
+        view.setState(createEditorState(newCode));
+        isProgrammaticUpdate = false;
+        if (view.scrollDOM) {
+          view.scrollDOM.scrollTop = 0;
+        }
+        setTimeout(() => { 
+          if (view) {
+            view.dispatch({ 
+              selection: { anchor: 0, head: 0 }
+            });
+            if (view.scrollDOM) {
+              view.scrollDOM.scrollTop = 0;
+            }
+            view.focus(); 
+            view.requestMeasure();
+          } 
+        }, 100);
       }
-      setTimeout(() => { 
-        if (view) {
-          view.dispatch({ 
-            selection: { anchor: 0, head: 0 }
-          });
-          if (view.scrollDOM) {
-            view.scrollDOM.scrollTop = 0;
-          }
-          view.focus(); 
-          view.requestMeasure();
-        } 
-      }, 100);
     }
   });
 }, { immediate: false });
