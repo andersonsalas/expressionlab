@@ -43,7 +43,7 @@ jobs:
               - '.github/workflows/test-php.yml'
 
   test-php:
-    name: "PHP ${{ matrix.php }} / WP ${{ matrix.wp }}"
+    name: "PHP Matrix"
     needs: changes
     if: needs.changes.outputs.should_run == 'true'
     runs-on: ubuntu-latest
