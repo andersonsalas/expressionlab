@@ -14,63 +14,110 @@ describe('elscript CodeMirror 6 language support', () => {
     expect(state.doc.toString()).toBe('prog[]');
   });
 
-  it('correctly tokenizes special keywords and structures into syntax tree', () => {
+  it('correctly parses special keywords and structures into Lezer syntax tree', () => {
     const doc = 'prog[set[\'x\', show[1]], var[\'x\'], fn[], args[\'p\'], map[], filter[], isset[\'x\'], unset[\'x\'], reduce[]]';
     const tree = elscriptLanguage.parser.parse(doc);
     const treeStr = tree.toString();
 
-    expect(treeStr).toContain('keyword');
-    expect(treeStr).toContain('bracket');
-    expect(treeStr).toContain('string');
-    expect(treeStr).toContain('number');
+    expect(treeStr).toContain('ProgExpression');
+    expect(treeStr).toContain('SetExpression');
+    expect(treeStr).toContain('ShowExpression');
+    expect(treeStr).toContain('VarExpression');
+    expect(treeStr).toContain('BracketList');
+    expect(treeStr).toContain('String');
+    expect(treeStr).toContain('Number');
   });
 
-  it('correctly tokenizes built-in root objects and methods', () => {
+  it('correctly parses built-in root objects and methods', () => {
     const doc = 'Users.find(1) Database.query() Posts.all()';
     const tree = elscriptLanguage.parser.parse(doc);
     const treeStr = tree.toString();
 
-    expect(treeStr).toContain('className');
-    expect(treeStr).toContain('variableName');
+    expect(treeStr).toContain('BuiltinObject');
+    expect(treeStr).toContain('PropertyName');
+    expect(treeStr).toContain('ArgumentList');
   });
 
-  it('correctly tokenizes string concatenation operator ~ and comparison operators', () => {
+  it('correctly parses string concatenation operator ~ and comparison operators', () => {
     const doc = 'var[\'a\'] ~ \' hello\' == true != false <= 100';
     const tree = elscriptLanguage.parser.parse(doc);
     const treeStr = tree.toString();
 
-    expect(treeStr).toContain('operator');
-    expect(treeStr).toContain('bool');
-    expect(treeStr).toContain('number');
+    expect(treeStr).toContain('BinaryExpression');
+    expect(treeStr).toContain('VarExpression');
+    expect(treeStr).toContain('Boolean');
+    expect(treeStr).toContain('Number');
   });
 
-  it('correctly tokenizes block comments and treats // as operators', () => {
+  it('correctly parses and highlights range operator 0..23', () => {
+    const { highlightTree } = require('@lezer/highlight');
+    const doc = 'set[\'hours\', 0..23]';
+    const tree = elscriptLanguage.parser.parse(doc);
+    const treeStr = tree.toString();
+
+    expect(treeStr).toContain('BinaryExpression');
+    expect(treeStr).toContain('Number');
+
+    const tokens = [];
+    highlightTree(tree, elscriptHighlightStyle, (from, to, classes) => {
+      tokens.push({ text: doc.slice(from, to), classes });
+    });
+
+    const rangeToken = tokens.find(t => t.text === '..');
+    expect(rangeToken).toBeDefined();
+
+    const numberTokens = tokens.filter(t => t.text === '0' || t.text === '23');
+    expect(numberTokens.length).toBe(2);
+  });
+
+  it('preserves keyword and string highlighting inside binary expressions and lambda functions', () => {
+    const { highlightTree } = require('@lezer/highlight');
+    const doc = 'set[\'suma\', fn[ [\'a\',\'b\'], args[\'a\'] + args[\'b\'] ] ]';
+    const tree = elscriptLanguage.parser.parse(doc);
+
+    const tokens = [];
+    highlightTree(tree, elscriptHighlightStyle, (from, to, classes) => {
+      tokens.push({ text: doc.slice(from, to), classes });
+    });
+
+    const argsTokens = tokens.filter(t => t.text === 'args');
+    expect(argsTokens.length).toBe(2);
+    // Both args tokens must have keyword styling
+    argsTokens.forEach(t => expect(t.classes).toBeTruthy());
+
+    const stringTokens = tokens.filter(t => t.text === '\'a\'' || t.text === '\'b\'');
+    expect(stringTokens.length).toBeGreaterThanOrEqual(2);
+    stringTokens.forEach(t => expect(t.classes).toBeTruthy());
+
+    const plusToken = tokens.find(t => t.text === '+');
+    expect(plusToken).toBeDefined();
+  });
+
+  it('correctly parses block comments and null', () => {
     const doc = '/* multi-line\n comment */ null';
     const tree = elscriptLanguage.parser.parse(doc);
     const treeStr = tree.toString();
 
-    expect(treeStr).toContain('comment');
-    expect(treeStr).toContain('null');
+    expect(treeStr).toContain('BlockComment');
+    expect(treeStr).toContain('Null');
   });
 
-  it('correctly tokenizes multi-line strings across line breaks', () => {
+  it('correctly parses multi-line strings across line breaks', () => {
     const doc = 'Database.query(\'\nSELECT "post" as tipo\nUNION ALL\nSELECT "page"\n\')';
     const tree = elscriptLanguage.parser.parse(doc);
     const treeStr = tree.toString();
 
-    expect(treeStr).toContain('className');
-    expect(treeStr).toContain('string');
-    // Inside the string, lines should be treated as string rather than outside tokens
-    expect(treeStr.startsWith('Document(className,punctuation,variableName,bracket,string')).toBe(true);
-    expect(treeStr.endsWith('string,bracket)')).toBe(true);
+    expect(treeStr).toContain('BuiltinObject');
+    expect(treeStr).toContain('String');
+    expect(treeStr).toContain('ArgumentList');
   });
 
-  it('correctly tokenizes strings with escaped quotes without premature termination', () => {
+  it('correctly parses strings with escaped quotes without premature termination', () => {
     const doc = 'wp_slash(\'It\\\'s a test\')';
     const tree = elscriptLanguage.parser.parse(doc);
     const treeStr = tree.toString();
 
-    expect(treeStr).toBe('Document(variableName,bracket,string,bracket)');
+    expect(treeStr).toBe('Program(PostfixExpression(AtomicExpression(Identifier),ArgumentList("(",AtomicExpression(String),")")))');
   });
 
   it('has elscriptHighlightStyle defined with proper tag styles and canonical colors', () => {
@@ -84,7 +131,7 @@ describe('elscript CodeMirror 6 language support', () => {
     expect(literalSpec).toBeDefined();
   });
 
-  it('handles token stream advance on unknown characters', () => {
+  it('handles token stream advance on unknown characters in compatibility mode', () => {
     const state = elscriptMode.startState();
     let advanced = false;
     const mockStream = {

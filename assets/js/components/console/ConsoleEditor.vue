@@ -10,6 +10,7 @@ import { createCompletionSource } from '../../lib/autocomplete.js';
 import { history as cmHistory, historyKeymap, indentWithTab, insertNewlineAndIndent } from '@codemirror/commands';
 import { vsCodeLight } from '@fsegurai/codemirror-theme-bundle';
 import { formatEditorDocument } from '../../lib/codemirror/format-command.js';
+import { expressionLabLinter, lintExpressionLab } from '../../lib/codemirror/elscript-linter.js';
 
 const uiStore = useUiStore();
 
@@ -31,7 +32,37 @@ const props = defineProps({
 const emit = defineEmits(['execute', 'history-up', 'history-down', 'clear']);
 
 const editorContainer = ref(null);
+const hasSyntaxErrors = ref(false);
 let view = null;
+let syntaxDebounceTimer = null;
+
+const checkSyntax = (state) => {
+  const targetState = state || view?.state;
+  if (!targetState) {
+    hasSyntaxErrors.value = false;
+    return;
+  }
+
+  const text = targetState.doc.toString();
+  if (!text.trim()) {
+    if (syntaxDebounceTimer) {
+      clearTimeout(syntaxDebounceTimer);
+      syntaxDebounceTimer = null;
+    }
+    hasSyntaxErrors.value = false;
+    return;
+  }
+
+  if (syntaxDebounceTimer) {
+    clearTimeout(syntaxDebounceTimer);
+  }
+
+  syntaxDebounceTimer = setTimeout(() => {
+    const currentState = view ? view.state : targetState;
+    const diagnostics = lintExpressionLab(currentState);
+    hasSyntaxErrors.value = diagnostics.some((d) => d.severity === 'error');
+  }, 150);
+};
 
 const getEditorValue = () => {
   if (!view) return '';
@@ -107,6 +138,7 @@ const moveCursorToEnd = () => {
 
 // Expose methods to parent
 defineExpose({
+    hasSyntaxErrors,
     setEditorValue,
     insertSnippet,
     moveCursorToEnd,
@@ -125,6 +157,11 @@ const handleEnter = () => {
     
     emit('execute', input);
     setEditorValue('');
+    hasSyntaxErrors.value = false;
+    if (syntaxDebounceTimer) {
+        clearTimeout(syntaxDebounceTimer);
+        syntaxDebounceTimer = null;
+    }
     return true; 
 };
 
@@ -168,6 +205,12 @@ onMounted(() => {
       }
     ];
 
+    const syntaxUpdateListener = EditorView.updateListener.of((update) => {
+      if (update.docChanged) {
+        checkSyntax(update.state);
+      }
+    });
+
     const state = EditorState.create({
       doc: '',
       extensions: [
@@ -190,6 +233,8 @@ onMounted(() => {
         }),
         EditorView.theme(),
         bracketMatching(),
+        expressionLabLinter(),
+        syntaxUpdateListener,
       ]
     });
 
@@ -198,6 +243,10 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+    if (syntaxDebounceTimer) {
+        clearTimeout(syntaxDebounceTimer);
+        syntaxDebounceTimer = null;
+    }
     if (view) view.destroy();
 });
 </script>
@@ -205,7 +254,7 @@ onBeforeUnmount(() => {
 <template>
   <div
     class="entry editor-entry in active"
-    :class="[{ loading: loading }, `mode-${uiStore.consoleMode}`]"
+    :class="[{ loading: loading, 'has-syntax-errors': hasSyntaxErrors }, `mode-${uiStore.consoleMode}`]"
   >
     <div
       v-show="!loading"

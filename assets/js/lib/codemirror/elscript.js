@@ -1,11 +1,22 @@
 /**
  * Expression Lab DSL language support for CodeMirror 6.
  *
- * Implements a StreamLanguage streaming parser and HighlightStyle for Expression Lab DSL.
+ * Implements a Lezer LR parser, HighlightStyle, Code Folding,
+ * and smart indentation for Expression Lab DSL.
  */
 
-import { StreamLanguage, HighlightStyle, syntaxHighlighting, LanguageSupport } from '@codemirror/language';
-import { tags } from '@codemirror/highlight';
+import {
+  LRLanguage,
+  HighlightStyle,
+  syntaxHighlighting,
+  LanguageSupport,
+  indentNodeProp,
+  foldNodeProp,
+  foldInside,
+  StreamLanguage,
+} from '@codemirror/language';
+import { styleTags, tags } from '@lezer/highlight';
+import { parser } from './grammar/parser.js';
 
 const KEYWORDS = new Set([
   'prog',
@@ -41,7 +52,7 @@ const LITERALS = new Set([
 ]);
 
 /**
- * StreamParser definition for Expression Lab DSL.
+ * StreamParser definition for Expression Lab DSL (kept for compatibility).
  */
 export const elscriptMode = {
   name: 'elscript',
@@ -163,16 +174,17 @@ export const elscriptMode = {
 };
 
 /**
- * StreamLanguage instance for Expression Lab DSL.
+ * Fallback stream language instance.
  */
-export const elscriptLanguage = StreamLanguage.define(elscriptMode);
+export const elscriptStreamLanguage = StreamLanguage.define(elscriptMode);
 
 /**
  * HighlightStyle matching Expression Lab palette:
  * - Keywords: #af00db
- * - Literals (true, false, null): #0000ff
+ * - Builtins / Classes: #000000
  * - Strings: #a31515
  * - Numbers: #098658
+ * - Literals (true, false, null): #0000ff
  * - Comments: #888888
  * - Classes / Operators / Punctuation: #000000
  */
@@ -183,11 +195,49 @@ export const elscriptHighlightStyle = HighlightStyle.define([
   { tag: tags.number, color: '#098658' },
   { tag: [tags.bool, tags.null], color: '#0000ff', fontWeight: 'normal' },
   { tag: tags.comment, color: '#888888', fontStyle: 'normal' },
-  { tag: tags.operator, color: '#000000' },
+  { tag: [tags.operator, tags.operatorKeyword], color: '#000000' },
   { tag: tags.bracket, color: '#000000' },
   { tag: tags.punctuation, color: '#000000' },
   { tag: tags.variableName, color: '#000000' },
 ]);
+
+/**
+ * Lezer-based LRLanguage definition for Expression Lab DSL.
+ */
+export const elscriptLanguage = LRLanguage.define({
+  parser: parser.configure({
+    props: [
+      indentNodeProp.add({
+        'ProgExpression ArrayExpression ObjectExpression BracketList': (context) => {
+          const closed = context.textAfter && /^[\]})]/.test(context.textAfter);
+          return context.baseIndent + (closed ? 0 : context.unit);
+        },
+      }),
+      foldNodeProp.add({
+        'ProgExpression ArrayExpression ObjectExpression BracketList BlockComment': foldInside,
+      }),
+      styleTags({
+        Identifier: tags.variableName,
+        BuiltinObject: tags.className,
+        'ProgKeyword SetKeyword UnsetKeyword IssetKeyword VarKeyword ArgsKeyword FnKeyword ShowKeyword MapKeyword FilterKeyword ReduceKeyword': tags.keyword,
+        Boolean: tags.bool,
+        Null: tags.null,
+        Number: tags.number,
+        String: tags.string,
+        BlockComment: tags.comment,
+        '( ) [ ] { }': tags.bracket,
+        ', : . ?.': tags.punctuation,
+        '"==" "!=" "===" "!==" "<" "<=" ">" ">=" "+" "-" "*" "/" "%" "**" "~" ".." "&&" "||" "!" "??" "?" "&" "|" "^" "<<" ">>"': tags.operator,
+        'and or not in matches startsWith endsWith contains xor': tags.operatorKeyword,
+      }),
+    ],
+  }),
+  languageData: {
+    commentTokens: { block: { open: '/*', close: '*/' } },
+    closeBrackets: { brackets: ['(', '[', '{', '\'', '"'] },
+    indentOnInput: /^\s*[\]})]$/,
+  },
+});
 
 /**
  * Extension factory for CodeMirror 6.

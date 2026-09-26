@@ -145,6 +145,20 @@
 			}
 		}
 
+		&.has-syntax-errors:not(.loading)::before {
+			content: "\ea76";
+			width: 13px;
+			height: 13px;
+			background: #cc1818;
+			color: white;
+			border-radius: 50%;
+			font-size: 13px;
+			line-height: 13px;
+			text-align: center;
+			top: 6px;
+			left: 0;
+		}
+
 
 		// Mode: Evaluate
 		&.mode-evaluate {
