@@ -1,0 +1,185 @@
+@top Program { expression* }
+
+@precedence {
+  member,
+  call,
+  unary,
+  exp @right,
+  mult @left,
+  concat @left,
+  add @left,
+  shift @left,
+  range @left,
+  rel @left,
+  equality @left,
+  bitAnd @left,
+  bitXor @left,
+  bitOr @left,
+  and @left,
+  xor @left,
+  or @left,
+  coalesce @right,
+  ternary @right
+}
+
+expression {
+  primaryExpression |
+  UnaryExpression |
+  BinaryExpression |
+  ConditionalExpression |
+  NullCoalesceExpression
+}
+
+primaryExpression {
+  AtomicExpression |
+  PostfixExpression
+}
+
+AtomicExpression {
+  SpecialForm |
+  BuiltinObject |
+  Number |
+  String |
+  Boolean |
+  Null |
+  Identifier |
+  ArrayExpression |
+  ObjectExpression |
+  ParenthesizedExpression
+}
+
+Boolean { @specialize<Identifier, "true" | "false" | "TRUE" | "FALSE"> }
+Null { @specialize<Identifier, "null" | "NULL"> }
+BuiltinObject { @specialize<Identifier, "Posts" | "Users" | "Database" | "Options" | "NetworkOptions" | "Media" | "Files" | "Http" | "Console" | "NetworkSites"> }
+
+SpecialForm {
+  ProgExpression |
+  SetExpression |
+  UnsetExpression |
+  IssetExpression |
+  VarExpression |
+  ArgsExpression |
+  FnExpression |
+  ShowExpression |
+  MapExpression |
+  FilterExpression |
+  ReduceExpression
+}
+
+ProgKeyword { @specialize<Identifier, "prog"> }
+SetKeyword { @specialize<Identifier, "set"> }
+UnsetKeyword { @specialize<Identifier, "unset"> }
+IssetKeyword { @specialize<Identifier, "isset"> }
+VarKeyword { @specialize<Identifier, "var"> }
+ArgsKeyword { @specialize<Identifier, "args"> }
+FnKeyword { @specialize<Identifier, "fn"> }
+ShowKeyword { @specialize<Identifier, "show"> }
+MapKeyword { @specialize<Identifier, "map"> }
+FilterKeyword { @specialize<Identifier, "filter"> }
+ReduceKeyword { @specialize<Identifier, "reduce"> }
+
+SpecialFormKeyword {
+  ProgKeyword |
+  SetKeyword |
+  UnsetKeyword |
+  IssetKeyword |
+  VarKeyword |
+  ArgsKeyword |
+  FnKeyword |
+  ShowKeyword |
+  MapKeyword |
+  FilterKeyword |
+  ReduceKeyword
+}
+
+ProgExpression { ProgKeyword BracketList }
+SetExpression { SetKeyword BracketList }
+UnsetExpression { UnsetKeyword BracketList }
+IssetExpression { IssetKeyword BracketList }
+VarExpression { VarKeyword BracketList }
+ArgsExpression { ArgsKeyword BracketList }
+FnExpression { FnKeyword BracketList }
+ShowExpression { ShowKeyword BracketList }
+MapExpression { MapKeyword BracketList }
+FilterExpression { FilterKeyword BracketList }
+ReduceExpression { ReduceKeyword BracketList }
+
+BracketList { "[" commaSep<expression> "]" }
+ArgumentList { "(" commaSep<expression> ")" }
+
+ArrayExpression { "[" commaSep<expression> "]" }
+
+ObjectExpression { "{" commaSep<ObjectProperty> "}" }
+ObjectProperty { ObjectKey ":" expression }
+ObjectKey { PropertyName | Number | ParenthesizedExpression }
+
+PropertyName { Identifier | BuiltinObject | SpecialFormKeyword | String }
+
+ParenthesizedExpression { "(" expression ")" }
+
+PostfixExpression {
+  primaryExpression !member ("." | "?.") PropertyName |
+  primaryExpression !member "[" expression "]" |
+  primaryExpression !call ArgumentList
+}
+
+UnaryExpression {
+  !unary ("!" | @specialize<Identifier, "not"> | "+" | "-" | "~") expression
+}
+
+BinaryExpression {
+  expression !exp "**" expression |
+  expression !mult ("*" | "/" | "%") expression |
+  expression !add ("+" | "-") expression |
+  expression !concat "~" expression |
+  expression !shift ("<<" | ">>") expression |
+  expression !range ".." expression |
+  expression !rel ("<" | "<=" | ">" | ">=" |
+    @specialize<Identifier, "in" | "matches" | "startsWith" | "endsWith" | "contains"> |
+    @specialize<Identifier, "not"> @specialize<Identifier, "in"> |
+    @specialize<Identifier, "starts"> @specialize<Identifier, "with"> |
+    @specialize<Identifier, "ends"> @specialize<Identifier, "with">
+  ) expression |
+  expression !equality ("==" | "!=" | "===" | "!==") expression |
+  expression !bitAnd "&" expression |
+  expression !bitXor "^" expression |
+  expression !bitOr "|" expression |
+  expression !and ("&&" | @specialize<Identifier, "and">) expression |
+  expression !xor @specialize<Identifier, "xor"> expression |
+  expression !or ("||" | @specialize<Identifier, "or">) expression
+}
+
+ConditionalExpression {
+  expression !ternary "?" expression? ":" expression
+}
+
+NullCoalesceExpression {
+  expression !coalesce "??" expression
+}
+
+commaSep<content> {
+  "" | content ("," content)* (",")?
+}
+
+@tokens {
+  whitespace { ($[ \t\r\n])+ }
+  BlockComment { "/*" (![*] | "*" ![/])* "*/" }
+
+  Identifier { ($[a-zA-Z_$] | $[\u007f-\uffff]) ($[a-zA-Z0-9_$] | $[\u007f-\uffff])* }
+  Number { ($[0-9] ($[0-9_])* ("." ($[0-9_])+)? ($[eE] $[+-]? ($[0-9_])+)? | "." ($[0-9_])+ ($[eE] $[+-]? ($[0-9_])+)? ) }
+  
+  String {
+    "'" (!['\\] | "\\" _)* "'" |
+    '"' (!["\\] | "\\" _)* '"'
+  }
+
+  "(" ")" "[" "]" "{" "}"
+  "," ":" "." "?." ".." "?"
+  "+" "-" "*" "/" "%" "**" "~"
+  "==" "!=" "===" "!==" "<" "<=" ">" ">="
+  "&&" "||" "!" "??" "&" "|" "^" "<<" ">>"
+
+  @precedence { Number, "." }
+}
+
+@skip { whitespace | BlockComment }

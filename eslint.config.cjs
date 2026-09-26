@@ -20,6 +20,7 @@ module.exports = defineConfig([
 		ignores: [
 			'assets/build/**',
 			'**/assets/build/**',
+			'assets/js/lib/codemirror/grammar/parser*.js',
 			'coverage/**',
 			'docs/**',
 			'node_modules/**',

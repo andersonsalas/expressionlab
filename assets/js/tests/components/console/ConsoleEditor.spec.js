@@ -1,6 +1,7 @@
 let mockCapturedEnterKeymap = [];
 let mockCapturedUpDownKeymap = [];
 let mockCapturedFormatKeymap = [];
+let mockCapturedUpdateListeners = [];
 
 jest.mock('@codemirror/state', () => ({
   EditorState: {
@@ -41,7 +42,19 @@ jest.mock('@codemirror/view', () => {
             return {};
           }),
         },
-        dispatch: jest.fn((tr) => {}),
+        dispatch: jest.fn((tr) => {
+          mockCapturedUpdateListeners.forEach((listener) => {
+            listener({
+              docChanged: true,
+              state: {
+                doc: {
+                  toString: () => currentDoc,
+                  length: currentDoc.length,
+                },
+              },
+            });
+          });
+        }),
         destroy: jest.fn(),
         focus: jest.fn(),
         dom: { addEventListener: jest.fn() },
@@ -51,6 +64,12 @@ jest.mock('@codemirror/view', () => {
       lineWrapping: {},
       theme: jest.fn(),
       domEventHandlers: jest.fn(),
+      updateListener: {
+        of: jest.fn((fn) => {
+          mockCapturedUpdateListeners.push(fn);
+          return {};
+        }),
+      },
     }
   );
 
@@ -80,6 +99,11 @@ jest.mock('../../../lib/codemirror/elscript.js', () => ({
   elscriptLanguage: {},
 }));
 
+jest.mock('../../../lib/codemirror/elscript-linter.js', () => ({
+  expressionLabLinter: jest.fn(() => []),
+  lintExpressionLab: jest.fn(() => []),
+}));
+
 jest.mock('@codemirror/commands', () => ({
   history: jest.fn(),
   historyKeymap: [],
@@ -99,6 +123,8 @@ describe('ConsoleEditor.vue', () => {
   beforeEach(() => {
     mockCapturedEnterKeymap = [];
     mockCapturedUpDownKeymap = [];
+    mockCapturedFormatKeymap = [];
+    mockCapturedUpdateListeners = [];
   });
 
   it('renders correctly and mounts CodeMirror container', () => {
@@ -210,5 +236,68 @@ describe('ConsoleEditor.vue', () => {
     const formatBinding = mockCapturedFormatKeymap.find((k) => k.key === 'Shift-Alt-f');
     expect(formatBinding).toBeDefined();
     expect(typeof formatBinding.run).toBe('function');
+  });
+
+  it('updates hasSyntaxErrors and applies class when syntax errors are detected', async () => {
+    jest.useFakeTimers();
+    const { lintExpressionLab } = require('../../../lib/codemirror/elscript-linter.js');
+    lintExpressionLab.mockReturnValueOnce([
+      { from: 0, to: 5, severity: 'error', message: 'Syntax error: unexpected token' },
+    ]);
+
+    const wrapper = mount(ConsoleEditor, {
+      global: {
+        plugins: [createTestingPinia()],
+      },
+    });
+
+    expect(wrapper.vm.hasSyntaxErrors).toBe(false);
+    expect(wrapper.classes()).not.toContain('has-syntax-errors');
+
+    wrapper.vm.setEditorValue('prog[');
+    jest.advanceTimersByTime(200);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.hasSyntaxErrors).toBe(true);
+    expect(wrapper.classes()).toContain('has-syntax-errors');
+
+    // Setting empty resets immediately
+    lintExpressionLab.mockReturnValue([]);
+    wrapper.vm.setEditorValue('');
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.hasSyntaxErrors).toBe(false);
+    expect(wrapper.classes()).not.toContain('has-syntax-errors');
+
+    jest.useRealTimers();
+  });
+
+  it('resets hasSyntaxErrors when enter executes code', async () => {
+    jest.useFakeTimers();
+    const { lintExpressionLab } = require('../../../lib/codemirror/elscript-linter.js');
+    lintExpressionLab.mockReturnValueOnce([
+      { from: 0, to: 5, severity: 'error', message: 'Syntax error' },
+    ]);
+
+    const wrapper = mount(ConsoleEditor, {
+      global: {
+        plugins: [createTestingPinia()],
+      },
+    });
+
+    wrapper.vm.setEditorValue('prog[');
+    jest.advanceTimersByTime(200);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.hasSyntaxErrors).toBe(true);
+
+    const enterBinding = mockCapturedEnterKeymap.find((k) => k.key === 'Enter');
+    enterBinding.run();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.hasSyntaxErrors).toBe(false);
+    expect(wrapper.classes()).not.toContain('has-syntax-errors');
+
+    jest.useRealTimers();
   });
 });

@@ -573,3 +573,60 @@ a.cm-docblock.doc-link {
 		}
 	}
 }
+
+// Lint diagnostics and tooltips
+.cm-lintRange.cm-lintRange-error {
+	background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="6" height="3">%3Cpath d="m0 3 l3 -3 l3 3" stroke="%23d63638" fill="none" stroke-width="1.1"/%3E</svg>');
+	background-position: bottom left;
+	background-repeat: repeat-x;
+	padding-bottom: 2px;
+}
+
+.cm-tooltip-hover:has(> .cm-tooltip-lint) {
+	border-color: #000 !important;
+}
+
+.cm-tooltip-lint {
+	background: #fff !important;
+	color: #cc1818 !important;
+	border: none !important;
+	border-radius: 0 !important;
+	box-shadow: none !important;
+	font-family: vars.$font-family-sans !important;
+	font-size: vars.$font-default-size !important;
+	padding: 4px 8px !important;
+	max-width: 480px !important;
+
+	.cm-diagnostic {
+		padding: 3px 0 !important;
+		margin: 0 !important;
+		display: flex;
+		align-items: flex-start;
+		gap: 6px;
+		line-height: 19px;
+
+		&::before {
+			content: "\ea76";
+			font-family: codicon, monospace;
+			font-size: 13px;
+			line-height: 13px;
+			width: 13px;
+			height: 13px;
+			border-radius: 50%;
+			background: #cc1818;
+			color: #fff;
+			text-align: center;
+			display: inline-block;
+			flex-shrink: 0;
+			margin-top: 3px;
+			-webkit-font-smoothing: antialiased;
+			-moz-osx-font-smoothing: grayscale;
+			user-select: none;
+		}
+
+		&.cm-diagnostic-error {
+			border-left: none !important;
+			color: #cc1818 !important;
+		}
+	}
+}

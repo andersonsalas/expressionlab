@@ -11,6 +11,7 @@ import { history, historyKeymap, indentWithTab, insertNewlineAndIndent } from '@
 import { autocompletion, snippet as cmSnippet, closeCompletion } from '@codemirror/autocomplete';
 import { createCompletionSource } from '../../lib/autocomplete.js';
 import { formatEditorDocument } from '../../lib/codemirror/format-command.js';
+import { expressionLabLinter, lintExpressionLab } from '../../lib/codemirror/elscript-linter.js';
 import {
   handleLocalStorage,
   handleDownload,
@@ -117,6 +118,66 @@ let currentEditorSnippetId = null;
 const searchQuery = ref('');
 const unsavedSnippetIds = reactive(new Set());
 const hasUnsavedChanges = computed(() => unsavedSnippetIds.has(activeSnippetId.value));
+const syntaxErrorSnippetIds = reactive(new Set());
+const activeSnippetHasSyntaxError = computed(() => activeSnippetId.value !== null && syntaxErrorSnippetIds.has(activeSnippetId.value));
+let syntaxDebounceTimer = null;
+
+const validateSnippetSyntax = (snippet) => {
+  if (!snippet || !snippet.id) return;
+  const code = snippet.code || '';
+  if (!code.trim()) {
+    syntaxErrorSnippetIds.delete(snippet.id);
+    return;
+  }
+  const errors = lintExpressionLab(code);
+  if (errors.some((e) => e.severity === 'error')) {
+    syntaxErrorSnippetIds.add(snippet.id);
+  } else {
+    syntaxErrorSnippetIds.delete(snippet.id);
+  }
+};
+
+const validateAllSnippetsSyntax = () => {
+  syntaxErrorSnippetIds.clear();
+  for (const s of snippets.value) {
+    validateSnippetSyntax(s);
+  }
+};
+
+const checkActiveSnippetSyntax = (state) => {
+  if (activeSnippetId.value === null) return;
+  const targetState = state || view?.state;
+  if (!targetState) return;
+
+  const code = targetState.doc.toString();
+  if (!code.trim()) {
+    if (syntaxDebounceTimer) {
+      clearTimeout(syntaxDebounceTimer);
+      syntaxDebounceTimer = null;
+    }
+    syntaxErrorSnippetIds.delete(activeSnippetId.value);
+    return;
+  }
+
+  if (syntaxDebounceTimer) {
+    clearTimeout(syntaxDebounceTimer);
+  }
+
+  syntaxDebounceTimer = setTimeout(() => {
+    const currentState = view ? view.state : targetState;
+    const diagnostics = lintExpressionLab(currentState);
+    if (diagnostics.some((d) => d.severity === 'error')) {
+      syntaxErrorSnippetIds.add(activeSnippetId.value);
+    } else {
+      syntaxErrorSnippetIds.delete(activeSnippetId.value);
+    }
+  }, 150);
+};
+
+watch(snippets, () => {
+  validateAllSnippetsSyntax();
+}, { deep: true });
+
 const useLocalFileSystem = ref(false);
 const fsPermissionPending = ref(false);
 const fsDirName = ref('');
@@ -444,6 +505,10 @@ const activeSnippet = computed(() => {
 });
 
 const selectSnippet = async (id) => {
+  if (syntaxDebounceTimer) {
+    clearTimeout(syntaxDebounceTimer);
+    syntaxDebounceTimer = null;
+  }
   if (hasUnsavedChanges.value) {
     const action = await uiStore.showDialog({
       type: 'confirm',
@@ -460,6 +525,7 @@ const selectSnippet = async (id) => {
     } else if (action === 'deny') {
       if (activeSnippet.value) {
         activeSnippet.value.name = activeSnippet.value.id;
+        validateSnippetSyntax(activeSnippet.value);
       }
       unsavedSnippetIds.delete(activeSnippetId.value);
     }
@@ -553,6 +619,7 @@ const saveActiveSnippet = async () => {
   activeSnippet.value.name = trimmedName;
   activeSnippet.value.id = trimmedName;
   unsavedSnippetIds.delete(activeSnippetId.value);
+  validateSnippetSyntax(activeSnippet.value);
   activeSnippetId.value = trimmedName;
   currentEditorSnippetId = trimmedName;
   await persistSnippets();
@@ -589,6 +656,7 @@ const deleteActiveSnippet = async () => {
     });
     if (!confirmed) return;
     unsavedSnippetIds.delete(activeSnippetId.value);
+    syntaxErrorSnippetIds.delete(activeSnippetId.value);
     snippets.value.splice(idx, 1);
     if (snippets.value.length > 0) {
       const nextIdx = Math.max(0, idx - 1);
@@ -654,9 +722,11 @@ const createEditorExtensions = () => {
     EditorView.lineWrapping,
     EditorView.theme(),
     bracketMatching(),
+    expressionLabLinter(),
     EditorView.updateListener.of((update) => {
-      if (update.docChanged && !isProgrammaticUpdate) {
-        if (activeSnippetId.value !== null) {
+      if (update.docChanged) {
+        checkActiveSnippetSyntax(update.state);
+        if (!isProgrammaticUpdate && activeSnippetId.value !== null) {
           const currentCode = update.state.doc.toString();
           const originalCode = activeSnippet.value?.code || '';
           if (currentCode !== originalCode) {
@@ -787,6 +857,10 @@ watch(isOpen, async (open) => {
 
 // Watch for snippet changes
 watch(activeSnippet, (newSnippet) => {
+  if (syntaxDebounceTimer) {
+    clearTimeout(syntaxDebounceTimer);
+    syntaxDebounceTimer = null;
+  }
   if (!newSnippet) {
     destroyCodeMirror();
     return;
@@ -832,7 +906,18 @@ watch(activeSnippet, (newSnippet) => {
 }, { immediate: false });
 
 onUnmounted(() => {
+  if (syntaxDebounceTimer) {
+    clearTimeout(syntaxDebounceTimer);
+    syntaxDebounceTimer = null;
+  }
   destroyCodeMirror();
+});
+
+defineExpose({
+  syntaxErrorSnippetIds,
+  activeSnippetHasSyntaxError,
+  validateAllSnippetsSyntax,
+  validateSnippetSyntax,
 });
 </script>
 
@@ -879,14 +964,23 @@ onUnmounted(() => {
               v-for="snippet in filteredSnippets"
               :key="snippet.id"
               class="library-list-item"
-              :class="{ active: snippet.id === activeSnippetId, 'has-unsaved': unsavedSnippetIds.has(snippet.id) }"
+              :class="{ 
+                active: snippet.id === activeSnippetId, 
+                'has-unsaved': unsavedSnippetIds.has(snippet.id),
+                'has-syntax-errors': syntaxErrorSnippetIds.has(snippet.id) 
+              }"
               @click="selectSnippet(snippet.id)"
             >
               <span
                 v-if="unsavedSnippetIds.has(snippet.id)"
                 class="unsaved-dot"
               />
-              {{ snippet.name || __('(Untitled)') }}
+              <span class="snippet-item-name">{{ snippet.name || __('(Untitled)') }}</span>
+              <span
+                v-if="syntaxErrorSnippetIds.has(snippet.id)"
+                class="syntax-error-icon"
+                :title="__('Syntax error in snippet')"
+              />
             </div>
             <div
               v-if="filteredSnippets.length === 0"
@@ -938,7 +1032,15 @@ onUnmounted(() => {
           v-if="activeSnippet"
           class="library-main"
         >
-          <div class="library-main-header">
+          <div
+            class="library-main-header"
+            :class="{ 'has-syntax-errors': activeSnippetHasSyntaxError }"
+          >
+            <span
+              v-if="activeSnippetHasSyntaxError"
+              class="syntax-error-icon"
+              :title="__('Syntax error in snippet')"
+            />
             <input
               v-model="activeSnippet.name"
               type="text"

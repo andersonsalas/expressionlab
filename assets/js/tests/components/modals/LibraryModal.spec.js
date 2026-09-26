@@ -62,6 +62,11 @@ jest.mock('../../../lib/codemirror/elscript.js', () => ({
   elscriptLanguage: {}
 }));
 
+jest.mock('../../../lib/codemirror/elscript-linter.js', () => ({
+  expressionLabLinter: jest.fn(() => []),
+  lintExpressionLab: jest.fn(() => []),
+}));
+
 jest.mock('@codemirror/commands', () => ({
   history: jest.fn(),
   historyKeymap: [],
@@ -953,6 +958,69 @@ describe('LibraryModal.vue', () => {
     const finalSetStateCall = editorInstance.setState.mock.calls[editorInstance.setState.mock.calls.length - 1];
     expect(finalSetStateCall[0].doc.toString()).toBe('code1()');
     expect(editorInstance.state.doc.toString()).toBe('code1()');
+  });
+
+  it('renders syntax error icon in list item and header when snippet has syntax errors', async () => {
+    const { handleLocalStorage } = require('../../../lib/api/client.js');
+    const { lintExpressionLab } = require('../../../lib/codemirror/elscript-linter.js');
+    lintExpressionLab.mockImplementation((code) => {
+      const str = typeof code === 'string' ? code : (code?.doc?.toString() || '');
+      return str.includes('syntax_err') ? [{ severity: 'error', message: 'Syntax error' }] : [];
+    });
+
+    const pinia = createTestingPinia({ stubActions: false });
+    const uiStore = useUiStore(pinia);
+    uiStore.activeModal = 'library';
+
+    const testSnippets = [
+      { id: 'Snippet Error', name: 'Snippet Error', code: 'syntax_err[1,', tags: [] },
+      { id: 'Snippet Clean', name: 'Snippet Clean', code: 'clean[1, 2]', tags: [] },
+    ];
+
+    handleLocalStorage.mockImplementation((action, key) => {
+      if (action === 'getItem' && key === 'el_snippets') {
+        return Promise.resolve(JSON.stringify(testSnippets));
+      }
+      return Promise.resolve(null);
+    });
+
+    const wrapper = mount(LibraryModal, {
+      global: {
+        plugins: [pinia]
+      }
+    });
+    await flushPromises();
+    await nextTick();
+
+    // Verify Snippet Error list item has syntax-error-icon and has-syntax-errors class
+    const items = wrapper.findAll('.library-list-item');
+    const errorItem = items.filter(w => w.text().includes('Snippet Error'))[0];
+    const cleanItem = items.filter(w => w.text().includes('Snippet Clean'))[0];
+
+    expect(errorItem.classes()).toContain('has-syntax-errors');
+    expect(errorItem.find('.syntax-error-icon').exists()).toBe(true);
+
+    expect(cleanItem.classes()).not.toContain('has-syntax-errors');
+    expect(cleanItem.find('.syntax-error-icon').exists()).toBe(false);
+
+    // Since Snippet Error is the first snippet, it is active by default
+    expect(errorItem.classes()).toContain('active');
+    expect(wrapper.find('.library-main-header .syntax-error-icon').exists()).toBe(true);
+
+    // Switch to Snippet Clean
+    await cleanItem.trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    // Header error icon should disappear
+    expect(wrapper.find('.library-main-header .syntax-error-icon').exists()).toBe(false);
+
+    // List item for Snippet Error still shows the icon (now unselected)
+    expect(errorItem.find('.syntax-error-icon').exists()).toBe(true);
+    expect(cleanItem.find('.syntax-error-icon').exists()).toBe(false);
+
+    // Restore lint mock
+    lintExpressionLab.mockReturnValue([]);
   });
 });
 

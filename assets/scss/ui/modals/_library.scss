@@ -48,6 +48,26 @@
 		padding: 1px;
 	}
 
+	.syntax-error-icon {
+		width: 13px;
+		height: 13px;
+		font-size: 13px;
+		line-height: 13px;
+		border-radius: 50%;
+		text-align: center;
+		background: #cc1818;
+		color: #fff;
+		font-family: codicon, monospace;
+		display: inline-block;
+		flex-shrink: 0;
+		user-select: none;
+		vertical-align: middle;
+
+		&::before {
+			content: "\ea76";
+		}
+	}
+
 	.library-list-item {
 		padding: 8px 12px;
 		cursor: pointer;
@@ -64,6 +84,17 @@
 			background: $wordpress-primary;
 			margin-right: 8px;
 			flex-shrink: 0;
+		}
+
+		.snippet-item-name {
+			flex: 1;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
+		.syntax-error-icon {
+			margin-left: 8px;
 		}
 
 		&.btn-create {
@@ -93,6 +124,11 @@
 
 		.unsaved-dot {
 			background: #ffffffc2;
+		}
+
+		.syntax-error-icon {
+			background: #fff;
+			color: #3c50e0;
 		}
 	}
 
@@ -197,15 +233,22 @@
 		border-bottom: 1px solid $border-color;
 		align-items: center;
 		height: 36px;
-	}
+		padding-left: 8px;
 
-	.snippet-title-input {
-		flex: 1;
-		border: none;
-		font-size: 14px;
-		outline: none;
-		height: 100%;
-		font-weight: bold;
+		// stylelint-disable-next-line no-descending-specificity
+		.syntax-error-icon {
+			margin-right: 6px;
+		}
+
+		.snippet-title-input {
+			flex: 1;
+			border: none;
+			font-size: 14px;
+			outline: none;
+			height: 100%;
+			font-weight: bold;
+			padding: 0;
+		}
 	}
 
 	.library-main-actions {
