@@ -25,6 +25,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Exclusively functional in multisite environments, always targeting the main network context (`site_id`).
  *
+ * @since 0.0.1
+ *
  * @package ExpressionLab
  */
 final class NetworkOptions {

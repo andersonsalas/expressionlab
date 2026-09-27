@@ -24,14 +24,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Represents a WordPress site in a multisite network, providing methods
  * to manage site properties, options, and associated users.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @package ExpressionLab
  */
 final class Site extends Model {
 	/**
 	 * WordPress site instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 * @var \WP_Site|null
 	 */
@@ -40,7 +40,7 @@ final class Site extends Model {
 	/**
 	 * Database service instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 * @var Database
 	 */
@@ -49,7 +49,7 @@ final class Site extends Model {
 	/**
 	 * SiteOptions instance scoped to this site.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var SiteOptions
 	 */
 	public $options;
@@ -57,7 +57,7 @@ final class Site extends Model {
 	/**
 	 * Blog ID mapped from the WP_Site instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var int
 	 */
 	public $blog_id;
@@ -65,7 +65,7 @@ final class Site extends Model {
 	/**
 	 * Network site ID mapped from the WP_Site instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var int
 	 */
 	public $site_id;
@@ -73,7 +73,7 @@ final class Site extends Model {
 	/**
 	 * Domain mapped from the WP_Site instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $domain;
@@ -81,7 +81,7 @@ final class Site extends Model {
 	/**
 	 * Path mapped from the WP_Site instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $path;
@@ -89,7 +89,7 @@ final class Site extends Model {
 	/**
 	 * Registered date mapped from the WP_Site instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $registered;
@@ -97,7 +97,7 @@ final class Site extends Model {
 	/**
 	 * Last updated date mapped from the WP_Site instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $last_updated;
@@ -105,7 +105,7 @@ final class Site extends Model {
 	/**
 	 * Public status mapped from the WP_Site instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var int
 	 */
 	public $public;
@@ -113,7 +113,7 @@ final class Site extends Model {
 	/**
 	 * Archived status mapped from the WP_Site instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var int
 	 */
 	public $archived;
@@ -121,7 +121,7 @@ final class Site extends Model {
 	/**
 	 * Mature status mapped from the WP_Site instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var int
 	 */
 	public $mature;
@@ -129,7 +129,7 @@ final class Site extends Model {
 	/**
 	 * Spam status mapped from the WP_Site instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var int
 	 */
 	public $spam;
@@ -137,7 +137,7 @@ final class Site extends Model {
 	/**
 	 * Deleted status mapped from the WP_Site instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var int
 	 */
 	public $deleted;
@@ -145,7 +145,7 @@ final class Site extends Model {
 	/**
 	 * Language ID mapped from the WP_Site instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var int
 	 */
 	public $lang_id;
@@ -153,7 +153,7 @@ final class Site extends Model {
 	/**
 	 * Constructor.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param \WP_Site|null $site     The WP_Site object to initialize the model with.
@@ -183,7 +183,7 @@ final class Site extends Model {
 	/**
 	 * Sets the domain for the site.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $domain The domain to set.
 	 * @return Site $this The current instance for method chaining.
@@ -197,7 +197,7 @@ final class Site extends Model {
 	/**
 	 * Sets the path for the site.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $path The path to set.
 	 * @return Site $this The current instance for method chaining.
@@ -211,7 +211,7 @@ final class Site extends Model {
 	/**
 	 * Sets the public status for the site.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param int $public The public status to set (1 for public, 0 for private).
 	 * @return Site $this The current instance for method chaining.
@@ -224,7 +224,7 @@ final class Site extends Model {
 	/**
 	 * Sets the archived status for the site.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param int $archived The archived status to set (1 for archived, 0 for not archived).
 	 * @return Site $this The current instance for method chaining.
@@ -237,7 +237,7 @@ final class Site extends Model {
 	/**
 	 * Sets the mature status for the site.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param int $mature The mature status to set (1 for mature, 0 for not mature).
 	 * @return Site $this The current instance for method chaining.
@@ -250,7 +250,7 @@ final class Site extends Model {
 	/**
 	 * Sets the spam status for the site.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param int $spam The spam status to set (1 for spam, 0 for not spam).
 	 * @return Site $this The current instance for method chaining.
@@ -263,7 +263,7 @@ final class Site extends Model {
 	/**
 	 * Sets the deleted status for the site.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param int $deleted The deleted status to set (1 for deleted, 0 for not deleted).
 	 * @return Site $this The current instance for method chaining.
@@ -276,7 +276,7 @@ final class Site extends Model {
 	/**
 	 * Sets the language ID for the site.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param int $lang_id The language ID to set.
 	 * @return Site $this The current instance for method chaining.
@@ -289,7 +289,7 @@ final class Site extends Model {
 	/**
 	 * Saves the site to the database.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return Site|false The current instance on success, or false on failure.
 	 * @throws \Exception If write protection is enabled.
@@ -370,7 +370,7 @@ final class Site extends Model {
 	/**
 	 * Deletes the site from the database.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return bool True on successful deletion, false on failure.
 	 * @throws \Exception If write protection is enabled.
@@ -397,7 +397,7 @@ final class Site extends Model {
 	/**
 	 * Lists users associated with the site.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return User[] An array of User model instances associated with the site.
 	 */
@@ -422,7 +422,7 @@ final class Site extends Model {
 	/**
 	 * Adds a user to the site with the specified role.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param User   $user The user to add to the site.
 	 * @param string $role The role to assign to the user on this site.
@@ -451,7 +451,7 @@ final class Site extends Model {
 	/**
 	 * Removes a user from the site.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param User $user The user to remove from the site.
 	 * @return bool True on success, false on failure.
@@ -479,7 +479,7 @@ final class Site extends Model {
 	/**
 	 * Retrieves an associative array representation of the site.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return array Associative array of site attributes.
 	 */

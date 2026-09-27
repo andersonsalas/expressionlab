@@ -24,14 +24,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Registers whitelisted built-in PHP functions and constants into the expression language.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @package ExpressionLab
  */
 class PhpExtension implements ExtensionInterface {
 	/**
 	 * Safe backtrack limit for PCRE operations.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	private const SAFE_BACKTRACK_LIMIT = '25000';
@@ -39,7 +39,7 @@ class PhpExtension implements ExtensionInterface {
 	/**
 	 * Whitelisted PHP INI configuration directives permitted for diagnostic inspection.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string[]
 	 */
 	private const ALLOWED_INI_DIRECTIVES = array(
@@ -61,7 +61,7 @@ class PhpExtension implements ExtensionInterface {
 	/**
 	 * Executes a PCRE operation with a constrained backtrack limit.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param callable $callback The regex operation callback to execute.
@@ -87,7 +87,7 @@ class PhpExtension implements ExtensionInterface {
 	/**
 	 * Retrieves all PHP extension functions and their documentation metadata.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return array<string, array{docs: array, callback: \Symfony\Component\ExpressionLanguage\ExpressionFunction}> Associative array of registered functions.
 	 */
@@ -3269,7 +3269,7 @@ class PhpExtension implements ExtensionInterface {
 	/**
 	 * Retrieves all PHP extension constants and their documentation metadata.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return array<string, array{docs: array, value: mixed}> Associative array of registered constants.
 	 */

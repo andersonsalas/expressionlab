@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Manages the expression evaluator REPL console interface, asset registration,
  * authentication challenges, and AJAX expression evaluation endpoints.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @internal
  * @package ExpressionLab
  */
@@ -37,7 +37,7 @@ class Console extends AdminPage {
 	/**
 	 * Nonce action handle for AJAX requests.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 * @var string
 	 */
@@ -46,7 +46,7 @@ class Console extends AdminPage {
 	/**
 	 * Determines whether the console page should load.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return bool True if the plugin is fully configured, false otherwise.
@@ -58,7 +58,7 @@ class Console extends AdminPage {
 	/**
 	 * Initializes WordPress action hooks and AJAX endpoints.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return void
@@ -74,7 +74,7 @@ class Console extends AdminPage {
 	/**
 	 * Retrieves the asset handle name for console scripts and styles.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return string Asset handle name.
@@ -92,7 +92,7 @@ class Console extends AdminPage {
 	/**
 	 * Determines whether the console script should be enqueued.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return bool True if the user is an Expression Lab administrator, false otherwise.
@@ -104,7 +104,7 @@ class Console extends AdminPage {
 	/**
 	 * Retrieves script localization data and initial environment state for the console.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return array Associative array of configuration, user lists, and translation strings.
@@ -253,7 +253,7 @@ class Console extends AdminPage {
 	/**
 	 * Retrieves localized internationalization strings for the console application.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return array<string, string> Key-value pairs of translation strings.
@@ -416,7 +416,7 @@ class Console extends AdminPage {
 	/**
 	 * Renders the console application screen or access restriction banner.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return void
@@ -451,7 +451,7 @@ class Console extends AdminPage {
 	/**
 	 * Determines whether the sandbox iframe should be rendered.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return bool True if the sandbox should be rendered, false otherwise.
@@ -466,7 +466,7 @@ class Console extends AdminPage {
 	 * Verifies nonce tokens, user capabilities, and detached libsodium signatures
 	 * for requests originated from the sandboxed iframe.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @throws SecurityException If authorization, nonce, or signature verification fails.
@@ -545,7 +545,7 @@ class Console extends AdminPage {
 	/**
 	 * Retrieves the outline of available classes and methods via AJAX.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return void
@@ -594,7 +594,7 @@ class Console extends AdminPage {
 	/**
 	 * Verifies and rotates the challenge nonce for cryptographic requests.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param string $request_nonce     The nonce sent by the client.
@@ -652,7 +652,7 @@ class Console extends AdminPage {
 	/**
 	 * Evaluates an expression string sent via AJAX and returns the output.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return void
@@ -772,7 +772,7 @@ class Console extends AdminPage {
 	/**
 	 * Generates a new challenge nonce and timestamp for the client via AJAX.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return void
@@ -821,7 +821,7 @@ class Console extends AdminPage {
 	/**
 	 * Searches and paginates users via AJAX.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return void
@@ -904,7 +904,7 @@ class Console extends AdminPage {
 	/**
 	 * Searches and paginates subsites in a multisite network via AJAX.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return void

@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Provides the fundamental interface and default serialization representation
  * for entities within the expression language.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @package ExpressionLab
  */
 class Model {
@@ -31,7 +31,7 @@ class Model {
 	 *
 	 * Designed to be overridden by subclasses to return the underlying data.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return mixed The value represented by this model, or `null` by default.
 	 */

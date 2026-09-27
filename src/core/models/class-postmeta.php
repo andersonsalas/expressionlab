@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Provides metadata CRUD operations and query building scoped to a specific post.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @package ExpressionLab
  */
 final class PostMeta {
@@ -33,7 +33,7 @@ final class PostMeta {
 	/**
 	 * Target post.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 * @var WP_Post
 	 */
@@ -42,7 +42,7 @@ final class PostMeta {
 	/**
 	 * Database instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 * @var Database
 	 */
@@ -51,7 +51,7 @@ final class PostMeta {
 	/**
 	 * Constructor.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param WP_Post  $post     The WP_Post object.
@@ -65,7 +65,7 @@ final class PostMeta {
 	/**
 	 * Retrieves the query builder table name.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return string Table name without prefix.
@@ -77,7 +77,7 @@ final class PostMeta {
 	/**
 	 * Retrieves the query builder database instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return Database Database service instance.
@@ -89,7 +89,7 @@ final class PostMeta {
 	/**
 	 * Retrieves the query builder base conditions scoped to the post.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return array<string, mixed> Base condition clauses.
@@ -101,7 +101,7 @@ final class PostMeta {
 	/**
 	 * Retrieves a metadata value or executes the query builder if no key is provided.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string|null $key    The meta key, or `null` to execute the query builder.
 	 * @param bool        $single Whether to return a single value or an array of values.
@@ -118,7 +118,7 @@ final class PostMeta {
 	/**
 	 * Retrieves all metadata entries for the post.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return array Associative array of metadata key-value pairs.
 	 */
@@ -139,7 +139,7 @@ final class PostMeta {
 	/**
 	 * Sets a metadata value for the post.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $key   The meta key.
 	 * @param mixed  $value The meta value.
@@ -157,7 +157,7 @@ final class PostMeta {
 	/**
 	 * Deletes a metadata entry for the post.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $key The meta key.
 	 * @return bool True on successful deletion, false on failure.

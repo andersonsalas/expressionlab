@@ -25,6 +25,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Provides methods to query, inspect, and manage WordPress posts, pages, and Custom Post Types (CPTs).
  *
+ * @since 0.0.1
+ *
  * @package ExpressionLab
  */
 final class Posts {

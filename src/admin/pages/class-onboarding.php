@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Manages the initial plugin configuration wizard, system requirements checks,
  * and administrative key generation workflows.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @internal
  * @package ExpressionLab
  */
@@ -35,7 +35,7 @@ class Onboarding extends AdminPage {
 	/**
 	 * Determines whether the onboarding page should load.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return bool True if the plugin is not yet fully configured, false otherwise.
@@ -47,7 +47,7 @@ class Onboarding extends AdminPage {
 	/**
 	 * Retrieves script localization data for the onboarding wizard.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return array Associative array of localized environment data and translation strings.
@@ -67,7 +67,7 @@ class Onboarding extends AdminPage {
 	/**
 	 * Retrieves localized internationalization strings for onboarding.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return array<string, string> Key-value pairs of translation strings.
@@ -115,7 +115,7 @@ class Onboarding extends AdminPage {
 	/**
 	 * Retrieves the asset handle name for onboarding scripts and styles.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return string Asset handle name.
@@ -127,7 +127,7 @@ class Onboarding extends AdminPage {
 	/**
 	 * Renders the onboarding administration screen.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return void

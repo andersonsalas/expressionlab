@@ -17,7 +17,7 @@ namespace ExpressionLab\Core\Interfaces;
  * Marker interface for classes that can be injected as services during
  * language engine initialization.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @package ExpressionLab
  */
 interface ServiceInterface {

@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Evaluates the `fn[['param1', ...], body]` special form, creating a native
  * closure encapsulating the AST of the body expression for lazy evaluation.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @internal
  * @package ExpressionLab
  */
@@ -34,7 +34,7 @@ class FnNode extends Node {
 	/**
 	 * Extracted parameter names for quick access during invocation.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string[]
 	 */
 	private array $param_names = array();
@@ -42,7 +42,7 @@ class FnNode extends Node {
 	/**
 	 * Constructor.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param Node $params The parameter list node (ArrayNode of identifiers/strings).
@@ -71,7 +71,7 @@ class FnNode extends Node {
 	 * The params node is an ArrayNode where each element is a ConstantNode
 	 * containing the parameter name as a string.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param Node $params The parameter list node.
@@ -97,7 +97,7 @@ class FnNode extends Node {
 	 * maps them to the parameter names and evaluates the body expression
 	 * in a scoped context.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param array $functions The registered functions.
@@ -136,7 +136,7 @@ class FnNode extends Node {
 	/**
 	 * Converts the node to its array representation for dumping.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return array Array representation of the node.
@@ -148,7 +148,7 @@ class FnNode extends Node {
 	/**
 	 * Compiles the node into PHP code.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param \Symfony\Component\ExpressionLanguage\Compiler $compiler The compiler.

@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Thrown when authorization, nonce verification, cryptographic signatures,
  * or environment security prerequisites fail during request processing.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @internal
  *
  * @package ExpressionLab
@@ -38,7 +38,7 @@ class SecurityException extends \Exception {
 	/**
 	 * Constructor.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string          $message     The translated error message.
 	 * @param int             $status_code The HTTP response status code (e.g. 400, 403, 500).
@@ -54,7 +54,7 @@ class SecurityException extends \Exception {
 	/**
 	 * Retrieves the HTTP status code.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return int The HTTP status code.
 	 */

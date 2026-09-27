@@ -24,6 +24,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Provides a visualization bridge and chart builders
  * to render Vega-Lite specifications in the console.
  *
+ * @since 0.0.3
+ *
  * @package ExpressionLab
  */
 final class Graph implements ServiceInterface {

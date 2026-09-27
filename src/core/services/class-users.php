@@ -26,6 +26,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Provides methods to search, inspect, and manage WordPress user accounts, roles, capabilities,
  * and user metadata across single sites and multisite networks.
  *
+ * @since 0.0.1
+ *
  * @package ExpressionLab
  */
 final class Users {

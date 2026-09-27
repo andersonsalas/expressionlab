@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Provides a standardized implementation of the singleton pattern.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @internal
  *
  * @package ExpressionLab
@@ -29,7 +29,7 @@ trait Singleton {
 	/**
 	 * The single instance of the class.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var static|null
 	 */
@@ -38,7 +38,7 @@ trait Singleton {
 	/**
 	 * Retrieves the singleton instance of the class.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return static The singleton instance.
 	 */

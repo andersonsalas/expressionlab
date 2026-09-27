@@ -25,6 +25,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Supports `GET`, `POST`, and `HEAD` operations along with network latency benchmarking
  * and visual diagnostics reporting (`ping()`).
  *
+ * @since 0.0.1
+ *
  * @package ExpressionLab
  */
 final class Http {

@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * and ensures all special form keywords are recognized as valid names
  * during parsing.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @internal
  *
  * @package ExpressionLab
@@ -37,7 +37,7 @@ class ExpressionLanguage extends SymfonyExpressionLanguage {
 	 * Special form keywords that must be injected into the names array
 	 * so the parser does not reject them as unknown variables.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var string[]
 	 */
@@ -58,7 +58,7 @@ class ExpressionLanguage extends SymfonyExpressionLanguage {
 	/**
 	 * Cached custom parser instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var LanguageParser|null
 	 */
@@ -67,7 +67,7 @@ class ExpressionLanguage extends SymfonyExpressionLanguage {
 	/**
 	 * Cached lexer instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var Lexer|null
 	 */
@@ -79,7 +79,7 @@ class ExpressionLanguage extends SymfonyExpressionLanguage {
 	 * Injects all special form keywords into the names array so the parser
 	 * recognizes them, then uses LanguageParser to produce custom AST nodes.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param Expression|string $expression The expression to parse.
 	 * @param array             $names      The valid variable names.
@@ -110,7 +110,7 @@ class ExpressionLanguage extends SymfonyExpressionLanguage {
 	/**
 	 * Retrieves or creates the custom lexer instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return Lexer The lexer instance.
@@ -125,7 +125,7 @@ class ExpressionLanguage extends SymfonyExpressionLanguage {
 	/**
 	 * Retrieves or creates the custom parser instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return LanguageParser The language parser instance.

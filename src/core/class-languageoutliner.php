@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Extracts structured outline and documentation data from the expression language library.
  * Returns pure data arrays for client-side consumption.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @internal
  *
  * @package ExpressionLab
@@ -30,7 +30,7 @@ class LanguageOutliner {
 	/**
 	 * Resolves the return type of a method or property to a known library class.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param \ReflectionMethod|\ReflectionProperty $reflection    The reflection to inspect.
@@ -99,7 +99,7 @@ class LanguageOutliner {
 	 * this builds a flat type graph (O(T×M)) where each type maps its members
 	 * to their return types. The client walks the graph lazily at autocomplete time.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param array $object_classes Map of shortName => fullClassName for library object classes.
@@ -213,7 +213,7 @@ class LanguageOutliner {
 	/**
 	 * Parses a function docblock and returns structured documentation.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param string     $function_name The function name.
@@ -454,7 +454,7 @@ class LanguageOutliner {
 	/**
 	 * Parses a method docblock and returns structured documentation.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param string            $identifier  The function/method identifier.
@@ -613,7 +613,7 @@ class LanguageOutliner {
 	/**
 	 * Builds structured documentation for a library constant.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param string $constant_name The name of the constant.
@@ -647,7 +647,7 @@ class LanguageOutliner {
 	/**
 	 * Builds structured documentation for an object constant via reflection.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param string                   $identifier  The constant signature.
@@ -731,7 +731,7 @@ class LanguageOutliner {
 	/**
 	 * Builds structured documentation for an object property.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param string              $identifier  The property signature.
@@ -815,7 +815,7 @@ class LanguageOutliner {
 	/**
 	 * Formats a value for CodeMirror snippets.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param mixed $value The value to format.
