@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { handleDownload } from '../../../lib/api/client.js';
 import { __, sprintf, sanitizeHtml } from '../../../lib/helpers.js';
 
@@ -9,6 +9,8 @@ const props = defineProps({
     required: true,
   },
 });
+
+const emit = defineEmits(['rendered']);
 
 const isPaginated = ref(true);
 const pageSize = ref(10);
@@ -149,6 +151,18 @@ function exportCsv() {
 
   handleDownload(csvContent, 'export.csv', 'text/csv;charset=utf-8;');
 }
+
+onMounted(() => {
+  nextTick(() => {
+    emit('rendered');
+  });
+});
+
+watch(displayedData, () => {
+  nextTick(() => {
+    emit('rendered');
+  });
+});
 </script>
 
 <template>

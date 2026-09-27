@@ -12,6 +12,13 @@
 	background: #fff;
 	position: relative;
 
+	&.auto-adjusting {
+		.scratchpad-editor-section,
+		.scratchpad-output-section {
+			transition: height 0.25s cubic-bezier(0.2, 0, 0, 1);
+		}
+	}
+
 	.scratchpad-editor-section {
 		.entry.in {
 			padding-bottom: 0;
@@ -391,7 +398,7 @@
 		&.visualization-content {
 			height: 100%;
 			min-height: 0;
-			overflow: hidden;
+			overflow: auto;
 		}
 	}
 

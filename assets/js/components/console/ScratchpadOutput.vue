@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import VueJsonPretty from 'vue-json-pretty';
 import 'vue-json-pretty/lib/styles.css';
 import { visualizationHandlers } from './visualizations/registry.js';
@@ -24,7 +24,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['clear-output', 'close']);
+const emit = defineEmits(['clear-output', 'close', 'tab-change', 'visualization-rendered']);
 
 const activeTab = ref('raw');
 
@@ -94,6 +94,16 @@ watch(
   },
   { immediate: true }
 );
+
+watch(activeTab, (newTab) => {
+  emit('tab-change', newTab);
+});
+
+const onVizRendered = () => {
+  nextTick(() => {
+    emit('visualization-rendered');
+  });
+};
 
 const getComponent = (type) => visualizationHandlers.value[type] || null;
 
@@ -291,6 +301,7 @@ const copyOutput = () => {
             :is="getComponent(visualizations[activeTab].type)"
             v-if="getComponent(visualizations[activeTab].type)"
             :data="visualizations[activeTab]"
+            @rendered="onVizRendered"
           />
           <div
             v-else

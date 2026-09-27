@@ -50,6 +50,8 @@ const isScratchpadOutputVisible = ref(false);
 const isSidebarVisible = ref(true);
 const scratchpadEditorRatio = ref(50);
 const isDraggingSplitter = ref(false);
+const isAutoAdjusting = ref(false);
+let pendingEvaluationAutoAdjust = false;
 const enableSandbox = window.el_settings.settings.enable_sandbox;
 
 const updateSignatureTime = () => {
@@ -190,6 +192,9 @@ const executeScratchpad = (input = null) => {
       }
       isScratchpadOutputVisible.value = true;
       loading.value = false;
+      if (response.success === true && Array.isArray(response.data.visualizations) && response.data.visualizations.length > 0) {
+        pendingEvaluationAutoAdjust = true;
+      }
       nextTick(() => {
         scratchpadEditorRef.value?.focus();
       });
@@ -229,6 +234,11 @@ const toggleSidebar = () => {
 };
 
 const startSplitterDrag = (e) => {
+  if (e.detail === 2) {
+    e.preventDefault();
+    adjustOutputForVisualization(true);
+    return;
+  }
   e.preventDefault();
   isDraggingSplitter.value = true;
   const container = document.querySelector('.scratchpad-workspace');
@@ -252,6 +262,131 @@ const startSplitterDrag = (e) => {
 
   window.addEventListener('mousemove', onMouseMove);
   window.addEventListener('mouseup', onMouseUp);
+};
+
+const adjustOutputForVisualization = (force = false, retryCount = 0) => {
+  nextTick(() => {
+    requestAnimationFrame(() => {
+      const workspaceEl = document.querySelector('.scratchpad-workspace');
+      const outputSectionEl = document.querySelector('.scratchpad-output-section');
+      if (!workspaceEl || !outputSectionEl) return;
+
+      // If output section is not visible yet, retry up to 15 frames (~250ms)
+      if (outputSectionEl.offsetParent === null && retryCount < 15) {
+        requestAnimationFrame(() => adjustOutputForVisualization(force, retryCount + 1));
+        return;
+      }
+
+      const workspaceHeight = workspaceEl.getBoundingClientRect().height;
+      if (!workspaceHeight || workspaceHeight <= 0) return;
+
+      const MIN_EDITOR_PX = 220;
+      const SPLITTER_PX = 6;
+      const maxOutputHeight = Math.max(60, workspaceHeight - MIN_EDITOR_PX - SPLITTER_PX);
+
+      // Measure header height
+      const headerEl = outputSectionEl.querySelector('.scratchpad-output-header');
+      const headerHeight = headerEl ? headerEl.getBoundingClientRect().height : 36;
+
+      // Measure body padding
+      const bodyEl = outputSectionEl.querySelector('.scratchpad-output-body');
+      let bodyPadding = 12;
+      if (bodyEl) {
+        const cs = window.getComputedStyle(bodyEl);
+        bodyPadding = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+      }
+
+      // Measure active visualization content — ONLY intrinsic element sizes,
+      // NEVER container scrollHeight/clientHeight (which causes feedback loops).
+      let vizContentHeight = 0;
+      const vizRoot = outputSectionEl.querySelector('.visualization-content');
+
+      const tableEl = outputSectionEl.querySelector('.fp-table');
+      const tableControlsEl = outputSectionEl.querySelector('.table-controls');
+      const tableScrollWrapper = outputSectionEl.querySelector('.table-scroll-wrapper');
+
+      if (tableEl) {
+        const controlsHeight = tableControlsEl ? tableControlsEl.getBoundingClientRect().height + 8 : 0;
+        const tableHeight = tableEl.getBoundingClientRect().height;
+        const hasHScroll = tableScrollWrapper && (tableScrollWrapper.scrollWidth > tableScrollWrapper.clientWidth);
+        const scrollbarHeight = hasHScroll ? 16 : 0;
+
+        vizContentHeight = controlsHeight + tableHeight + scrollbarHeight + 8;
+      } else if (vizRoot) {
+        const svgEl = vizRoot.querySelector('svg');
+        const canvasEl = vizRoot.querySelector('canvas');
+        const vegaActions = vizRoot.querySelector('.vega-actions');
+
+        if (svgEl || canvasEl) {
+          const graphicEl = svgEl || canvasEl;
+          const graphicHeight = graphicEl.getBoundingClientRect().height;
+          const actionsHeight = vegaActions ? (vegaActions.getBoundingClientRect().height || 26) : 0;
+          vizContentHeight = graphicHeight + actionsHeight + 12;
+        } else {
+          // Fallback: measure bounding box of all child elements
+          const vizRect = vizRoot.getBoundingClientRect();
+          let maxBottom = vizRect.top;
+          const elements = vizRoot.querySelectorAll('*');
+          elements.forEach((el) => {
+            const r = el.getBoundingClientRect();
+            if (r.bottom > maxBottom) {
+              maxBottom = r.bottom;
+            }
+          });
+          vizContentHeight = maxBottom > vizRect.top ? (maxBottom - vizRect.top + 8) : 0;
+        }
+      }
+
+      // If visualization DOM elements are not yet mounted or 0 height, retry next frame
+      if (vizContentHeight <= 0 && retryCount < 15) {
+        requestAnimationFrame(() => adjustOutputForVisualization(force, retryCount + 1));
+        return;
+      }
+
+      if (vizContentHeight <= 0) return;
+
+      const neededOutputHeight = Math.ceil(headerHeight + bodyPadding + vizContentHeight + 6);
+      const currentOutputHeight = outputSectionEl.getBoundingClientRect().height;
+
+      // Idempotency guard: if the difference is negligible, skip adjustment
+      if (Math.abs(neededOutputHeight - currentOutputHeight) < 4) {
+        return;
+      }
+
+      // Unidirectional rule: Only shrink editor (grow output), NEVER expand editor automatically
+      if (!force && neededOutputHeight <= currentOutputHeight) {
+        return;
+      }
+
+      const targetOutputHeight = Math.min(neededOutputHeight, maxOutputHeight);
+
+      if (!force && targetOutputHeight <= currentOutputHeight) {
+        return;
+      }
+
+      const targetEditorPx = Math.max(MIN_EDITOR_PX, workspaceHeight - targetOutputHeight - SPLITTER_PX);
+      const targetEditorRatio = (targetEditorPx / workspaceHeight) * 100;
+
+      // Apply with smooth transition
+      isAutoAdjusting.value = true;
+      scratchpadEditorRatio.value = Math.max(15, Math.min(85, targetEditorRatio));
+
+      setTimeout(() => {
+        isAutoAdjusting.value = false;
+      }, 260);
+    });
+  });
+};
+
+const handleScratchpadTabChange = () => {
+  // (Empty)
+};
+
+const handleVisualizationRendered = () => {
+  if (pendingEvaluationAutoAdjust) {
+    pendingEvaluationAutoAdjust = false;
+    adjustOutputForVisualization(false);
+  }
 };
 
 const handleFormatCode = () => {
@@ -653,6 +788,7 @@ onUnmounted(() => {
         <div
           v-show="isScratchpad"
           class="scratchpad-workspace"
+          :class="{ 'auto-adjusting': isAutoAdjusting }"
         >
           <div
             class="scratchpad-editor-section"
@@ -672,6 +808,7 @@ onUnmounted(() => {
             v-if="isScratchpadOutputVisible"
             class="scratchpad-splitter"
             :class="{ dragging: isDraggingSplitter }"
+            :title="__('Drag to resize / Double-click to auto-fit')"
             @mousedown="startSplitterDrag"
           >
             <div class="splitter-handle" />
@@ -687,6 +824,8 @@ onUnmounted(() => {
               :loading="loading"
               @clear-output="clearScratchpadOutput"
               @close="isScratchpadOutputVisible = false"
+              @tab-change="handleScratchpadTabChange"
+              @visualization-rendered="handleVisualizationRendered"
             />
           </div>
         </div>
