@@ -24,6 +24,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Provides safe, strictly read-only filesystem auditing, inspection, and diagnostics
  * operations confined to the WordPress root directory (`ABSPATH`).
  *
+ * @since 0.0.1
+ *
  * @package ExpressionLab
  */
 final class Files {

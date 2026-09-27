@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * coordinates extensions and services, enforces computational boundaries, and
  * generates documentation outlines for the expression language.
  *
- * @since 1.0.0
+ * @since 0.0.1
  *
  * @package ExpressionLab
  */
@@ -41,7 +41,7 @@ class LanguageEngine {
 	 *
 	 * Operations are an estimation of computational effort rather than atomic instructions.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var int
 	 */
@@ -52,7 +52,7 @@ class LanguageEngine {
 	 *
 	 * Prevents stack overflows and memory exhaustion from infinite recursive calls.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var int
 	 */
@@ -61,7 +61,7 @@ class LanguageEngine {
 	/**
 	 * List of reserved system identifiers that cannot be overridden by hooks.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var string[]
 	 */
@@ -87,7 +87,7 @@ class LanguageEngine {
 	/**
 	 * List of core library and service object names reserved by the engine.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var string[]
 	 */
@@ -120,7 +120,7 @@ class LanguageEngine {
 	 * These identifiers trigger bracket-syntax special forms
 	 * in the custom LanguageParser.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var string[]
 	 */
@@ -143,7 +143,7 @@ class LanguageEngine {
 	 *
 	 * Limits the size of input payload before processing to prevent memory issues.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var int
 	 */
@@ -152,7 +152,7 @@ class LanguageEngine {
 	/**
 	 * Extension classes.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var array|null
 	 */
@@ -161,7 +161,7 @@ class LanguageEngine {
 	/**
 	 * Base core extension classes cached statically.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var array|null
 	 */
@@ -170,7 +170,7 @@ class LanguageEngine {
 	/**
 	 * Service classes.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var array|null
 	 */
@@ -179,7 +179,7 @@ class LanguageEngine {
 	/**
 	 * Base core service classes cached statically.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var array|null
 	 */
@@ -191,7 +191,7 @@ class LanguageEngine {
 	 * Messages can be of type 'warning', 'error', 'info', or 'success', and are added on-the-fly
 	 * during expression evaluation (e.g. from the Console library).
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var array
 	 */
@@ -200,7 +200,7 @@ class LanguageEngine {
 	/**
 	 * System diagnostic and initialization messages.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var array<int, array{type: string, text: string}>
 	 */
@@ -211,7 +211,7 @@ class LanguageEngine {
 	 *
 	 * Array of visualization items (tables, graphs, etc.) produced during evaluation.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var array
 	 */
@@ -222,7 +222,7 @@ class LanguageEngine {
 	 *
 	 * Visualizations that require explicit exposure via `show()` to be emitted.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var array
 	 */
@@ -233,7 +233,7 @@ class LanguageEngine {
 	 *
 	 * Service instances indexed by class name for dependency injection.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var array|null
 	 */
@@ -242,7 +242,7 @@ class LanguageEngine {
 	/**
 	 * User-defined variables storage manager.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var VariableStore
 	 */
@@ -251,7 +251,7 @@ class LanguageEngine {
 	/**
 	 * Current recursion and call stack depth.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var int
 	 */
@@ -260,7 +260,7 @@ class LanguageEngine {
 	/**
 	 * Counter for active progs to control interactive mode.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var int
 	 */
@@ -269,7 +269,7 @@ class LanguageEngine {
 	/**
 	 * Execution start time in microsecond timestamp.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var float
 	 */
@@ -278,7 +278,7 @@ class LanguageEngine {
 	/**
 	 * Counter for executed operations to trigger safety brakes.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var int
 	 */
@@ -287,7 +287,7 @@ class LanguageEngine {
 	/**
 	 * The ID of the user executing the expression, if available.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var int|null
 	 */
@@ -296,7 +296,7 @@ class LanguageEngine {
 	/**
 	 * The ID of the site (in multisite) where the expression is executed, if available.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var int|null
 	 */
@@ -305,7 +305,7 @@ class LanguageEngine {
 	/**
 	 * The language outliner instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var LanguageOutliner
 	 */
@@ -314,7 +314,7 @@ class LanguageEngine {
 	/**
 	 * Initializes the language engine and resets runtime state.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 */
 	public function __construct() {
@@ -326,7 +326,7 @@ class LanguageEngine {
 	/**
 	 * Checks if extensibility hooks are enabled.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return bool True if hooks are enabled, false otherwise.
@@ -338,7 +338,7 @@ class LanguageEngine {
 	/**
 	 * Resets the runtime engine state.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return $this The engine instance.
@@ -365,7 +365,7 @@ class LanguageEngine {
 	/**
 	 * Checks if an identifier is reserved by the engine.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param string $name The identifier name.
@@ -401,7 +401,7 @@ class LanguageEngine {
 	 *
 	 * Called periodically during expression execution to enforce computational limits.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param float|null $remaining_time Optional. Variable passed by reference to receive remaining time. Default null.
@@ -430,7 +430,7 @@ class LanguageEngine {
 	/**
 	 * Enters a function or closure call frame and increments call depth.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @throws \RuntimeException If maximum recursion depth is exceeded.
@@ -445,7 +445,7 @@ class LanguageEngine {
 	/**
 	 * Leaves a function or closure call frame and decrements call depth.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 */
 	public function leave_call(): void {
@@ -455,7 +455,7 @@ class LanguageEngine {
 	/**
 	 * Retrieves the current call depth.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return int The current call depth.
@@ -467,7 +467,7 @@ class LanguageEngine {
 	/**
 	 * Retrieves all user-defined expression variables.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return array The array of stored variables.
@@ -479,7 +479,7 @@ class LanguageEngine {
 	/**
 	 * Retrieves the VariableStore instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return VariableStore The variable store instance.
@@ -493,7 +493,7 @@ class LanguageEngine {
 	 *
 	 * Supports both simple variable names ('foo') and dot-separated paths ('foo.bar.baz').
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param string $name          The variable name or path.
@@ -511,7 +511,7 @@ class LanguageEngine {
 	 *
 	 * Supports both simple variable names ('foo') and dot-separated paths ('foo.bar.baz').
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param string $name  The variable name or path.
@@ -528,7 +528,7 @@ class LanguageEngine {
 	 *
 	 * Supports both simple variable names ('foo') and dot-separated paths ('foo.bar.baz').
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param string $name The variable name or path.
@@ -543,7 +543,7 @@ class LanguageEngine {
 	 *
 	 * Supports both simple variable names ('foo') and dot-separated paths ('foo.bar.baz').
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param string $name The variable name or path.
@@ -557,7 +557,7 @@ class LanguageEngine {
 	/**
 	 * Clears all user-defined expression variables.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 */
 	public function clear_variables(): void {
@@ -567,7 +567,7 @@ class LanguageEngine {
 	/**
 	 * Adds a message to the execution output.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param string $type Message type: 'warning', 'error', 'info', 'success', or 'update'.
@@ -586,7 +586,7 @@ class LanguageEngine {
 	/**
 	 * Retrieves all collected execution messages.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return array List of message associative arrays.
@@ -598,7 +598,7 @@ class LanguageEngine {
 	/**
 	 * Clears all collected execution messages.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 */
 	public function clear_messages() {
@@ -608,7 +608,7 @@ class LanguageEngine {
 	/**
 	 * Adds a system diagnostic message.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param string $type Message type: 'warning', 'error', 'info', 'success', or 'update'.
@@ -627,7 +627,7 @@ class LanguageEngine {
 	/**
 	 * Collects system diagnostic messages and inspects for conflicts with core identifiers.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 */
 	private function collect_system_messages(): void {
@@ -747,7 +747,7 @@ class LanguageEngine {
 	/**
 	 * Retrieves system diagnostic and initialization messages.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return array<int, array{type: string, text: string}> List of system message objects.
@@ -762,7 +762,7 @@ class LanguageEngine {
 	/**
 	 * Clears all system diagnostic messages.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 */
 	public function clear_system_messages(): void {
@@ -772,7 +772,7 @@ class LanguageEngine {
 	/**
 	 * Adds a visualization data payload to the output.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param array $visualization The visualization data payload.
@@ -789,7 +789,7 @@ class LanguageEngine {
 	/**
 	 * Retrieves all collected visualizations.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return array List of visualization data items.
@@ -801,7 +801,7 @@ class LanguageEngine {
 	/**
 	 * Retrieves all silenced visualizations.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return array List of silenced visualization data items.
@@ -813,7 +813,7 @@ class LanguageEngine {
 	/**
 	 * Sets the user ID for the current execution context.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param int|null $user_id The user ID or null to unset.
@@ -827,7 +827,7 @@ class LanguageEngine {
 	/**
 	 * Retrieves the user ID for the current execution context.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return int|null The user ID or null if not set.
@@ -839,7 +839,7 @@ class LanguageEngine {
 	/**
 	 * Sets the site ID for the current execution context.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param int|null $site_id The site ID or null to unset.
@@ -853,7 +853,7 @@ class LanguageEngine {
 	/**
 	 * Retrieves the site ID for the current execution context.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return int|null The site ID or null if not set.
@@ -865,7 +865,7 @@ class LanguageEngine {
 	/**
 	 * Populates the execution context variables with user and site information.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param int|null $user_id Optional. Output variable passed by reference to receive user ID. Default null.
@@ -879,7 +879,7 @@ class LanguageEngine {
 	/**
 	 * Clears all output visualizations.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 */
 	public function clear_visualizations() {
@@ -889,7 +889,7 @@ class LanguageEngine {
 	/**
 	 * Clears all silenced visualizations.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 */
 	public function clear_silenced_visualizations() {
@@ -899,7 +899,7 @@ class LanguageEngine {
 	/**
 	 * Checks if implicit visualizations are allowed in the current mode.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return bool True if interactive visualizations are allowed, false otherwise.
@@ -911,7 +911,7 @@ class LanguageEngine {
 	/**
 	 * Retrieves the current active prog nesting depth.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return int The current active prog depth.
@@ -923,7 +923,7 @@ class LanguageEngine {
 	/**
 	 * Increments the active prog depth counter.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 */
 	public function increase_prog_depth() {
@@ -933,7 +933,7 @@ class LanguageEngine {
 	/**
 	 * Decrements the active prog depth counter.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 */
 	public function decrease_prog_depth() {
@@ -943,7 +943,7 @@ class LanguageEngine {
 	/**
 	 * Begins a new visualization group.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return $this The engine instance.
@@ -958,7 +958,7 @@ class LanguageEngine {
 	/**
 	 * Resolves a class instance with dependency injection.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param string $class_name The class name to resolve.
@@ -1009,7 +1009,7 @@ class LanguageEngine {
 	/**
 	 * Initializes standard extension classes.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 */
 	private function init_extensions() {
@@ -1048,7 +1048,7 @@ class LanguageEngine {
 	/**
 	 * Initializes standard service and model classes.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 */
 	private function init_services() {
@@ -1102,7 +1102,7 @@ class LanguageEngine {
 	/**
 	 * Compiles the execution context for expression evaluation.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param SymfonyExpressionLanguage $language The expression language instance.
@@ -1152,7 +1152,7 @@ class LanguageEngine {
 			/**
 			 * The parent instance to access variable methods.
 			 *
-			 * @since 1.0.0
+			 * @since 0.0.1
 			 *
 			 * @var LanguageEngine
 			 */
@@ -1161,7 +1161,7 @@ class LanguageEngine {
 			/**
 			 * Initializes the anonymous variable accessor.
 			 *
-			 * @since 1.0.0
+			 * @since 0.0.1
 			 *
 			 * @param LanguageEngine $instance The parent instance to access variable methods.
 			 */
@@ -1172,7 +1172,7 @@ class LanguageEngine {
 			/**
 			 * Magic getter for variables.
 			 *
-			 * @since 1.0.0
+			 * @since 0.0.1
 			 *
 			 * @param string $var_name The variable name.
 			 * @return mixed The variable value or null if not defined.
@@ -1319,7 +1319,7 @@ class LanguageEngine {
 	/**
 	 * Evaluates an expression string.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $expression The expression to evaluate.
 	 * @return array The result array containing 'result', 'object_type', 'output', 'errors', 'messages', and 'visualizations'.
@@ -1428,7 +1428,7 @@ class LanguageEngine {
 	 * Traverses the AST iteratively using a stack to prevent call stack overflows,
 	 * ensuring limits on nesting depth and node count are respected.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param \Symfony\Component\ExpressionLanguage\Node\Node $root_node The AST root node to validate.
@@ -1479,7 +1479,7 @@ class LanguageEngine {
 	/**
 	 * Retrieves the outline data structure of the language library.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return array The outline data array containing objects, functions, constants, and typeRegistry.
 	 */

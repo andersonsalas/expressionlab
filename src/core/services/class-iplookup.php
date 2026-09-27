@@ -28,6 +28,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * MaxMind and GeoLite2 are registered trademarks of MaxMind, Inc.
  *
+ * @since 0.0.3
+ *
  * @package ExpressionLab
  */
 final class IPLookup implements ServiceInterface {

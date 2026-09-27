@@ -25,6 +25,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Supports direct raw database access, custom serialization formats, and autoload storage diagnostics.
  *
+ * @since 0.0.1
+ *
  * @package ExpressionLab
  */
 class Options {

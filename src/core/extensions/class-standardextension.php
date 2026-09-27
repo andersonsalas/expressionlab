@@ -22,14 +22,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Registers core engine constants and default language definitions.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @package ExpressionLab
  */
 class StandardExtension implements ExtensionInterface {
 	/**
 	 * Retrieves the functions provided by the standard extension.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return array Empty array as standard functions are registered directly by the engine.
 	 */
@@ -40,7 +40,7 @@ class StandardExtension implements ExtensionInterface {
 	/**
 	 * Retrieves the constants provided by the standard extension.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return array<string, array{docs: array, value: mixed}> Associative array of constant definitions and values.
 	 */

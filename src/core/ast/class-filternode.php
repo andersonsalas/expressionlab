@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Evaluates the `filter[iterable, fn, mode?]` special form, retaining elements
  * for which the predicate closure returns truthy.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @internal
  * @package ExpressionLab
  */
@@ -32,7 +32,7 @@ class FilterNode extends Node {
 	/**
 	 * Constructor.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param Node      $iterable_node The iterable expression node.
@@ -53,7 +53,7 @@ class FilterNode extends Node {
 	/**
 	 * Evaluates the filter operation.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param array $functions The registered functions.
@@ -112,7 +112,7 @@ class FilterNode extends Node {
 	/**
 	 * Converts the node to its array representation for dumping.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return array Array representation of the node.
@@ -127,7 +127,7 @@ class FilterNode extends Node {
 	/**
 	 * Compiles the node into PHP code.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param \Symfony\Component\ExpressionLanguage\Compiler $compiler The compiler.

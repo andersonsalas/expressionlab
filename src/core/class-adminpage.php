@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Provides common functionality for admin pages in Expression Lab,
  * including menu registration, asset enqueueing, and sandboxed rendering.
  *
- * @since 1.0.0
+ * @since 0.0.1
  *
  * @package ExpressionLab
  */
@@ -29,7 +29,7 @@ abstract class AdminPage {
 	/**
 	 * Initializes the admin page hooks.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 */
 	public function __construct() {
 		if ( ! $this->should_load() ) {
@@ -58,7 +58,7 @@ abstract class AdminPage {
 	 *
 	 * Only displays when debug mode is enabled and the user is on an Expression Lab admin screen.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param \WP_Admin_Bar $wp_admin_bar The WordPress admin bar instance.
@@ -93,7 +93,7 @@ abstract class AdminPage {
 	/**
 	 * Adds custom body classes for the admin page.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $classes Existing body classes.
 	 * @return string Modified body classes.
@@ -108,7 +108,7 @@ abstract class AdminPage {
 	/**
 	 * Determines if the admin page should be loaded.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return bool True if the page should be loaded, false otherwise.
 	 */
@@ -121,7 +121,7 @@ abstract class AdminPage {
 	 *
 	 * Hooked to `admin_init` to ensure user authentication functions are available.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 */
 	public function maybe_render_sandbox() {
@@ -134,7 +134,7 @@ abstract class AdminPage {
 	/**
 	 * Determines if the iframe sandbox should be rendered.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return bool True if the sandbox should be rendered, false otherwise.
 	 */
@@ -145,7 +145,7 @@ abstract class AdminPage {
 	/**
 	 * Determines if admin scripts should be enqueued for the current screen.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $hook_suffix The current admin page hook suffix.
 	 * @return bool True if scripts should be enqueued, false otherwise.
@@ -160,7 +160,7 @@ abstract class AdminPage {
 	/**
 	 * Determines if the JavaScript bundle should be enqueued for the current page.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return bool True if the script should be enqueued, false otherwise.
 	 */
@@ -173,7 +173,7 @@ abstract class AdminPage {
 	 *
 	 * Can be overridden by subclasses to register custom hooks.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 */
 	protected function init_hooks() {
 	}
@@ -181,7 +181,7 @@ abstract class AdminPage {
 	/**
 	 * Registers the admin menu page.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 */
 	public function admin_menu() {
@@ -198,7 +198,7 @@ abstract class AdminPage {
 	/**
 	 * Registers the network admin menu page for multisite installations.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 */
 	public function network_admin_menu() {
@@ -217,7 +217,7 @@ abstract class AdminPage {
 	 *
 	 * Supports both single-site and network admin environments.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param array $query_args Optional. Query arguments to append to the URL. Default empty array.
 	 * @return string The full page URL.
@@ -239,7 +239,7 @@ abstract class AdminPage {
 	/**
 	 * Enqueues admin scripts and styles for the page.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param string $hook_suffix The current admin page hook suffix.
@@ -312,7 +312,7 @@ abstract class AdminPage {
 	/**
 	 * Renders the admin page content.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 */
 	public function render() {
 	}
@@ -323,7 +323,7 @@ abstract class AdminPage {
 	 * Outputs a standalone HTML document with Content Security Policy headers
 	 * for sandboxed execution of the application bundle.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 */
 	public function render_sandbox() {
@@ -519,7 +519,7 @@ abstract class AdminPage {
 	 *
 	 * Must match an entry in the compiled `entrypoints.json` manifest.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return string The asset bundle name.
 	 */
@@ -528,7 +528,7 @@ abstract class AdminPage {
 	/**
 	 * Retrieves settings data localized for the admin page script.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return array The configuration data passed to the client.
 	 */

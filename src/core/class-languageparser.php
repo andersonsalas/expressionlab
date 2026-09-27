@@ -44,7 +44,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * This is a formal Type-2 (context-free) grammar extension - no regex preprocessing.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @internal
  *
  * @package ExpressionLab
@@ -53,7 +53,7 @@ class LanguageParser extends Parser {
 	/**
 	 * Map of special form keywords to their handler methods.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var string[]
 	 */
@@ -77,7 +77,7 @@ class LanguageParser extends Parser {
 	 * Symfony's Parser declares `private TokenStream $stream;`.
 	 * Accessed via Closure binding.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return TokenStream The current token stream.
@@ -104,7 +104,7 @@ class LanguageParser extends Parser {
 	 *    `CallNode` with parsed arguments. Enables `var['fn'](args)`,
 	 *    `(fn[['x'], body])(7)`, and curried chains `f(1)(2)`.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param Node $node The primary expression node.
 	 * @return GetAttrNode|Node The resulting AST node.
@@ -198,7 +198,7 @@ class LanguageParser extends Parser {
 	 *
 	 * Supports trailing commas.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param TokenStream $stream The token stream.
@@ -230,7 +230,7 @@ class LanguageParser extends Parser {
 	/**
 	 * Parses `prog[expr1, expr2, ..., exprN]`.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param TokenStream $stream The token stream.
@@ -244,7 +244,7 @@ class LanguageParser extends Parser {
 	/**
 	 * Parses `set['name', value]`.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param TokenStream $stream The token stream.
@@ -265,7 +265,7 @@ class LanguageParser extends Parser {
 	/**
 	 * Parses `unset['name']`.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param TokenStream $stream The token stream.
@@ -286,7 +286,7 @@ class LanguageParser extends Parser {
 	/**
 	 * Parses `isset['name']`.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param TokenStream $stream The token stream.
@@ -307,7 +307,7 @@ class LanguageParser extends Parser {
 	/**
 	 * Parses `var['name']`.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param TokenStream $stream The token stream.
@@ -328,7 +328,7 @@ class LanguageParser extends Parser {
 	/**
 	 * Parses `args['name']`.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param TokenStream $stream The token stream.
@@ -349,7 +349,7 @@ class LanguageParser extends Parser {
 	/**
 	 * Parses `fn[['param1', ...], body_expression]`.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param TokenStream $stream The token stream.
@@ -370,7 +370,7 @@ class LanguageParser extends Parser {
 	/**
 	 * Parses `show[expression]`.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param TokenStream $stream The token stream.
@@ -391,7 +391,7 @@ class LanguageParser extends Parser {
 	/**
 	 * Parses `map[iterable, fn]`.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param TokenStream $stream The token stream.
@@ -412,7 +412,7 @@ class LanguageParser extends Parser {
 	/**
 	 * Parses `filter[iterable, fn, mode?]`.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param TokenStream $stream The token stream.
@@ -435,7 +435,7 @@ class LanguageParser extends Parser {
 	/**
 	 * Parses `reduce[iterable, fn, initial?]`.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param TokenStream $stream The token stream.

@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Evaluates direct expression invocations (`expr(arg1, arg2, ...)`),
  * validating that the callee is a closure and invoking it with arguments.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @internal
  * @package ExpressionLab
  */
@@ -32,7 +32,7 @@ class CallNode extends Node {
 	/**
 	 * Constructor.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param Node $callee    The expression returning the closure.
@@ -53,7 +53,7 @@ class CallNode extends Node {
 	 * Evaluates the callee expression, validates it is a closure, evaluates each
 	 * argument node, and invokes the closure with the evaluated arguments.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param array $functions The registered functions.
@@ -85,7 +85,7 @@ class CallNode extends Node {
 	/**
 	 * Converts the node to its array representation for dumping.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return array Array representation of the node.
@@ -97,7 +97,7 @@ class CallNode extends Node {
 	/**
 	 * Compiles the node into PHP code.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param \Symfony\Component\ExpressionLanguage\Compiler $compiler The compiler.

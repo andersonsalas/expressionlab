@@ -24,14 +24,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Extension of the Options service scoped to a specific site in a multisite network.
  * Switches execution context to target the correct site's options table.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @package ExpressionLab
  */
 final class SiteOptions extends Options {
 	/**
 	 * WordPress site instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 * @var \WP_Site|null
 	 */
@@ -40,7 +40,7 @@ final class SiteOptions extends Options {
 	/**
 	 * Constructor.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param \WP_Site|null $site The WP_Site object to scope options to.
@@ -53,7 +53,7 @@ final class SiteOptions extends Options {
 	/**
 	 * Validates that the site object is present and saved.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return int The validated blog ID.
@@ -69,7 +69,7 @@ final class SiteOptions extends Options {
 	/**
 	 * Retrieves a raw option value scoped to the current site.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $key           The option key.
 	 * @param mixed  $default_value The default value if the option is not set.
@@ -90,7 +90,7 @@ final class SiteOptions extends Options {
 	/**
 	 * Retrieves an option value scoped to the current site, attempting unserialization.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $key           The option key.
 	 * @param mixed  $default_value The default value if the option is not set.
@@ -111,7 +111,7 @@ final class SiteOptions extends Options {
 	/**
 	 * Updates a raw option value scoped to the current site.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string      $key      The option key.
 	 * @param string      $value    The raw string value to store.
@@ -133,7 +133,7 @@ final class SiteOptions extends Options {
 	/**
 	 * Updates an option value scoped to the current site with serialization.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $key                The option key.
 	 * @param mixed  $value              The option value.
@@ -155,7 +155,7 @@ final class SiteOptions extends Options {
 	/**
 	 * Deletes an option scoped to the current site.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $key The option key.
 	 * @return bool True on success, false on failure.
@@ -175,7 +175,7 @@ final class SiteOptions extends Options {
 	/**
 	 * Generates statistics for the site options table.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param int|null $sample_limit The maximum number of options to sample. Default 10000.
 	 * @param int      $graph_limit  The maximum number of prefixes in the graph. Default 20.

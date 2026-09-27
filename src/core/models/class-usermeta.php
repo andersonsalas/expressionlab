@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Provides metadata CRUD operations and query building scoped to a specific user.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @package ExpressionLab
  */
 final class UserMeta {
@@ -36,7 +36,7 @@ final class UserMeta {
 	/**
 	 * Target user instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 * @var WP_User
 	 */
@@ -45,7 +45,7 @@ final class UserMeta {
 	/**
 	 * Database service instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 * @var Database
 	 */
@@ -54,7 +54,7 @@ final class UserMeta {
 	/**
 	 * WordPress database global instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 * @var \wpdb
 	 */
@@ -63,7 +63,7 @@ final class UserMeta {
 	/**
 	 * Magic method to expose constants as properties.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param string $name Property name.
@@ -79,7 +79,7 @@ final class UserMeta {
 	/**
 	 * Constructor.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param WP_User  $user     The WP_User object.
@@ -96,7 +96,7 @@ final class UserMeta {
 	/**
 	 * Retrieves the query builder table name.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return string Table name without prefix.
@@ -108,7 +108,7 @@ final class UserMeta {
 	/**
 	 * Retrieves the query builder database instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return Database Database service instance.
@@ -120,7 +120,7 @@ final class UserMeta {
 	/**
 	 * Retrieves the query builder base conditions scoped to the user.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return array<string, mixed> Base condition clauses.
@@ -132,7 +132,7 @@ final class UserMeta {
 	/**
 	 * Retrieves a raw metadata value without unserialization.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $key           The meta key.
 	 * @param mixed  $default_value The default value if the meta is not set.
@@ -156,7 +156,7 @@ final class UserMeta {
 	 *
 	 * Attempts to unserialize the value if stored as serialized PHP or JSON.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string|null $key           The meta key, or `null` to execute the query builder.
 	 * @param mixed       $default_value The default value if the meta is not set.
@@ -190,7 +190,7 @@ final class UserMeta {
 	/**
 	 * Retrieves an associative array of all metadata keys and values for the user.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return array Associative array of metadata key-value pairs.
 	 */
@@ -201,7 +201,7 @@ final class UserMeta {
 	/**
 	 * Checks if a specific metadata key exists for the user.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $key The meta key to check for existence.
 	 * @return bool True if the meta key exists for the user, false otherwise.
@@ -218,7 +218,7 @@ final class UserMeta {
 	/**
 	 * Updates a metadata value without serialization.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $key   The meta key.
 	 * @param string $value The raw string value to store.
@@ -245,7 +245,7 @@ final class UserMeta {
 	/**
 	 * Updates a metadata value using the specified serialization format.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $key                The meta key.
 	 * @param mixed  $value              The meta value.
@@ -294,7 +294,7 @@ final class UserMeta {
 	/**
 	 * Deletes a metadata entry for the user.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $key The meta key.
 	 * @return bool True on success, false on failure.
@@ -314,7 +314,7 @@ final class UserMeta {
 	/**
 	 * Validates a value for serialization.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param mixed  $value       The value to serialize.
@@ -333,7 +333,7 @@ final class UserMeta {
 	/**
 	 * Unserializes a string using strict validation.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param string $value       The serialized string.

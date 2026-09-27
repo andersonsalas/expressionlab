@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Contains static utility and helper methods for configuration, authorization,
  * serialization, and formatting across the plugin.
  *
- * @since 1.0.0
+ * @since 0.0.1
  *
  * @package ExpressionLab
  */
@@ -32,7 +32,7 @@ class Helper {
 	 * Verifies that all required constants for plugin operation are defined
 	 * and non-empty.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return bool True if the plugin is fully configured, false otherwise.
 	 */
@@ -51,7 +51,7 @@ class Helper {
 	 * Debug mode is controlled deterministically via the EXPRESSION_LAB_DEBUG_MODE
 	 * constant in wp-config.php.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return bool True if debug mode is enabled, false otherwise.
 	 */
@@ -62,7 +62,7 @@ class Helper {
 	/**
 	 * Checks if the current admin screen belongs to Expression Lab.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return bool True if on Expression Lab admin screen, false otherwise.
 	 */
@@ -92,7 +92,7 @@ class Helper {
 	 * Verifies user capabilities and ensures the current logged-in user matches
 	 * the administrator ID defined by the `EXPRESSION_LAB_ADMIN_USER_ID` constant.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return bool True if the current user is the Expression Lab admin, false otherwise.
 	 */
@@ -122,7 +122,7 @@ class Helper {
 	 * Ensures that only scalar values, arrays, null, or stdClass instances are
 	 * serialized, verifying round-trip serialization against unauthorized classes.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param mixed $value The value to serialize. Must be a scalar, array, stdClass object, or null.
 	 * @return mixed The input value after serialization validation.
@@ -148,7 +148,7 @@ class Helper {
 	 * Performs inspection of the unserialized data to ensure that only stdClass
 	 * instances are permitted, rejecting any incomplete class definitions.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $value The serialized string to unserialize.
 	 * @return mixed The unserialized value, or the original value if it is not a serialized string.
@@ -185,7 +185,7 @@ class Helper {
 	 * Traverses arrays and stdClass properties to verify that no __PHP_Incomplete_Class
 	 * instances are present.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param mixed $data The data structure to inspect.
@@ -218,7 +218,7 @@ class Helper {
 	 *
 	 * Handles internal backticks according to the CommonMark specification.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $code The code snippet to wrap.
 	 * @return string The formatted Markdown code span.
@@ -251,7 +251,7 @@ class Helper {
 	 * Normalizes relative and absolute paths, collapses directory traversal segments ('..'),
 	 * and validates that the canonical path is confined within the specified boundary.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $path       The relative or absolute path.
 	 * @param string $base_dir   The base directory boundary. Default ABSPATH.

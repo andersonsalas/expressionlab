@@ -25,14 +25,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Wraps a WordPress WP_User object with capability manipulation,
  * account attribute setters, persistence, and deletion methods.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @package ExpressionLab
  */
 final class User extends Model {
 	/**
 	 * WordPress user instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 * @var WP_User|null
 	 */
@@ -41,7 +41,7 @@ final class User extends Model {
 	/**
 	 * Database service instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 * @var Database
 	 */
@@ -50,7 +50,7 @@ final class User extends Model {
 	/**
 	 * Role to assign on save.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 * @var string|null
 	 */
@@ -59,7 +59,7 @@ final class User extends Model {
 	/**
 	 * Whether the password has been explicitly changed.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 * @var bool
 	 */
@@ -68,7 +68,7 @@ final class User extends Model {
 	/**
 	 * Scoped user metadata manager.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var UserMeta
 	 */
 	public $meta;
@@ -76,7 +76,7 @@ final class User extends Model {
 	/**
 	 * User data object mapped from the WP_User instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var object|null
 	 */
 	public $data;
@@ -84,7 +84,7 @@ final class User extends Model {
 	/**
 	 * User ID.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var int|null
 	 */
 	public $ID;
@@ -92,7 +92,7 @@ final class User extends Model {
 	/**
 	 * User capabilities mapped from the WP_User instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var array|null
 	 */
 	public $caps;
@@ -100,7 +100,7 @@ final class User extends Model {
 	/**
 	 * User capability key mapped from the WP_User instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string|null
 	 */
 	public $cap_key;
@@ -108,7 +108,7 @@ final class User extends Model {
 	/**
 	 * User roles mapped from the WP_User instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var array|null
 	 */
 	public $roles;
@@ -116,7 +116,7 @@ final class User extends Model {
 	/**
 	 * All user capabilities, including roles and custom capabilities.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var array|null
 	 */
 	public $allcaps;
@@ -124,7 +124,7 @@ final class User extends Model {
 	/**
 	 * User filter mapped from the WP_User instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var mixed
 	 */
 	public $filter;
@@ -132,7 +132,7 @@ final class User extends Model {
 	/**
 	 * Constructor.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param WP_User|null $user     The WP_User object to initialize the model with.
@@ -164,7 +164,7 @@ final class User extends Model {
 	/**
 	 * Checks if the user has a specific capability.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $capability The capability to check for (e.g., 'edit_posts').
 	 * @param array  $args       Optional arguments to pass to the capability check.
@@ -195,7 +195,7 @@ final class User extends Model {
 	/**
 	 * Adds a capability to the user.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $capability The capability name to add (e.g., 'edit_custom_posts').
 	 * @param bool   $grant      Whether to grant the capability. Default true.
@@ -241,7 +241,7 @@ final class User extends Model {
 	/**
 	 * Removes a capability from the user.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $capability The capability name to remove.
 	 * @return User $this The current instance for method chaining.
@@ -286,7 +286,7 @@ final class User extends Model {
 	/**
 	 * Sets the user login username.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $user_login The user login to set.
 	 * @return User $this The current instance for method chaining.
@@ -304,7 +304,7 @@ final class User extends Model {
 	/**
 	 * Sets the user password.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $user_pass The password to set.
 	 * @return User $this The current instance for method chaining.
@@ -318,7 +318,7 @@ final class User extends Model {
 	/**
 	 * Sets the user nicename.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $user_nicename The nicename to set.
 	 * @return User $this The current instance for method chaining.
@@ -331,7 +331,7 @@ final class User extends Model {
 	/**
 	 * Sets the user email.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $user_email The email to set.
 	 * @return User $this The current instance for method chaining.
@@ -344,7 +344,7 @@ final class User extends Model {
 	/**
 	 * Sets the user URL.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $user_url The URL to set.
 	 * @return User $this The current instance for method chaining.
@@ -357,7 +357,7 @@ final class User extends Model {
 	/**
 	 * Sets the display name.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $display_name The display name to set.
 	 * @return User $this The current instance for method chaining.
@@ -370,7 +370,7 @@ final class User extends Model {
 	/**
 	 * Sets the role to assign on save.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $role The role to set.
 	 * @return User $this The current instance for method chaining.
@@ -383,7 +383,7 @@ final class User extends Model {
 	/**
 	 * Saves the user to the database.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return User|false The current instance on success, or false on failure.
 	 * @throws \Exception If write protection is enabled.
@@ -446,7 +446,7 @@ final class User extends Model {
 	/**
 	 * Deletes the user from the database.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param int|null $reassign The ID of the user to reassign posts to, or null to not reassign. (Single site only).
 	 * @return bool True on successful deletion, false on failure.
@@ -486,7 +486,7 @@ final class User extends Model {
 	/**
 	 * Retrieves an associative array representation of the user.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return array Associative array of user attributes.
 	 */

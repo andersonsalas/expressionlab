@@ -25,6 +25,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Exclusively functional within WordPress Multisite environments.
  *
+ * @since 0.0.1
+ *
  * @package ExpressionLab
  */
 final class NetworkSites {

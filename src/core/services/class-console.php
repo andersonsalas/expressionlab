@@ -23,6 +23,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Provides logging methods and interactive data table visualization capabilities directly inside
  * the Expression Lab console.
  *
+ * @since 0.0.1
+ *
  * @package ExpressionLab
  */
 final class Console {

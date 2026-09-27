@@ -24,14 +24,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Wraps a WordPress WP_Post object of post_type 'attachment' with specialized
  * media properties, dimensions, file paths, and thumbnail size helpers.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @package ExpressionLab
  */
 final class Attachment extends Model {
 	/**
 	 * WordPress post instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 * @var WP_Post|null
 	 */
@@ -40,7 +40,7 @@ final class Attachment extends Model {
 	/**
 	 * Database service instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 * @var Database
 	 */
@@ -49,7 +49,7 @@ final class Attachment extends Model {
 	/**
 	 * Attachment ID.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var int|null
 	 */
 	public $ID;
@@ -57,7 +57,7 @@ final class Attachment extends Model {
 	/**
 	 * Attachment title.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $title = '';
@@ -65,7 +65,7 @@ final class Attachment extends Model {
 	/**
 	 * Caption (post_excerpt).
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $caption = '';
@@ -73,7 +73,7 @@ final class Attachment extends Model {
 	/**
 	 * Description (post_content).
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $description = '';
@@ -81,7 +81,7 @@ final class Attachment extends Model {
 	/**
 	 * Alternative text for images (_wp_attachment_image_alt).
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $alt = '';
@@ -89,7 +89,7 @@ final class Attachment extends Model {
 	/**
 	 * MIME type (e.g. 'image/jpeg', 'application/pdf').
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $mime_type = '';
@@ -97,7 +97,7 @@ final class Attachment extends Model {
 	/**
 	 * Full URL to the media file.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $url = '';
@@ -105,7 +105,7 @@ final class Attachment extends Model {
 	/**
 	 * Absolute filesystem path to the original file.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $file_path = '';
@@ -113,7 +113,7 @@ final class Attachment extends Model {
 	/**
 	 * File size in bytes.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var int
 	 */
 	public $filesize = 0;
@@ -121,7 +121,7 @@ final class Attachment extends Model {
 	/**
 	 * Human-readable file size (e.g. "1.24 MB").
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $filesize_human = '';
@@ -129,7 +129,7 @@ final class Attachment extends Model {
 	/**
 	 * Dimensions array with 'width' and 'height' keys.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var array
 	 */
 	public $dimensions = array();
@@ -137,7 +137,7 @@ final class Attachment extends Model {
 	/**
 	 * Array of registered thumbnail sub-sizes with URLs and dimensions.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var array
 	 */
 	public $sizes = array();
@@ -145,7 +145,7 @@ final class Attachment extends Model {
 	/**
 	 * Creation date (Y-m-d H:i:s).
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $date = '';
@@ -153,7 +153,7 @@ final class Attachment extends Model {
 	/**
 	 * Modified date (Y-m-d H:i:s).
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $modified = '';
@@ -161,7 +161,7 @@ final class Attachment extends Model {
 	/**
 	 * Author user ID.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var int
 	 */
 	public $author_id = 0;
@@ -169,7 +169,7 @@ final class Attachment extends Model {
 	/**
 	 * Parent post ID (0 if unattached/orphan).
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var int
 	 */
 	public $parent_id = 0;
@@ -177,7 +177,7 @@ final class Attachment extends Model {
 	/**
 	 * Scoped metadata manager.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var PostMeta|null
 	 */
 	public $meta;
@@ -185,7 +185,7 @@ final class Attachment extends Model {
 	/**
 	 * Constructor.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param WP_Post|null $post     The WP_Post object.
@@ -259,7 +259,7 @@ final class Attachment extends Model {
 	/**
 	 * Retrieves the URL for a specific image size or the original file.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $size Image size name (e.g. 'full', 'thumbnail', 'medium', 'large').
 	 * @return string Media URL, or empty string if post is not loaded.
@@ -284,7 +284,7 @@ final class Attachment extends Model {
 	/**
 	 * Retrieves the absolute filesystem path for a specific image size or original file.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $size Image size name.
 	 * @return string Absolute file path, or empty string if post is not loaded.
@@ -304,7 +304,7 @@ final class Attachment extends Model {
 	/**
 	 * Retrieves image dimensions for a specific size.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $size Image size name.
 	 * @return array Array with 'width' and 'height' keys.
@@ -327,7 +327,7 @@ final class Attachment extends Model {
 	/**
 	 * Deletes this attachment and its associated physical files.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param bool $force Whether to bypass trash and force deletion.
 	 * @return bool True on success, false on failure.
@@ -352,7 +352,7 @@ final class Attachment extends Model {
 	/**
 	 * Formats a byte count into a human-readable string.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param int $bytes Number of bytes.
@@ -373,7 +373,7 @@ final class Attachment extends Model {
 	/**
 	 * Retrieves an associative array representation of the attachment.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return array Associative array of attachment attributes.
 	 */

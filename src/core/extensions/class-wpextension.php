@@ -23,14 +23,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Registers built-in WordPress utility functions and time constants into the expression language.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @package ExpressionLab
  */
 class WpExtension implements ExtensionInterface {
 	/**
 	 * Retrieves all WordPress extension functions and their documentation metadata.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return array<string, array{docs: array, callback: \Symfony\Component\ExpressionLanguage\ExpressionFunction}> Associative array of registered functions.
 	 */
@@ -484,7 +484,7 @@ class WpExtension implements ExtensionInterface {
 	/**
 	 * Retrieves all WordPress extension constants and their documentation metadata.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return array<string, array{docs: array, value: mixed}> Associative array of registered constants.
 	 */

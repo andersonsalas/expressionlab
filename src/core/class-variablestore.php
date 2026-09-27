@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * context. Supports simple variable names as well as nested dot-separated path
  * manipulation (assoc-in, get-in, has-in, dissoc-in).
  *
- * @since 1.0.0
+ * @since 0.0.1
  *
  * @package ExpressionLab
  */
@@ -31,7 +31,7 @@ class VariableStore {
 	/**
 	 * In-memory variable storage.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var array
 	 */
@@ -40,7 +40,7 @@ class VariableStore {
 	/**
 	 * Retrieves all stored variables.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return array The associative array of all stored variables.
 	 */
@@ -53,7 +53,7 @@ class VariableStore {
 	 *
 	 * Supports both simple variable names ('foo') and dot-separated paths ('foo.bar.baz').
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $name          The variable name or path.
 	 * @param mixed  $default_value Optional. The default value to return if not found. Default null.
@@ -81,7 +81,7 @@ class VariableStore {
 	 *
 	 * Supports both simple variable names ('foo') and dot-separated paths ('foo.bar.baz').
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $name  The variable name or path.
 	 * @param mixed  $value The value to assign.
@@ -110,7 +110,7 @@ class VariableStore {
 	 *
 	 * Supports both simple variable names ('foo') and dot-separated paths ('foo.bar.baz').
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $name The variable name or path.
 	 * @return bool True if the variable or path exists, false otherwise.
@@ -140,7 +140,7 @@ class VariableStore {
 	 *
 	 * Supports both simple variable names ('foo') and dot-separated paths ('foo.bar.baz').
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $name The variable name or path.
 	 *
@@ -163,7 +163,7 @@ class VariableStore {
 	/**
 	 * Clears all stored variables.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 */
 	public function clear(): void {
 		$this->variables = array();
@@ -177,7 +177,7 @@ class VariableStore {
 	 *
 	 * Rejects all other object instances and resources to ensure safe serialization.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param mixed $value The value to validate.
@@ -218,7 +218,7 @@ class VariableStore {
 	/**
 	 * Validates a variable name or dot-separated path.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param string $path The variable name or path.
@@ -245,7 +245,7 @@ class VariableStore {
 	/**
 	 * Recursively inserts or updates a value in a nested array or stdClass structure.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param mixed    $target   The target array, stdClass, or scalar.
@@ -276,7 +276,7 @@ class VariableStore {
 	/**
 	 * Recursively retrieves a value from a nested array or stdClass structure.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param mixed    $target        The target array or stdClass.
@@ -303,7 +303,7 @@ class VariableStore {
 	/**
 	 * Recursively checks if a path exists in a nested array or stdClass structure.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param mixed    $target   The target array or stdClass.
@@ -329,7 +329,7 @@ class VariableStore {
 	/**
 	 * Recursively removes a key from a nested array or stdClass structure.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param mixed    $target   The target array or stdClass.
