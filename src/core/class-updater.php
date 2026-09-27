@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Handles update checks and package verification.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @internal
  *
  * @package ExpressionLab
@@ -66,7 +66,7 @@ class Updater {
 	/**
 	 * Initializes update hooks.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param bool $force Whether to force initialization in test environments.
 	 */
@@ -83,7 +83,7 @@ class Updater {
 	/**
 	 * Checks for plugin updates against the remote manifest.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param object|false $transient The update_plugins site transient.
 	 * @return object|false Modified transient with update information if available.
@@ -141,7 +141,7 @@ class Updater {
 	/**
 	 * Provides plugin information for the WordPress modal dialog.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param false|object|array $result The result object or array.
 	 * @param string             $action The type of information requested.
@@ -183,7 +183,7 @@ class Updater {
 	/**
 	 * Verifies package integrity before installation.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param false|string|\WP_Error $reply      The pre-download response.
 	 * @param string                 $package    The remote package URL.
@@ -282,7 +282,7 @@ class Updater {
 	/**
 	 * Retrieves the current plugin version or throws a LogicException.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @throws \LogicException If the EXPRESSION_LAB_VERSION constant is not defined.
 	 *
 	 * @return string Current plugin version string.
@@ -298,7 +298,7 @@ class Updater {
 	/**
 	 * Checks whether internal debug mode is active.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return bool True if debug mode is active.
 	 */
@@ -309,7 +309,7 @@ class Updater {
 	/**
 	 * Retrieves the plugin basename.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return string The plugin basename.
 	 */
@@ -324,7 +324,7 @@ class Updater {
 	/**
 	 * Retrieves the plugin slug.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return string The plugin slug.
 	 */
@@ -339,7 +339,7 @@ class Updater {
 	/**
 	 * Retrieves the plugin homepage URL.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return string The plugin homepage URL.
 	 */
@@ -354,7 +354,7 @@ class Updater {
 	/**
 	 * Retrieves the transient key for caching the update manifest.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return string The transient key.
 	 */
@@ -369,7 +369,7 @@ class Updater {
 	/**
 	 * Retrieves the configured Ed25519 public key.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return string The hex-encoded public key, or empty string if not configured.
 	 */
@@ -387,7 +387,7 @@ class Updater {
 	 * Uses EXPRESSION_LAB_CUSTOM_MANIFEST_URL when EXPRESSION_LAB_DEBUG_MODE
 	 * is enabled, or falls back to EXPRESSION_LAB_MANIFEST_URL.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return string The update manifest URL.
 	 */
@@ -411,7 +411,7 @@ class Updater {
 	/**
 	 * Checks if an update is available and returns the manifest information.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param bool $force_refresh Whether to bypass cache.
 	 * @return array|null Manifest data if a newer version is available, null otherwise.
@@ -433,7 +433,7 @@ class Updater {
 	/**
 	 * Retrieves and caches the remote release manifest.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param bool $force_refresh Whether to bypass the transient cache.
 	 * @return array|null Manifest array or null on failure.

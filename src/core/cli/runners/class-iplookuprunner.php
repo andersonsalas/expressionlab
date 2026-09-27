@@ -22,6 +22,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Service runner for GeoLite2 database management.
  *
+ * @since 0.0.3
+ *
  * @package ExpressionLab
  */
 class IPLookupRunner {

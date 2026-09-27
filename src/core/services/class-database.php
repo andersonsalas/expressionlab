@@ -27,6 +27,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * an in-memory SQLite database, allowing complex querying and data manipulation without affecting the
  * live database.
  *
+ * @since 0.0.1
+ *
  * @package ExpressionLab
  */
 final class Database implements ServiceInterface {

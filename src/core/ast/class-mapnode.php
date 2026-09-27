@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Evaluates the `map[iterable, fn]` special form, applying the callback
  * closure to each element of the iterable.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @internal
  * @package ExpressionLab
  */
@@ -32,7 +32,7 @@ class MapNode extends Node {
 	/**
 	 * Constructor.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param Node $iterable_node The iterable expression node.
@@ -50,7 +50,7 @@ class MapNode extends Node {
 	/**
 	 * Evaluates the map operation.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param array $functions The registered functions.
@@ -87,7 +87,7 @@ class MapNode extends Node {
 	/**
 	 * Converts the node to its array representation for dumping.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return array Array representation of the node.
@@ -99,7 +99,7 @@ class MapNode extends Node {
 	/**
 	 * Compiles the node into PHP code.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param \Symfony\Component\ExpressionLanguage\Compiler $compiler The compiler.

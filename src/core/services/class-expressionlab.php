@@ -20,6 +20,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Internal class for unit testing.
  *
+ * @since 0.0.1
+ *
  * @internal
  * @package ExpressionLab
  */

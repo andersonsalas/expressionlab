@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Evaluates the `args['name']` special form to access an argument
  * passed into the active `fn` closure's lexical scope.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @internal
  * @package ExpressionLab
  */
@@ -32,7 +32,7 @@ class ArgsNode extends Node {
 	/**
 	 * Constructor.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param Node $key The key expression node.
@@ -44,7 +44,7 @@ class ArgsNode extends Node {
 	/**
 	 * Evaluates the args access expression.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param array $functions The registered functions.
@@ -67,7 +67,7 @@ class ArgsNode extends Node {
 	/**
 	 * Converts the node to its array representation for dumping.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return array Array representation of the node.
@@ -79,7 +79,7 @@ class ArgsNode extends Node {
 	/**
 	 * Compiles the node into PHP code.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param \Symfony\Component\ExpressionLanguage\Compiler $compiler The compiler.

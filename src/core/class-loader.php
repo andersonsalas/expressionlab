@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Initializes the plugin by loading required modules and registering admin pages.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @internal
  *
  * @package ExpressionLab
@@ -33,7 +33,7 @@ class Loader {
 	/**
 	 * Boots the plugin by registering core hooks and instantiating admin pages.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 */
 	public function boot() {
@@ -50,7 +50,7 @@ class Loader {
 	/**
 	 * Loads the plugin textdomain for internationalization.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 */
 	public function load_textdomain() {

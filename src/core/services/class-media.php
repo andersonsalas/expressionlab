@@ -30,6 +30,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Sideloading and file uploads are not supported.
  *
+ * @since 0.0.1
+ *
  * @package ExpressionLab
  */
 final class Media {

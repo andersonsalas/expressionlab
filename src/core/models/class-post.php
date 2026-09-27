@@ -24,14 +24,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Wraps a WordPress WP_Post object with convenience properties and methods
  * for the expression language environment.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @package ExpressionLab
  */
 final class Post extends Model {
 	/**
 	 * WordPress post instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 * @var WP_Post|null
 	 */
@@ -40,7 +40,7 @@ final class Post extends Model {
 	/**
 	 * Database service instance.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 * @var Database
 	 */
@@ -49,7 +49,7 @@ final class Post extends Model {
 	/**
 	 * Post ID.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var int|null
 	 */
 	public $ID;
@@ -57,7 +57,7 @@ final class Post extends Model {
 	/**
 	 * Post title.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $title = '';
@@ -65,7 +65,7 @@ final class Post extends Model {
 	/**
 	 * Post content.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $content = '';
@@ -73,7 +73,7 @@ final class Post extends Model {
 	/**
 	 * Post excerpt.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $excerpt = '';
@@ -81,7 +81,7 @@ final class Post extends Model {
 	/**
 	 * Post status (e.g. 'publish', 'draft').
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $status = '';
@@ -89,7 +89,7 @@ final class Post extends Model {
 	/**
 	 * Post type (e.g. 'post', 'page', custom post type).
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $type = '';
@@ -97,7 +97,7 @@ final class Post extends Model {
 	/**
 	 * Post slug (post_name).
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $slug = '';
@@ -105,7 +105,7 @@ final class Post extends Model {
 	/**
 	 * Post creation date (Y-m-d H:i:s).
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $date = '';
@@ -113,7 +113,7 @@ final class Post extends Model {
 	/**
 	 * Post modified date (Y-m-d H:i:s).
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var string
 	 */
 	public $modified = '';
@@ -121,7 +121,7 @@ final class Post extends Model {
 	/**
 	 * Author user ID.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var int
 	 */
 	public $author_id = 0;
@@ -129,7 +129,7 @@ final class Post extends Model {
 	/**
 	 * Parent post ID.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var int
 	 */
 	public $parent_id = 0;
@@ -137,7 +137,7 @@ final class Post extends Model {
 	/**
 	 * Comment count.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var int
 	 */
 	public $comment_count = 0;
@@ -145,7 +145,7 @@ final class Post extends Model {
 	/**
 	 * Scoped post metadata manager.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @var PostMeta|null
 	 */
 	public $meta;
@@ -153,7 +153,7 @@ final class Post extends Model {
 	/**
 	 * Constructor.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param WP_Post|null $post     The WP_Post object.
@@ -183,7 +183,7 @@ final class Post extends Model {
 	/**
 	 * Retrieves the permalink URL for this post.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return string|false Post permalink URL on success, or `false` on failure.
 	 */
@@ -197,7 +197,7 @@ final class Post extends Model {
 	/**
 	 * Retrieves terms for a given taxonomy associated with this post.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $taxonomy Taxonomy name (e.g. 'category', 'post_tag').
 	 * @return array List of term arrays with term_id, name, and slug.
@@ -225,7 +225,7 @@ final class Post extends Model {
 	/**
 	 * Retrieves an associative array representation of the post.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return array Associative array of post attributes.
 	 */

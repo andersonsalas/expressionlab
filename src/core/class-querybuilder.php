@@ -71,7 +71,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *     .or_where('status', 'pending')
  * ```
  *
- * @since 1.0.0
+ * @since 0.0.1
  *
  * @package ExpressionLab
  */
@@ -82,7 +82,7 @@ trait QueryBuilder {
 	 * Each element is an associative array of AND conditions.
 	 * Multiple groups are combined with OR logic.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var array
 	 */
@@ -91,7 +91,7 @@ trait QueryBuilder {
 	/**
 	 * Query builder ORDER BY clauses.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var array
 	 */
@@ -100,7 +100,7 @@ trait QueryBuilder {
 	/**
 	 * Query builder LIMIT value.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var int|null
 	 */
@@ -109,7 +109,7 @@ trait QueryBuilder {
 	/**
 	 * Query builder OFFSET value.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @var int|null
 	 */
@@ -118,7 +118,7 @@ trait QueryBuilder {
 	/**
 	 * Returns the table name (without prefix) used by the query builder.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return string The table name without prefix.
@@ -128,7 +128,7 @@ trait QueryBuilder {
 	/**
 	 * Returns the Database instance used by the query builder.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return Database The database service instance.
@@ -141,7 +141,7 @@ trait QueryBuilder {
 	 * Subclasses and models like UserMeta and PostMeta can override this method to ensure that all
 	 * queries, filters, and SQL mirrors are strictly scoped to the parent entity.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return array Associative array of column-value pairs, or empty array.
@@ -190,7 +190,7 @@ trait QueryBuilder {
 	 * where('created_at', 'between', ['2026-01-01', '2026-12-31'])
 	 * ```
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string     $column            The database column name to filter by.
 	 * @param mixed      $operator_or_value Optional. Comparison operator string when using three arguments, or the target value when using two arguments. Default null.
@@ -241,7 +241,7 @@ trait QueryBuilder {
 	 *     .where('status', 'pending')
 	 * ```
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string     $column            The database column name to filter by.
 	 * @param mixed      $operator_or_value Optional. Comparison operator string when using three arguments, or the target value when using two arguments. Default null.
@@ -273,7 +273,7 @@ trait QueryBuilder {
 	 *     .order_by('date', 'DESC')
 	 * ```
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $column    The database column name to sort by.
 	 * @param string $direction Optional. The sort direction (`'ASC'` or `'DESC'`). Default `'ASC'`.
@@ -301,7 +301,7 @@ trait QueryBuilder {
 	 *     .limit(5)
 	 * ```
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param int $limit The maximum number of records to retrieve.
 	 * @return static The current query builder instance for fluent chaining.
@@ -324,7 +324,7 @@ trait QueryBuilder {
 	 *     .limit(10)
 	 * ```
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param int $offset The number of rows to skip.
 	 * @return static The current query builder instance for fluent chaining.
@@ -352,7 +352,7 @@ trait QueryBuilder {
 	 *     .query('SELECT type, COUNT(*) AS total FROM wp_posts GROUP BY type ORDER BY total DESC')
 	 * ```
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param string $sql The raw SQL SELECT query to execute against the in-memory SQLite table.
 	 * @return array The query result rows as an array of objects.
@@ -390,7 +390,7 @@ trait QueryBuilder {
 	 *     .count()
 	 * ```
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return int The total count of matching records in the database.
 	 */
@@ -428,7 +428,7 @@ trait QueryBuilder {
 	 *     .to_sql(true)
 	 * ```
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @param bool $is_count Optional. Whether to compile a `SELECT COUNT(*)` query instead of a row projection. Default false.
 	 * @return string The compiled SQL query string.
@@ -453,7 +453,7 @@ trait QueryBuilder {
 	/**
 	 * Parses a condition into the Database-compatible recursive WHERE format.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param string     $column            The column name.
@@ -499,7 +499,7 @@ trait QueryBuilder {
 	 * - Single group: associative array (AND).
 	 * - Multiple groups: indexed array of associative arrays (OR of ANDs).
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return array|null The WHERE conditions, or null if none.
@@ -541,7 +541,7 @@ trait QueryBuilder {
 	/**
 	 * Builds the options array from accumulated configuration.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return array|null The options array, or null if no options were set.
@@ -567,7 +567,7 @@ trait QueryBuilder {
 	/**
 	 * Resets the query builder state for reuse.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 */
 	private function query_builder_reset(): void {
@@ -586,7 +586,7 @@ trait QueryBuilder {
 	 * The query builder state is reset after execution, allowing the instance to be reused
 	 * for a new query.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return array The matching results as an array of objects.

@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Evaluates the `reduce[iterable, fn, initial?]` special form, folding the
  * iterable into an accumulated value.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @internal
  * @package ExpressionLab
  */
@@ -32,7 +32,7 @@ class ReduceNode extends Node {
 	/**
 	 * Constructor.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param Node      $iterable_node The iterable expression node.
@@ -53,7 +53,7 @@ class ReduceNode extends Node {
 	/**
 	 * Evaluates the reduce operation.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param array $functions The registered functions.
@@ -92,7 +92,7 @@ class ReduceNode extends Node {
 	/**
 	 * Converts the node to its array representation for dumping.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @return array Array representation of the node.
@@ -107,7 +107,7 @@ class ReduceNode extends Node {
 	/**
 	 * Compiles the node into PHP code.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 * @internal
 	 *
 	 * @param \Symfony\Component\ExpressionLanguage\Compiler $compiler The compiler.

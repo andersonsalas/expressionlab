@@ -17,14 +17,14 @@ namespace ExpressionLab\Core\Interfaces;
  * Represents a provider of functions and constants registered into the
  * expression language execution environment.
  *
- * @since 1.0.0
+ * @since 0.0.1
  * @package ExpressionLab
  */
 interface ExtensionInterface {
 	/**
 	 * Retrieves the functions provided by the extension.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return array Associative array of function definitions and callbacks.
 	 */
@@ -33,7 +33,7 @@ interface ExtensionInterface {
 	/**
 	 * Retrieves the constants provided by the extension.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.1
 	 *
 	 * @return array Associative array of constant definitions and values.
 	 */
