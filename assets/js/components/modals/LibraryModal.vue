@@ -60,7 +60,10 @@ async function checkUnsavedAndProceed(callback) {
       const saved = await saveActiveSnippet();
       if (!saved) return;
     } else if (action === 'deny') {
-      if (activeSnippet.value) {
+      if (activeSnippet.value?.isDraft) {
+        snippets.value = snippets.value.filter(s => s.id !== activeSnippetId.value);
+        activeSnippetId.value = snippets.value.length > 0 ? snippets.value[0].id : null;
+      } else if (activeSnippet.value) {
         activeSnippet.value.name = activeSnippet.value.id;
       }
       unsavedSnippetIds.clear();
@@ -523,7 +526,9 @@ const selectSnippet = async (id) => {
       const saved = await saveActiveSnippet();
       if (!saved) return;
     } else if (action === 'deny') {
-      if (activeSnippet.value) {
+      if (activeSnippet.value?.isDraft) {
+        snippets.value = snippets.value.filter(s => s.id !== activeSnippetId.value);
+      } else if (activeSnippet.value) {
         activeSnippet.value.name = activeSnippet.value.id;
         validateSnippetSyntax(activeSnippet.value);
       }
@@ -618,6 +623,7 @@ const saveActiveSnippet = async () => {
   activeSnippet.value.code = getEditorValue();
   activeSnippet.value.name = trimmedName;
   activeSnippet.value.id = trimmedName;
+  delete activeSnippet.value.isDraft;
   unsavedSnippetIds.delete(activeSnippetId.value);
   validateSnippetSyntax(activeSnippet.value);
   activeSnippetId.value = trimmedName;
@@ -633,16 +639,6 @@ const handleGlobalKeydown = (e) => {
   }
 };
 
-onMounted(() => {
-  loadSnippets();
-  window.addEventListener('keydown', handleGlobalKeydown);
-  window.addEventListener('click', closeImportExportMenu);
-});
-
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleGlobalKeydown);
-  window.removeEventListener('click', closeImportExportMenu);
-});
 
 const deleteActiveSnippet = async () => {
   const idx = snippets.value.findIndex(s => s.id === activeSnippetId.value);
@@ -829,30 +825,69 @@ const initCodeMirror = () => {
   });
 };
 
+const handleModalOpen = async () => {
+  unsavedSnippetIds.clear();
+  await loadSnippets();
+
+  if (uiStore.activeModalData && typeof uiStore.activeModalData.draftCode === 'string') {
+    const draftCode = uiStore.activeModalData.draftCode;
+    const existingNames = new Set(snippets.value.map(s => (s.name || '').toLowerCase()));
+    const uniqueName = getUniqueSnippetName(__('New Snippet'), existingNames);
+    const draftSnippet = {
+      id: uniqueName,
+      name: uniqueName,
+      code: draftCode,
+      tags: [],
+      isDraft: true,
+    };
+    snippets.value.push(draftSnippet);
+    activeSnippetId.value = draftSnippet.id;
+    unsavedSnippetIds.add(draftSnippet.id);
+    searchQuery.value = '';
+    validateSnippetSyntax(draftSnippet);
+    await scrollToActiveSnippet();
+  }
+
+  nextTick(() => {
+    if (!view) {
+      initCodeMirror();
+    }
+    setTimeout(() => { 
+      if (view) {
+        view.dispatch({ selection: { anchor: 0, head: 0 } });
+        if (view.scrollDOM) {
+          view.scrollDOM.scrollTop = 0;
+        }
+        view.focus(); 
+        view.requestMeasure();
+      } 
+    }, 100);
+  });
+};
+
 // Watch for modal open to init/re-init editor and reload snippets
 watch(isOpen, async (open) => {
   if (open) {
-    unsavedSnippetIds.clear();
-    await loadSnippets();
-    nextTick(() => {
-      if (!view) {
-        initCodeMirror();
-      }
-      setTimeout(() => { 
-        if (view) {
-          view.dispatch({ selection: { anchor: 0, head: 0 } });
-          if (view.scrollDOM) {
-            view.scrollDOM.scrollTop = 0;
-          }
-          view.focus(); 
-          view.requestMeasure();
-        } 
-      }, 100);
-    });
+    await handleModalOpen();
   } else {
     destroyCodeMirror();
     closeImportExportMenu();
   }
+});
+
+onMounted(async () => {
+  if (isOpen.value) {
+    await handleModalOpen();
+  } else {
+    loadSnippets();
+  }
+  window.addEventListener('keydown', handleGlobalKeydown);
+  window.addEventListener('click', closeImportExportMenu);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown);
+  window.removeEventListener('click', closeImportExportMenu);
 });
 
 // Watch for snippet changes
@@ -1054,7 +1089,7 @@ defineExpose({
                 :title="__('Format code (Shift+Alt+F)')"
                 @click="formatActiveSnippetCode"
               >
-                <div class="codicon codicon-wand" />
+                <div class="codicon codicon-json" />
               </button>
               <button
                 :title="__('Save')"

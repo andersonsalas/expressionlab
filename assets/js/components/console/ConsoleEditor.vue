@@ -2,8 +2,9 @@
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useUiStore } from '../../stores/ui';
 import { EditorState } from '@codemirror/state';
-import { EditorView, keymap } from '@codemirror/view';
-import { indentUnit, bracketMatching } from '@codemirror/language';
+import { EditorView, keymap, lineNumbers } from '@codemirror/view';
+import { indentUnit, bracketMatching, foldGutter, foldKeymap } from '@codemirror/language';
+import { lintGutter } from '@codemirror/lint';
 import { elscript } from '../../lib/codemirror/elscript.js';
 import { autocompletion, snippet, closeCompletion } from '@codemirror/autocomplete';
 import { createCompletionSource } from '../../lib/autocomplete.js';
@@ -26,6 +27,10 @@ const props = defineProps({
   chainData: {
     type: Object, // { typeRegistry, rootObjects } for lazy chain resolution
     default: null
+  },
+  mode: {
+    type: String, // 'repl' | 'scratchpad'
+    default: 'repl'
   }
 });
 
@@ -34,6 +39,7 @@ const emit = defineEmits(['execute', 'history-up', 'history-down', 'clear']);
 const editorContainer = ref(null);
 const hasSyntaxErrors = ref(false);
 let view = null;
+let editorExtensions = [];
 let syntaxDebounceTimer = null;
 
 const checkSyntax = (state) => {
@@ -136,10 +142,23 @@ const moveCursorToEnd = () => {
     });
 };
 
+const clearEditor = () => {
+  if (!view) return;
+  const state = EditorState.create({
+    doc: '',
+    extensions: editorExtensions
+  });
+  view.setState(state);
+  hasSyntaxErrors.value = false;
+  view.focus();
+};
+
 // Expose methods to parent
 defineExpose({
     hasSyntaxErrors,
+    getEditorValue,
     setEditorValue,
+    clearEditor,
     insertSnippet,
     moveCursorToEnd,
     formatCode,
@@ -165,36 +184,69 @@ const handleEnter = () => {
     return true; 
 };
 
+const handleScratchpadExecute = () => {
+    const input = getEditorValue();
+    if (!input.trim()) return;
+    emit('execute', input);
+    return true;
+};
+
 // Autocomplete source (delegated to autocomplete.js)
 const cmCompletionSource = createCompletionSource(
     () => props.completionItems || [],
     () => props.chainData
 );
 
-
-
 onMounted(() => {
-    const enterKeymap = [
-      {
-        key: 'Shift-Enter',
-        run: insertNewlineAndIndent
-      },
-      {
-        key: 'Enter',
-        run: () => { handleEnter(); return true; }
-      }
-    ];
+    const isScratchpad = props.mode === 'scratchpad';
 
-    const upDownHistoryKeymap = [
-      {
-        key: 'Alt-ArrowUp',
-        run: () => { emit('history-up'); return true; }
-      },
-      {
-        key: 'Alt-ArrowDown',
-        run: () => { emit('history-down'); return true; }
-      }
-    ];
+    const enterKeymap = isScratchpad
+      ? [
+          {
+            key: 'Shift-Enter',
+            run: insertNewlineAndIndent
+          },
+          {
+            key: 'Enter',
+            run: insertNewlineAndIndent
+          },
+          {
+            key: 'Mod-Enter',
+            run: () => { handleScratchpadExecute(); return true; }
+          },
+          {
+            key: 'Mod-r',
+            run: (cmView, event) => {
+              if (event) event.preventDefault();
+              handleScratchpadExecute();
+              return true;
+            }
+          },
+          ...foldKeymap
+        ]
+      : [
+          {
+            key: 'Shift-Enter',
+            run: insertNewlineAndIndent
+          },
+          {
+            key: 'Enter',
+            run: () => { handleEnter(); return true; }
+          }
+        ];
+
+    const upDownHistoryKeymap = isScratchpad
+      ? []
+      : [
+          {
+            key: 'Alt-ArrowUp',
+            run: () => { emit('history-up'); return true; }
+          },
+          {
+            key: 'Alt-ArrowDown',
+            run: () => { emit('history-down'); return true; }
+          }
+        ];
 
     const formatKeymap = [
       {
@@ -211,31 +263,53 @@ onMounted(() => {
       }
     });
 
+    const extensions = [
+      elscript(),
+      vsCodeLight,
+      cmHistory(),
+      autocompletion({ override: [cmCompletionSource] }),
+      keymap.of([indentWithTab, ...historyKeymap, ...enterKeymap, ...upDownHistoryKeymap, ...formatKeymap]),
+      indentUnit.of('    '),
+      EditorState.tabSize.of(4),
+      EditorView.lineWrapping,
+      EditorView.domEventHandlers({
+          paste(event, view) {
+              event.preventDefault();
+              const text = event.clipboardData.getData('text/plain');
+              if (text) {
+                  view.dispatch(view.state.replaceSelection(text.replace(/\t/g, '    ')));
+              }
+          }
+      }),
+      EditorView.theme(),
+      bracketMatching(),
+      expressionLabLinter(),
+      syntaxUpdateListener,
+    ];
+
+    if (isScratchpad) {
+      extensions.unshift(
+        lineNumbers(),
+        foldGutter({
+          openText: ' ',
+          closedText: ' ',
+          markerDOM: (open) => {
+            const span = document.createElement('span');
+            span.className = `fold-marker ${open ? 'open' : 'closed'}`;
+            span.title = open ? 'Fold line' : 'Unfold line';
+            span.setAttribute('aria-expanded', String(open));
+            return span;
+          },
+        }),
+        lintGutter()
+      );
+    }
+
+    editorExtensions = extensions;
+
     const state = EditorState.create({
       doc: '',
-      extensions: [
-        elscript(),
-        vsCodeLight,
-        cmHistory(),
-        autocompletion({ override: [cmCompletionSource] }),
-        keymap.of([indentWithTab, ...historyKeymap, ...enterKeymap, ...upDownHistoryKeymap, ...formatKeymap]),
-        indentUnit.of('    '),
-        EditorState.tabSize.of(4),
-        EditorView.lineWrapping,
-        EditorView.domEventHandlers({
-            paste(event, view) {
-                event.preventDefault();
-                const text = event.clipboardData.getData('text/plain');
-                if (text) {
-                    view.dispatch(view.state.replaceSelection(text.replace(/\t/g, '    ')));
-                }
-            }
-        }),
-        EditorView.theme(),
-        bracketMatching(),
-        expressionLabLinter(),
-        syntaxUpdateListener,
-      ]
+      extensions
     });
 
     view = new EditorView({ state, parent: editorContainer.value });
@@ -254,16 +328,20 @@ onBeforeUnmount(() => {
 <template>
   <div
     class="entry editor-entry in active"
-    :class="[{ loading: loading, 'has-syntax-errors': hasSyntaxErrors }, `mode-${uiStore.consoleMode}`]"
+    :class="[
+      { loading: props.mode !== 'scratchpad' && loading, 'has-syntax-errors': hasSyntaxErrors },
+      `mode-${uiStore.consoleMode}`,
+      props.mode === 'scratchpad' ? 'scratchpad-editor' : 'repl-editor'
+    ]"
   >
     <div
-      v-show="!loading"
+      v-show="props.mode === 'scratchpad' || !loading"
       ref="editorContainer"
       class="code-editor-container cm-container cm-lang-elscript"
-      style="width: 100%; min-height: 36px"
+      :style="props.mode === 'scratchpad' ? { width: '100%', height: '100%' } : { width: '100%', minHeight: '36px' }"
     />
     <div
-      v-show="loading"
+      v-show="props.mode !== 'scratchpad' && loading"
       class="metro-spinner"
     />
   </div>

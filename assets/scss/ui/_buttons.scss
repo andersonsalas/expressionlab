@@ -35,6 +35,21 @@
 		}
 	}
 
+	&.disabled,
+	&:disabled {
+		opacity: 0.4;
+		cursor: not-allowed !important;
+
+		* {
+			cursor: not-allowed !important;
+		}
+
+		&:hover {
+			border-color: transparent !important;
+			background: transparent !important;
+		}
+	}
+
 	span {
 		line-height: 19px;
 	}

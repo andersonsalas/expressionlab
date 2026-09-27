@@ -822,7 +822,7 @@ describe('LibraryModal.vue', () => {
 
     const formatBtn = wrapper.find('.library-main-actions button[title*="Format"]');
     expect(formatBtn.exists()).toBe(true);
-    expect(formatBtn.find('.codicon-wand').exists()).toBe(true);
+    expect(formatBtn.find('.codicon-json').exists()).toBe(true);
 
     await formatBtn.trigger('click');
     await flushPromises();
@@ -1021,6 +1021,56 @@ describe('LibraryModal.vue', () => {
 
     // Restore lint mock
     lintExpressionLab.mockReturnValue([]);
+  });
+
+  it('creates an unsaved draft snippet with scratchpad code and no tags when opened with draftCode', async () => {
+    const { handleLocalStorage } = require('../../../lib/api/client.js');
+    const pinia = createTestingPinia({ stubActions: false });
+    const uiStore = useUiStore();
+    window.el_settings = createElSettings();
+
+    handleLocalStorage.mockClear();
+    handleLocalStorage.mockImplementation((action) => {
+      if (action === 'getItem') return Promise.resolve(JSON.stringify([{ id: 'Existing', name: 'Existing', code: '1', tags: [] }]));
+      return Promise.resolve(true);
+    });
+
+    uiStore.openModal('library', { draftCode: 'Console.log(\'Hello Draft\')' });
+
+    const wrapper = mount(LibraryModal, {
+      global: {
+        plugins: [pinia]
+      }
+    });
+    await flushPromises();
+    await nextTick();
+
+    const items = wrapper.findAll('.library-list-item');
+    const draftItem = items.filter(w => w.text().includes('New Snippet'))[0];
+    expect(draftItem).toBeTruthy();
+    expect(draftItem.classes()).toContain('active');
+    expect(draftItem.classes()).toContain('has-unsaved');
+    expect(draftItem.find('.unsaved-dot').exists()).toBe(true);
+
+    const nameInput = wrapper.find('.library-main-header input[type="text"]');
+    expect(nameInput.element.value).toBe('New Snippet');
+
+    // Verify tag input has no scratchpad tag
+    const tags = wrapper.findAll('.tag-item');
+    expect(tags.length).toBe(0);
+
+    // Verify it was NOT persisted to storage
+    expect(handleLocalStorage).not.toHaveBeenCalledWith('setItem', 'el_snippets', expect.anything());
+
+    // Discard draft on close deny
+    uiStore.showDialog = jest.fn().mockResolvedValue('deny');
+    const closeBtn = wrapper.find('.btn-cancel');
+    await closeBtn.trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    // Draft should be discarded from snippets
+    expect(wrapper.findAll('.library-list-item').filter(w => w.text().includes('New Snippet')).length).toBe(0);
   });
 });
 

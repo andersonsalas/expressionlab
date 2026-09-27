@@ -14,6 +14,14 @@
 	height: 100%;
 	display: grid;
 	grid-template-columns: 1fr 280px;
+
+	&.sidebar-hidden {
+		grid-template-columns: 1fr;
+
+		.console-sidebar {
+			display: none !important;
+		}
+	}
 }
 
 // Entries List
@@ -71,7 +79,7 @@
 	}
 
 	// Hover behavior for interactive entries
-	&:not(.info, .error, .warning, .success, .update, .upgrade, .active, .loading):hover {
+	&:not(.info, .log, .error, .warning, .success, .update, .upgrade, .active, .loading):hover {
 		border-right: solid 1px #444 !important;
 		border-bottom: solid 1px #444 !important;
 
@@ -231,7 +239,8 @@
 			}
 		}
 
-		&.info {
+		&.info,
+		&.log {
 			pre.no-highlight {
 				margin-top: 3px;
 				color: #555;
@@ -603,10 +612,19 @@
 }
 
 .vega-embed .vega-actions {
+	right: 0 !important;
 	box-shadow: none !important;
 	animation-duration: none !important;
 	animation-name: none !important;
 	animation-timing-function: none !important;
+
+	&::before {
+		right: 6px !important;
+	}
+
+	&::after {
+		right: 7px !important;
+	}
 
 	a {
 		font-family: $font-family-sans !important;

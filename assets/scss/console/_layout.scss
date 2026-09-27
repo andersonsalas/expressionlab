@@ -70,9 +70,30 @@
 			
 			&.menu {
 				padding: 6px;
+				width: 34px;
+				height: 34px;
+				box-sizing: border-box;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
 
 				.codicon {
-    				margin: 0;
+					margin: 0;
+				}
+
+				.metro-spinner {
+					width: 16px;
+					height: 16px;
+					box-sizing: border-box;
+					flex-shrink: 0;
+					margin: 0;
+				}
+			}
+
+			&.btn-scratchpad-run {
+				&.disabled,
+				&:disabled {
+					opacity: 1;
 				}
 			}
 		}

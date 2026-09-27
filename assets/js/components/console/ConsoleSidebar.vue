@@ -466,18 +466,19 @@ watch(() => props.outlineTree, filterOutline, { immediate: true });
         </p>
       </div>
     </div>
+
+    <Teleport to="body">
+      <div
+        v-if="hoveredItem"
+        ref="tooltipRef"
+        class="console-sidebar-tooltip"
+        :style="tooltipStyle"
+        @mouseenter="onTooltipMouseEnter"
+        @mouseleave="onTooltipMouseLeave"
+        @click="onTooltipClick"
+      >
+        <DocTooltip :doc="hoveredItem.doc" />
+      </div>
+    </Teleport>
   </div>
-  <Teleport to="body">
-    <div
-      v-if="hoveredItem"
-      ref="tooltipRef"
-      class="console-sidebar-tooltip"
-      :style="tooltipStyle"
-      @mouseenter="onTooltipMouseEnter"
-      @mouseleave="onTooltipMouseLeave"
-      @click="onTooltipClick"
-    >
-      <DocTooltip :doc="hoveredItem.doc" />
-    </div>
-  </Teleport>
 </template>
