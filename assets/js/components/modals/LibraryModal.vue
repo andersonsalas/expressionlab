@@ -579,7 +579,9 @@ const createSnippet = async () => {
       const saved = await saveActiveSnippet();
       if (!saved) return;
     } else if (action === 'deny') {
-      if (activeSnippet.value) {
+      if (activeSnippet.value?.isDraft) {
+        snippets.value = snippets.value.filter(s => s.id !== activeSnippetId.value);
+      } else if (activeSnippet.value) {
         activeSnippet.value.name = activeSnippet.value.id;
       }
       unsavedSnippetIds.delete(activeSnippetId.value);
@@ -602,9 +604,10 @@ const createSnippet = async () => {
 };
 
 const saveActiveSnippet = async () => {
-  if (!activeSnippet.value || !view) return false;
+  const current = activeSnippet.value;
+  if (!current) return false;
 
-  const trimmedName = (activeSnippet.value.name || __('Untitled')).trim() || __('Untitled');
+  const trimmedName = (current.name || __('Untitled')).trim() || __('Untitled');
 
   const isDuplicate = snippets.value.some(
     s => s.id !== activeSnippetId.value && (s.name || '').trim().toLowerCase() === trimmedName.toLowerCase()
@@ -620,14 +623,24 @@ const saveActiveSnippet = async () => {
     return false;
   }
 
-  activeSnippet.value.code = getEditorValue();
-  activeSnippet.value.name = trimmedName;
-  activeSnippet.value.id = trimmedName;
-  delete activeSnippet.value.isDraft;
-  unsavedSnippetIds.delete(activeSnippetId.value);
-  validateSnippetSyntax(activeSnippet.value);
+  const oldId = activeSnippetId.value;
+
+  current.code = getEditorValue();
+  current.name = trimmedName;
+  current.id = trimmedName;
+  delete current.isDraft;
+
+  unsavedSnippetIds.delete(oldId);
+  unsavedSnippetIds.delete(trimmedName);
+
+  if (oldId !== trimmedName) {
+    syntaxErrorSnippetIds.delete(oldId);
+  }
+
   activeSnippetId.value = trimmedName;
   currentEditorSnippetId = trimmedName;
+
+  validateSnippetSyntax(current);
   await persistSnippets();
   return true;
 };
