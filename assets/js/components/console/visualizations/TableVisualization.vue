@@ -283,6 +283,9 @@ function exportCsv() {
 .fp-table-container {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
 }
 
 .table-controls {
@@ -302,19 +305,48 @@ function exportCsv() {
 }
 
 .table-scroll-wrapper {
-  overflow-x: auto;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
 }
 
 .fp-table {
   display: grid;
   grid-template-columns: repeat(var(--col-count), minmax(200px, 1fr));
   width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .fp-table thead,
 .fp-table tbody,
 .fp-table tr {
   display: contents;
+}
+
+.fp-table thead th {
+  position: sticky;
+  background: #f7f7f7;
+  box-sizing: border-box;
+}
+
+.fp-table thead tr:first-child th {
+  top: 0;
+  height: 26px;
+  line-height: 26px;
+  padding-top: 0;
+  padding-bottom: 0;
+  z-index: 3;
+  border-top: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
+}
+
+.fp-table thead tr.search-row th {
+  top: 26px;
+  z-index: 2;
+  border-bottom: 1px solid #ddd;
+  background-color: #f9f9f9;
+  padding: 3px;
 }
 
 .sortable-header {
@@ -331,11 +363,6 @@ function exportCsv() {
   margin-left: 5px;
   font-size: 0.8em;
   float: right;
-}
-
-.search-row th {
-  padding: 3px;
-  background-color: #f9f9f9;
 }
 
 .column-search {
