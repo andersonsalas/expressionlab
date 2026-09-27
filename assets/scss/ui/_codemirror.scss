@@ -582,6 +582,38 @@ a.cm-docblock.doc-link {
 	padding-bottom: 2px;
 }
 
+.cm-lint-marker {
+	width: 13px !important;
+	height: 13px !important;
+}
+
+.cm-lint-marker-error {
+	content: none !important;
+	width: 13px !important;
+	height: 13px !important;
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	cursor: pointer;
+
+	&::before {
+		content: "\ea76" !important;
+		font-family: codicon, monospace !important;
+		font-size: 13px !important;
+		line-height: 13px !important;
+		width: 13px !important;
+		height: 13px !important;
+		background: #cc1818 !important;
+		color: #fff !important;
+		border-radius: 50% !important;
+		text-align: center !important;
+		display: inline-block !important;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+		user-select: none;
+	}
+}
+
 .cm-tooltip-hover:has(> .cm-tooltip-lint) {
 	border-color: #000 !important;
 }
@@ -589,7 +621,7 @@ a.cm-docblock.doc-link {
 .cm-tooltip-lint {
 	background: #fff !important;
 	color: #cc1818 !important;
-	border: none !important;
+	border-color: #000 !important;
 	border-radius: 0 !important;
 	box-shadow: none !important;
 	font-family: vars.$font-family-sans !important;
@@ -622,6 +654,7 @@ a.cm-docblock.doc-link {
 			-webkit-font-smoothing: antialiased;
 			-moz-osx-font-smoothing: grayscale;
 			user-select: none;
+			margin-right: 2px;
 		}
 
 		&.cm-diagnostic-error {

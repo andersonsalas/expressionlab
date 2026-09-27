@@ -15,6 +15,8 @@ const props = defineProps({
   },
 });
 
+const emit = defineEmits(['rendered']);
+
 const chartRef = ref(null);
 let viewCleanup = null;
 let observer = null;
@@ -57,13 +59,17 @@ const resolveLocalDatasets = (obj, depth = 0) => {
     }
 };
 
+let isDrawing = false;
+
 const drawChart = async () => {
-    if (!props.data || !props.data.data || !chartRef.value) return;
+    if (isDrawing || !props.data || !props.data.data || !chartRef.value) return;
 
     if (!isVisible()) {
         isPending.value = true;
         return;
     }
+
+    isDrawing = true;
 
     // Create a deep, plain copy (without Vue Proxies) to avoid the structuredClone error
     const spec = JSON.parse(JSON.stringify(props.data.data));
@@ -149,6 +155,8 @@ const drawChart = async () => {
         const result = await embed(chartRef.value, spec, options);
         viewCleanup = result.finalize; 
         isPending.value = false;
+        await nextTick();
+        emit('rendered');
 
         // Custom action interceptor for Vega Embed menu
         const vegaActions = chartRef.value.querySelector('.vega-actions');
@@ -180,6 +188,7 @@ const drawChart = async () => {
         }
     } catch (error) {
         console.error('Vega-Lite error:', error);
+        isPending.value = false;
         if (chartRef.value) {
             chartRef.value.textContent = '';
             const errDiv = document.createElement('div');
@@ -187,6 +196,9 @@ const drawChart = async () => {
             errDiv.textContent = `Vega-Lite error: ${error.message}`;
             chartRef.value.appendChild(errDiv);
         }
+        emit('rendered');
+    } finally {
+        isDrawing = false;
     }
 };
 

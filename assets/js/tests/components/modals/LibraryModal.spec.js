@@ -822,7 +822,7 @@ describe('LibraryModal.vue', () => {
 
     const formatBtn = wrapper.find('.library-main-actions button[title*="Format"]');
     expect(formatBtn.exists()).toBe(true);
-    expect(formatBtn.find('.codicon-wand').exists()).toBe(true);
+    expect(formatBtn.find('.codicon-json').exists()).toBe(true);
 
     await formatBtn.trigger('click');
     await flushPromises();
@@ -1021,6 +1021,116 @@ describe('LibraryModal.vue', () => {
 
     // Restore lint mock
     lintExpressionLab.mockReturnValue([]);
+  });
+
+  it('creates an unsaved draft snippet with scratchpad code and no tags when opened with draftCode', async () => {
+    const { handleLocalStorage } = require('../../../lib/api/client.js');
+    const pinia = createTestingPinia({ stubActions: false });
+    const uiStore = useUiStore();
+    window.el_settings = createElSettings();
+
+    handleLocalStorage.mockClear();
+    handleLocalStorage.mockImplementation((action) => {
+      if (action === 'getItem') return Promise.resolve(JSON.stringify([{ id: 'Existing', name: 'Existing', code: '1', tags: [] }]));
+      return Promise.resolve(true);
+    });
+
+    uiStore.openModal('library', { draftCode: 'Console.log(\'Hello Draft\')' });
+
+    const wrapper = mount(LibraryModal, {
+      global: {
+        plugins: [pinia]
+      }
+    });
+    await flushPromises();
+    await nextTick();
+
+    const items = wrapper.findAll('.library-list-item');
+    const draftItem = items.filter(w => w.text().includes('New Snippet'))[0];
+    expect(draftItem).toBeTruthy();
+    expect(draftItem.classes()).toContain('active');
+    expect(draftItem.classes()).toContain('has-unsaved');
+    expect(draftItem.find('.unsaved-dot').exists()).toBe(true);
+
+    const nameInput = wrapper.find('.library-main-header input[type="text"]');
+    expect(nameInput.element.value).toBe('New Snippet');
+
+    // Verify tag input has no scratchpad tag
+    const tags = wrapper.findAll('.tag-item');
+    expect(tags.length).toBe(0);
+
+    // Verify it was NOT persisted to storage
+    expect(handleLocalStorage).not.toHaveBeenCalledWith('setItem', 'el_snippets', expect.anything());
+
+    // Discard draft on close deny
+    uiStore.showDialog = jest.fn().mockResolvedValue('deny');
+    const closeBtn = wrapper.find('.btn-cancel');
+    await closeBtn.trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    // Draft should be discarded from snippets
+    expect(wrapper.findAll('.library-list-item').filter(w => w.text().includes('New Snippet')).length).toBe(0);
+  });
+
+  it('renames a draft snippet from scratchpad and saves it successfully without entering empty state', async () => {
+    const { handleLocalStorage } = require('../../../lib/api/client.js');
+    const pinia = createTestingPinia({ stubActions: false });
+    const uiStore = useUiStore();
+    window.el_settings = createElSettings();
+
+    handleLocalStorage.mockClear();
+    handleLocalStorage.mockImplementation((action) => {
+      if (action === 'getItem') return Promise.resolve(JSON.stringify([{ id: 'Existing', name: 'Existing', code: '1', tags: [] }]));
+      return Promise.resolve(true);
+    });
+
+    uiStore.openModal('library', { draftCode: 'Console.log(\'Hello Draft\')' });
+
+    const wrapper = mount(LibraryModal, {
+      global: {
+        plugins: [pinia]
+      }
+    });
+    await flushPromises();
+    await nextTick();
+
+    // Verify draft item is active
+    let items = wrapper.findAll('.library-list-item');
+    const draftItem = items.filter(w => w.text().includes('New Snippet'))[0];
+    expect(draftItem).toBeTruthy();
+    expect(draftItem.classes()).toContain('active');
+
+    // Rename draft snippet to "Test"
+    const nameInput = wrapper.find('.library-main-header input[type="text"]');
+    await nameInput.setValue('Test');
+    await nextTick();
+
+    // Click Save button
+    const saveBtn = wrapper.find('.library-main-actions button[title="Save"]');
+    await saveBtn.trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    // Verify empty state is NOT displayed
+    expect(wrapper.find('.library-empty-state').exists()).toBe(false);
+    expect(wrapper.find('.library-main').classes()).not.toContain('empty');
+
+    // Verify "Test" snippet exists and is active
+    items = wrapper.findAll('.library-list-item');
+    const testItem = items.filter(w => w.text().includes('Test'))[0];
+    expect(testItem).toBeTruthy();
+    expect(testItem.classes()).toContain('active');
+    expect(testItem.classes()).not.toContain('has-unsaved');
+
+    // Verify snippet was persisted to storage with name and id "Test"
+    const setItemCalls = handleLocalStorage.mock.calls.filter(c => c[0] === 'setItem' && c[1] === 'el_snippets');
+    expect(setItemCalls.length).toBeGreaterThan(0);
+    const lastSavedData = JSON.parse(setItemCalls[setItemCalls.length - 1][2]);
+    const savedSnippet = lastSavedData.find(s => s.name === 'Test');
+    expect(savedSnippet).toBeTruthy();
+    expect(savedSnippet.id).toBe('Test');
+    expect(savedSnippet.isDraft).toBeUndefined();
   });
 });
 

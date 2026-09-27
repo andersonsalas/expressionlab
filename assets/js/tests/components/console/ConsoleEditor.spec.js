@@ -82,16 +82,24 @@ jest.mock('@codemirror/view', () => {
           if (k && k.key === 'Enter') mockCapturedEnterKeymap.push(k);
           if (k && (k.key === 'Alt-ArrowUp' || k.key === 'Alt-ArrowDown')) mockCapturedUpDownKeymap.push(k);
           if (k && k.key === 'Shift-Alt-f') mockCapturedFormatKeymap.push(k);
+          if (k && (k.key === 'Mod-Enter' || k.key === 'Mod-r')) mockCapturedEnterKeymap.push(k);
         });
         return {};
       }),
     },
+    lineNumbers: jest.fn(() => []),
   };
 });
 
 jest.mock('@codemirror/language', () => ({
   indentUnit: { of: jest.fn() },
   bracketMatching: jest.fn(),
+  foldGutter: jest.fn(() => []),
+  foldKeymap: [],
+}));
+
+jest.mock('@codemirror/lint', () => ({
+  lintGutter: jest.fn(() => []),
 }));
 
 jest.mock('../../../lib/codemirror/elscript.js', () => ({
@@ -299,5 +307,34 @@ describe('ConsoleEditor.vue', () => {
     expect(wrapper.classes()).not.toContain('has-syntax-errors');
 
     jest.useRealTimers();
+  });
+
+  it('configures scratchpad mode properly with scratchpad-editor class and Mod-Enter keymap', async () => {
+    const wrapper = mount(ConsoleEditor, {
+      global: {
+        plugins: [createTestingPinia()],
+      },
+      props: {
+        mode: 'scratchpad',
+      },
+    });
+
+    expect(wrapper.find('.scratchpad-editor').exists()).toBe(true);
+    expect(typeof wrapper.vm.getEditorValue).toBe('function');
+
+    wrapper.vm.setEditorValue('Graph.nodes()');
+    expect(wrapper.vm.getEditorValue()).toBe('Graph.nodes()');
+
+    const modEnterBinding = mockCapturedEnterKeymap.find((k) => k.key === 'Mod-Enter');
+    expect(modEnterBinding).toBeDefined();
+
+    modEnterBinding.run();
+    expect(wrapper.emitted('execute')).toBeTruthy();
+    expect(wrapper.emitted('execute')[0]).toEqual(['Graph.nodes()']);
+    // Value must be retained in scratchpad mode
+    expect(wrapper.vm.getEditorValue()).toBe('Graph.nodes()');
+
+    // History up/down should not be bound in scratchpad mode
+    expect(mockCapturedUpDownKeymap).toHaveLength(0);
   });
 });

@@ -55,4 +55,27 @@ describe('TableVisualization.vue', () => {
       expect(wrapper.find('.sort-icon').exists()).toBe(true);
     }
   });
+
+  it('defaults page size to 10 when defaultPageSize is omitted', () => {
+    const wrapper = mount(TableVisualization, {
+      props: {
+        data: mockTableData,
+      },
+    });
+
+    const select = wrapper.find('.page-size-select');
+    expect(select.element.value).toBe('10');
+  });
+
+  it('supports custom defaultPageSize such as 100', () => {
+    const wrapper = mount(TableVisualization, {
+      props: {
+        data: mockTableData,
+        defaultPageSize: 100,
+      },
+    });
+
+    const select = wrapper.find('.page-size-select');
+    expect(select.element.value).toBe('100');
+  });
 });

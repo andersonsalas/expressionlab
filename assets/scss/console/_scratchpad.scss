@@ -1,0 +1,442 @@
+/* stylelint-disable selector-class-pattern, no-descending-specificity */
+
+// Scratchpad Workspace Layout & Components
+
+.scratchpad-workspace {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
+	min-width: 0;
+	overflow: hidden;
+	background: #fff;
+	position: relative;
+
+	&.auto-adjusting {
+		.scratchpad-editor-section,
+		.scratchpad-output-section {
+			transition: height 0.25s cubic-bezier(0.2, 0, 0, 1);
+		}
+	}
+
+	.scratchpad-editor-section {
+		.entry.in {
+			padding-bottom: 0;
+		}
+	}
+}
+
+// Top Editor Section
+.scratchpad-editor-section {
+	display: flex;
+	flex-direction: column;
+	min-height: 80px;
+	overflow: hidden;
+	position: relative;
+	background: #fff;
+
+	.entry.editor-entry.scratchpad-editor {
+		padding-left: 0 !important;
+		margin-left: 0 !important;
+		border: none !important;
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+
+		&::before {
+			display: none !important;
+		}
+
+		.code-editor-container {
+			height: 100%;
+			flex: 1;
+			min-height: 0;
+
+			.cm-editor {
+				height: 100%;
+				margin-top: 0;
+
+				.cm-gutters {
+					display: flex !important;
+					background-color: #f7f7f8 !important;
+					border: none !important;
+					border-right: 1px solid #e0e0e0 !important;
+					padding-right: 2px !important;
+					padding-left: 8px !important;
+					color: #8c8f94;
+					font-family: $font-family-monospace;
+					font-size: 13px;
+				}
+
+				.cm-lineNumbers {
+					font-size: 13px !important;
+
+					.cm-gutterElement {
+						font-size: 13px !important;
+						line-height: 19px !important;
+						padding: 0 8px 0 6px;
+						min-width: 32px;
+						text-align: right;
+						user-select: none;
+					}
+				}
+
+				.cm-foldGutter {
+					width: 16px;
+					cursor: pointer;
+
+					.cm-gutterElement {
+						padding: 0 2px;
+						color: #888;
+						user-select: none;
+						display: flex;
+						align-items: center;
+						justify-content: center;
+
+						span {
+							font-size: 0 !important;
+							display: inline-flex;
+							align-items: center;
+							justify-content: center;
+							width: 14px;
+							height: 14px;
+							line-height: 1;
+
+							&::before {
+								font-family: codicon, monospace !important;
+								font-size: 13px !important;
+								display: inline-block;
+								text-align: center;
+								-webkit-font-smoothing: antialiased;
+								-moz-osx-font-smoothing: grayscale;
+								user-select: none;
+								line-height: 1;
+								content: "\eab4"; // codicon-chevron-down
+							}
+
+							&[title*="Unfold"]::before,
+							&[aria-expanded="false"]::before,
+							&.closed::before {
+								content: "\eab6"; // codicon-chevron-right
+							}
+						}
+
+						&:hover {
+							span::before {
+								color: $wordpress-primary;
+							}
+						}
+					}
+				}
+
+				.cm-gutter-lint {
+					width: 16px;
+
+					.cm-gutterElement {
+						padding: 0 !important;
+						display: flex !important;
+						align-items: center !important;
+						justify-content: center !important;
+					}
+
+					.cm-lint-marker {
+						width: 13px !important;
+						height: 13px !important;
+					}
+
+					.cm-lint-marker-error {
+						content: none !important;
+						width: 13px !important;
+						height: 13px !important;
+						display: flex !important;
+						align-items: center !important;
+						justify-content: center !important;
+						cursor: pointer;
+
+						&::before {
+							content: "\ea76" !important;
+							font-family: codicon, monospace !important;
+							font-size: 13px !important;
+							line-height: 13px !important;
+							width: 13px !important;
+							height: 13px !important;
+							background: #cc1818 !important;
+							color: #fff !important;
+							border-radius: 50% !important;
+							text-align: center !important;
+							display: inline-block !important;
+							-webkit-font-smoothing: antialiased;
+							-moz-osx-font-smoothing: grayscale;
+							user-select: none;
+							margin-right: 1px;
+						}
+					}
+				}
+
+				.cm-scroller {
+					height: 100%;
+					overflow: auto;
+				}
+
+				.cm-content {
+					padding: 4px 8px;
+					min-height: 100%;
+				}
+			}
+		}
+	}
+}
+
+// Splitter Divider
+.scratchpad-splitter {
+	height: 6px;
+	background: #f0f0f1;
+	border-top: 1px solid #dcdcde;
+	border-bottom: 1px solid #dcdcde;
+	cursor: row-resize;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	user-select: none;
+	transition: background-color 0.15s ease, border-color 0.15s ease;
+	z-index: 10;
+	flex-shrink: 0;
+
+	.splitter-handle {
+		width: 36px;
+		height: 2px;
+		border-radius: 2px;
+		background: #a7aaad;
+		pointer-events: none;
+	}
+
+	&:hover,
+	&.dragging {
+		background: #e5f1fb;
+		border-color: #72aee6;
+
+		.splitter-handle {
+			background: $wordpress-primary;
+		}
+	}
+}
+
+// Bottom Output Section
+.scratchpad-output-section {
+	display: flex;
+	flex-direction: column;
+	min-height: 60px;
+	overflow: hidden;
+	background: #fff;
+}
+
+// Output Component Container
+.scratchpad-output {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
+	overflow: hidden;
+}
+
+// Output Header & Tabs
+.scratchpad-output-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: 36px;
+	min-height: 36px;
+	border-bottom: 2px solid #dcdcde;
+	background: #f6f7f7;
+	padding: 0 8px;
+	user-select: none;
+	flex-shrink: 0;
+
+	.scratchpad-output-tabs {
+		display: flex;
+		align-items: center;
+		height: 100%;
+		gap: 4px;
+		overflow-x: auto;
+		margin-top: 3px;
+
+		.scratchpad-tab-btn {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			height: 100%;
+			padding: 0 10px;
+			background: transparent;
+			border: none;
+			border-bottom: 2px solid transparent;
+			color: #666;
+			font-size: 13px;
+			font-family: $font-family-sans;
+			cursor: pointer;
+			transition: color 0.15s ease, border-color 0.15s ease;
+			white-space: nowrap;
+
+			.codicon {
+				font-size: 15px;
+			}
+
+			.tab-count-badge {
+				background: #dcdcde;
+				color: #333;
+				font-size: 11px;
+				font-weight: 600;
+				padding: 1px 6px;
+				border-radius: 10px;
+				line-height: 1.2;
+			}
+
+			&:hover {
+				color: #333;
+			}
+
+			&.active {
+				color: black;
+				border-bottom-color: $wordpress-primary;
+
+				.tab-count-badge {
+					background: $wordpress-primary;
+					color: #fff;
+				}
+			}
+		}
+	}
+
+	.scratchpad-output-actions {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+
+		.object-type-badge {
+			display: inline-flex;
+			align-items: center;
+			gap: 4px;
+			padding: 2px 8px;
+			border-radius: 3px;
+			background: #e6f4ea;
+			color: #137333;
+			font-size: 12px;
+			font-family: $font-family-monospace;
+			font-weight: 500;
+			margin-right: 4px;
+
+			.codicon {
+				font-size: 14px;
+			}
+		}
+
+		.output-action-btn {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 26px;
+			height: 26px;
+			padding: 0;
+			background: transparent;
+			border: 1px solid transparent;
+			border-radius: 3px;
+			color: #646970;
+			cursor: pointer;
+			transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+
+			.codicon {
+				font-size: 16px;
+			}
+
+			&:hover {
+				background: #f0f0f1;
+				color: #1d2327;
+				border-color: #dcdcde;
+			}
+
+			&:active {
+				background: #e5f1fb;
+				color: $wordpress-primary;
+			}
+		}
+	}
+}
+
+// Output Body
+.scratchpad-output-body {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+	padding: 6px 8px;
+	position: relative;
+	background: #fff;
+	display: flex;
+	flex-direction: column;
+
+	.scratchpad-output-loading {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 8px 6px;
+		color: #646970;
+		font-size: 13px;
+	}
+
+	.scratchpad-output-content {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+		height: 100%;
+	}
+
+	.scratchpad-tab-content {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+
+		&.visualization-content {
+			height: 100%;
+			min-height: 0;
+			overflow: auto;
+		}
+	}
+
+	.scratchpad-entries {
+		padding: 2px 0 0 !important;
+		margin: 0 !important;
+
+		.entry.out {
+			padding-bottom: 6px;
+			margin-bottom: 6px;
+			border-bottom: dashed 1px #cfcfcf;
+		}
+	}
+
+	.scratchpad-empty-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		flex: 1;
+		min-height: 100%;
+		color: #888;
+		gap: 10px;
+		font-size: 13px;
+		text-align: center;
+		padding: 20px;
+		box-sizing: border-box;
+		user-select: none;
+
+		.codicon {
+			font-size: 48px;
+			color: #888;
+			line-height: 1;
+		}
+
+		span {
+			color: #888;
+		}
+	}
+}
+

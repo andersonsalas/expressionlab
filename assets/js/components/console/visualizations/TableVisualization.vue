@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { handleDownload } from '../../../lib/api/client.js';
 import { __, sprintf, sanitizeHtml } from '../../../lib/helpers.js';
 
@@ -8,16 +8,23 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  defaultPageSize: {
+    type: Number,
+    default: 10,
+  },
 });
 
+const emit = defineEmits(['rendered']);
+
+const availablePageSizes = [10, 20, 50, 100];
+
 const isPaginated = ref(true);
-const pageSize = ref(10);
+const initialPageSize = props.data?.pageSize || props.data?.defaultPageSize || props.defaultPageSize || 10;
+const pageSize = ref(availablePageSizes.includes(initialPageSize) ? initialPageSize : 10);
 const currentPage = ref(1);
 const sortColumn = ref(null);
 const sortOrder = ref('asc'); // 'asc' | 'desc'
 const searchQueries = ref({});
-
-const availablePageSizes = [10, 20, 50, 100];
 
 // Get columns from the first row of data, if available
 const columns = computed(() => {
@@ -101,6 +108,16 @@ watch(pageSize, () => {
   currentPage.value = 1;
 });
 
+watch(
+  [() => props.data?.pageSize, () => props.data?.defaultPageSize, () => props.defaultPageSize],
+  ([newCustomSize, newCustomDefault, newPropDefault]) => {
+    const size = newCustomSize || newCustomDefault || newPropDefault;
+    if (size && availablePageSizes.includes(size)) {
+      pageSize.value = size;
+    }
+  }
+);
+
 // Actions
 function toggleSort(column) {
   if (sortColumn.value === column) {
@@ -149,6 +166,18 @@ function exportCsv() {
 
   handleDownload(csvContent, 'export.csv', 'text/csv;charset=utf-8;');
 }
+
+onMounted(() => {
+  nextTick(() => {
+    emit('rendered');
+  });
+});
+
+watch(displayedData, () => {
+  nextTick(() => {
+    emit('rendered');
+  });
+});
 </script>
 
 <template>
@@ -283,6 +312,9 @@ function exportCsv() {
 .fp-table-container {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
 }
 
 .table-controls {
@@ -302,19 +334,48 @@ function exportCsv() {
 }
 
 .table-scroll-wrapper {
-  overflow-x: auto;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
 }
 
 .fp-table {
   display: grid;
   grid-template-columns: repeat(var(--col-count), minmax(200px, 1fr));
   width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .fp-table thead,
 .fp-table tbody,
 .fp-table tr {
   display: contents;
+}
+
+.fp-table thead th {
+  position: sticky;
+  background: #f7f7f7;
+  box-sizing: border-box;
+}
+
+.fp-table thead tr:first-child th {
+  top: 0;
+  height: 26px;
+  line-height: 26px;
+  padding-top: 0;
+  padding-bottom: 0;
+  z-index: 3;
+  border-top: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
+}
+
+.fp-table thead tr.search-row th {
+  top: 26px;
+  z-index: 2;
+  border-bottom: 1px solid #ddd;
+  background-color: #f9f9f9;
+  padding: 3px;
 }
 
 .sortable-header {
@@ -331,11 +392,6 @@ function exportCsv() {
   margin-left: 5px;
   font-size: 0.8em;
   float: right;
-}
-
-.search-row th {
-  padding: 3px;
-  background-color: #f9f9f9;
 }
 
 .column-search {

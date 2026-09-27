@@ -3,12 +3,12 @@ import { ref, onMounted, onUnmounted, nextTick, computed, watch } from 'vue';
 import { useUiStore } from '../stores/ui';
 import { useOutlineStore } from '../stores/outline.js';
 import { handleFetch } from '../lib/api/client.js';
-import { debugLog, __ } from '../lib/helpers.js';
+import { debugLog, __, sprintf } from '../lib/helpers.js';
 import ConsoleSidebar from '../components/console/ConsoleSidebar.vue';
 import ConsoleLog from '../components/console/ConsoleLog.vue';
 import ConsoleEditor from '../components/console/ConsoleEditor.vue';
+import ScratchpadOutput from '../components/console/ScratchpadOutput.vue';
 import PaginatedSearchDropdown from '../components/ui/PaginatedSearchDropdown.vue';
-
 
 let signatureInterval = null;
 
@@ -43,6 +43,15 @@ const signatureDuration = window.el_settings.settings.signature_duration ?? 30;
 const signatureTimeRemaining = ref(0);
 const signatureProgress = ref(0);
 const editorRef = ref(null);
+const scratchpadEditorRef = ref(null);
+const isScratchpad = ref(false);
+const scratchpadResult = ref(null);
+const isScratchpadOutputVisible = ref(false);
+const isSidebarVisible = ref(true);
+const scratchpadEditorRatio = ref(50);
+const isDraggingSplitter = ref(false);
+const isAutoAdjusting = ref(false);
+let pendingEvaluationAutoAdjust = false;
 const enableSandbox = window.el_settings.settings.enable_sandbox;
 
 const updateSignatureTime = () => {
@@ -61,9 +70,12 @@ watch(() => uiStore.challengeFetchedAt, updateSignatureTime);
 watch(
   () => uiStore.snippetToInsert,
   (code) => {
-    if (code && editorRef.value) {
-      editorRef.value.insertSnippet(code, { replaceWord: true });
-      uiStore.triggerSnippetInsert(null);
+    if (code) {
+      const activeEditor = isScratchpad.value ? scratchpadEditorRef.value : editorRef.value;
+      if (activeEditor) {
+        activeEditor.insertSnippet(code, { replaceWord: true });
+        uiStore.triggerSnippetInsert(null);
+      }
     }
   }
 );
@@ -123,8 +135,266 @@ const clearConsole = () => {
   nextTick(() => scrollBufferToBottom(true));
 };
 
+
+const toggleScratchpad = () => {
+  isScratchpad.value = !isScratchpad.value;
+  nextTick(() => {
+    if (isScratchpad.value) {
+      scratchpadEditorRef.value?.focus();
+    } else {
+      editorRef.value?.focus();
+      scrollBufferToBottom(true);
+    }
+  });
+};
+
+const executeScratchpad = (input = null) => {
+  if (loading.value) return;
+  const code = input ?? scratchpadEditorRef.value?.getEditorValue() ?? '';
+  if (!code.trim()) return;
+
+  loading.value = true;
+
+  const requestBody = new URLSearchParams({
+    action: 'expressionlab_evaluate_expression',
+    nonce: window.el_settings.nonce,
+    expression: code,
+  });
+
+  if (selectedUser.value) requestBody.append('user_id', selectedUser.value);
+  if (selectedSite.value) requestBody.append('site_id', selectedSite.value);
+
+  handleFetch(window.el_settings.ajax_url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+    },
+    body: requestBody,
+  })
+    .then((response) => response.json())
+    .then((response) => {
+      if (response.success === true) {
+        scratchpadResult.value = {
+          result: response.data.result ?? 'null',
+          messages: response.data.messages ?? [],
+          visualizations: response.data.visualizations ?? [],
+          object_type: response.data.object_type ?? null,
+          type: null,
+        };
+      } else {
+        scratchpadResult.value = {
+          result: response.data.message ?? __('Error evaluating expression.'),
+          messages: response.data.messages ?? [],
+          visualizations: [],
+          object_type: null,
+          type: 'error',
+        };
+      }
+      isScratchpadOutputVisible.value = true;
+      loading.value = false;
+      if (response.success === true && Array.isArray(response.data.visualizations) && response.data.visualizations.length > 0) {
+        pendingEvaluationAutoAdjust = true;
+      }
+      nextTick(() => {
+        scratchpadEditorRef.value?.focus();
+      });
+    })
+    .catch(() => {
+      scratchpadResult.value = {
+        result: __('Error evaluating expression.'),
+        messages: [],
+        visualizations: [],
+        object_type: null,
+        type: 'error',
+      };
+      isScratchpadOutputVisible.value = true;
+      loading.value = false;
+      nextTick(() => {
+        scratchpadEditorRef.value?.focus();
+      });
+    });
+};
+
+const clearScratchpadOutput = () => {
+  scratchpadResult.value = null;
+};
+
+const handleClearScratchpad = () => {
+  scratchpadEditorRef.value?.clearEditor();
+  scratchpadResult.value = null;
+};
+
+const handleSaveScratchpadSnippet = () => {
+  const code = scratchpadEditorRef.value?.getEditorValue() || '';
+  uiStore.openModal('library', { draftCode: code });
+};
+
+const toggleSidebar = () => {
+  isSidebarVisible.value = !isSidebarVisible.value;
+};
+
+const startSplitterDrag = (e) => {
+  if (e.detail === 2) {
+    e.preventDefault();
+    adjustOutputForVisualization(true);
+    return;
+  }
+  e.preventDefault();
+  isDraggingSplitter.value = true;
+  const container = document.querySelector('.scratchpad-workspace');
+  if (!container) return;
+
+  const rect = container.getBoundingClientRect();
+  const startRatio = scratchpadEditorRatio.value;
+  const startY = e.clientY;
+
+  const onMouseMove = (moveEvent) => {
+    const deltaY = moveEvent.clientY - startY;
+    const newRatio = startRatio + (deltaY / rect.height) * 100;
+    scratchpadEditorRatio.value = Math.max(15, Math.min(85, newRatio));
+  };
+
+  const onMouseUp = () => {
+    isDraggingSplitter.value = false;
+    window.removeEventListener('mousemove', onMouseMove);
+    window.removeEventListener('mouseup', onMouseUp);
+  };
+
+  window.addEventListener('mousemove', onMouseMove);
+  window.addEventListener('mouseup', onMouseUp);
+};
+
+const adjustOutputForVisualization = (force = false, retryCount = 0) => {
+  nextTick(() => {
+    requestAnimationFrame(() => {
+      const workspaceEl = document.querySelector('.scratchpad-workspace');
+      const outputSectionEl = document.querySelector('.scratchpad-output-section');
+      if (!workspaceEl || !outputSectionEl) return;
+
+      // If output section is not visible yet, retry up to 15 frames (~250ms)
+      if (outputSectionEl.offsetParent === null && retryCount < 15) {
+        requestAnimationFrame(() => adjustOutputForVisualization(force, retryCount + 1));
+        return;
+      }
+
+      const workspaceHeight = workspaceEl.getBoundingClientRect().height;
+      if (!workspaceHeight || workspaceHeight <= 0) return;
+
+      const MIN_EDITOR_PX = 220;
+      const SPLITTER_PX = 6;
+      const maxOutputHeight = Math.max(60, workspaceHeight - MIN_EDITOR_PX - SPLITTER_PX);
+
+      // Measure header height
+      const headerEl = outputSectionEl.querySelector('.scratchpad-output-header');
+      const headerHeight = headerEl ? headerEl.getBoundingClientRect().height : 36;
+
+      // Measure body padding
+      const bodyEl = outputSectionEl.querySelector('.scratchpad-output-body');
+      let bodyPadding = 12;
+      if (bodyEl) {
+        const cs = window.getComputedStyle(bodyEl);
+        bodyPadding = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+      }
+
+      // Measure active visualization content — ONLY intrinsic element sizes,
+      // NEVER container scrollHeight/clientHeight (which causes feedback loops).
+      let vizContentHeight = 0;
+      const vizRoot = outputSectionEl.querySelector('.visualization-content');
+
+      const tableEl = outputSectionEl.querySelector('.fp-table');
+      const tableControlsEl = outputSectionEl.querySelector('.table-controls');
+      const tableScrollWrapper = outputSectionEl.querySelector('.table-scroll-wrapper');
+
+      if (tableEl) {
+        const controlsHeight = tableControlsEl ? tableControlsEl.getBoundingClientRect().height + 8 : 0;
+        const tableHeight = tableEl.getBoundingClientRect().height;
+        const hasHScroll = tableScrollWrapper && (tableScrollWrapper.scrollWidth > tableScrollWrapper.clientWidth);
+        const scrollbarHeight = hasHScroll ? 16 : 0;
+
+        vizContentHeight = controlsHeight + tableHeight + scrollbarHeight + 8;
+      } else if (vizRoot) {
+        const svgEl = vizRoot.querySelector('svg');
+        const canvasEl = vizRoot.querySelector('canvas');
+        const vegaActions = vizRoot.querySelector('.vega-actions');
+
+        if (svgEl || canvasEl) {
+          const graphicEl = svgEl || canvasEl;
+          const graphicHeight = graphicEl.getBoundingClientRect().height;
+          const actionsHeight = vegaActions ? (vegaActions.getBoundingClientRect().height || 26) : 0;
+          vizContentHeight = graphicHeight + actionsHeight + 12;
+        } else {
+          // Fallback: measure bounding box of all child elements
+          const vizRect = vizRoot.getBoundingClientRect();
+          let maxBottom = vizRect.top;
+          const elements = vizRoot.querySelectorAll('*');
+          elements.forEach((el) => {
+            const r = el.getBoundingClientRect();
+            if (r.bottom > maxBottom) {
+              maxBottom = r.bottom;
+            }
+          });
+          vizContentHeight = maxBottom > vizRect.top ? (maxBottom - vizRect.top + 8) : 0;
+        }
+      }
+
+      // If visualization DOM elements are not yet mounted or 0 height, retry next frame
+      if (vizContentHeight <= 0 && retryCount < 15) {
+        requestAnimationFrame(() => adjustOutputForVisualization(force, retryCount + 1));
+        return;
+      }
+
+      if (vizContentHeight <= 0) return;
+
+      const neededOutputHeight = Math.ceil(headerHeight + bodyPadding + vizContentHeight + 6);
+      const currentOutputHeight = outputSectionEl.getBoundingClientRect().height;
+
+      // Idempotency guard: if the difference is negligible, skip adjustment
+      if (Math.abs(neededOutputHeight - currentOutputHeight) < 4) {
+        return;
+      }
+
+      // Unidirectional rule: Only shrink editor (grow output), NEVER expand editor automatically
+      if (!force && neededOutputHeight <= currentOutputHeight) {
+        return;
+      }
+
+      const targetOutputHeight = Math.min(neededOutputHeight, maxOutputHeight);
+
+      if (!force && targetOutputHeight <= currentOutputHeight) {
+        return;
+      }
+
+      const targetEditorPx = Math.max(MIN_EDITOR_PX, workspaceHeight - targetOutputHeight - SPLITTER_PX);
+      const targetEditorRatio = (targetEditorPx / workspaceHeight) * 100;
+
+      // Apply with smooth transition
+      isAutoAdjusting.value = true;
+      scratchpadEditorRatio.value = Math.max(15, Math.min(85, targetEditorRatio));
+
+      setTimeout(() => {
+        isAutoAdjusting.value = false;
+      }, 260);
+    });
+  });
+};
+
+const handleScratchpadTabChange = () => {
+  // (Empty)
+};
+
+const handleVisualizationRendered = () => {
+  if (pendingEvaluationAutoAdjust) {
+    pendingEvaluationAutoAdjust = false;
+    adjustOutputForVisualization(false);
+  }
+};
+
 const handleFormatCode = () => {
-  editorRef.value?.formatCode();
+  if (isScratchpad.value) {
+    scratchpadEditorRef.value?.formatCode();
+  } else {
+    editorRef.value?.formatCode();
+  }
 };
 
 const handleExecute = (input) => {
@@ -225,19 +495,20 @@ const handleHistoryNav = (direction) => {
 };
 
 const handleEditEntry = (index, type = 'input', customText = null) => {
+  const activeEditor = isScratchpad.value ? scratchpadEditorRef.value : editorRef.value;
   if (customText !== null) {
       uiStore.setConsoleMode('evaluate');
-      if (editorRef.value) {
-        editorRef.value.setEditorValue(customText);
+      if (activeEditor) {
+        activeEditor.setEditorValue(customText);
         nextTick(() => {
-          editorRef.value.focus();
-          editorRef.value.moveCursorToEnd();
+          activeEditor.focus();
+          activeEditor.moveCursorToEnd();
         });
       }
       return;
   }
   const item = history.value[index];
-  if (item && editorRef.value) {
+  if (item && activeEditor) {
     let text = item.input;
     if (type === 'output') {
         text = (typeof item.output === 'object' && item.output !== null) 
@@ -245,10 +516,10 @@ const handleEditEntry = (index, type = 'input', customText = null) => {
                : String(item.output); 
     }
 
-    editorRef.value.setEditorValue(text);
+    activeEditor.setEditorValue(text);
     nextTick(() => {
-      editorRef.value.focus();
-      editorRef.value.moveCursorToEnd();
+      activeEditor.focus();
+      activeEditor.moveCursorToEnd();
     });
   }
 };
@@ -259,19 +530,29 @@ const handleRunCode = (code) => {
           ? JSON.stringify(code, null, 2) 
           : String(code);
 
-  handleExecute(text);
-
-  if (editorRef.value) {
-    editorRef.value.setEditorValue('');
-    nextTick(() => {
-      editorRef.value.focus();
-    });
+  if (isScratchpad.value) {
+    if (scratchpadEditorRef.value) {
+      scratchpadEditorRef.value.setEditorValue(text);
+      nextTick(() => {
+        scratchpadEditorRef.value.focus();
+      });
+    }
+    executeScratchpad(text);
+  } else {
+    handleExecute(text);
+    if (editorRef.value) {
+      editorRef.value.setEditorValue('');
+      nextTick(() => {
+        editorRef.value.focus();
+      });
+    }
   }
 };
 
 const handleSidebarItemClick = (item) => {
-    if (editorRef.value && item && item.insertText) {
-        editorRef.value.insertSnippet(item.insertText);
+    const activeEditor = isScratchpad.value ? scratchpadEditorRef.value : editorRef.value;
+    if (activeEditor && item && item.insertText) {
+        activeEditor.insertSnippet(item.insertText);
     }
 };
 
@@ -321,26 +602,73 @@ onUnmounted(() => {
   <div class="console-content">
     <div class="console-main">
       <div class="console-toolbar">
-        <div class="console-toolbar-group">
+        <div class="console-toolbar-group group-scratchpad">
           <div
             class="console-toolbar-button"
-            @click="clearConsole"
+            :class="{ active: isScratchpad }"
+            :title="__('Toggle Scratchpad mode')"
+            @click="toggleScratchpad"
+          >
+            <div class="codicon codicon-notebook" />
+            <span>{{ __('Scratchpad') }}</span>
+          </div>
+        </div>
+
+        <template v-if="isScratchpad">
+          <div class="console-toolbar-group">
+            <div
+              class="console-toolbar-button menu btn-scratchpad-run"
+              :class="{ disabled: loading }"
+              :title="loading ? __('Evaluating expression...') : __('Run (Ctrl+Enter / Cmd+Enter / Ctrl+R)')"
+              @click="!loading && executeScratchpad()"
+            >
+              <div
+                v-if="loading"
+                class="metro-spinner"
+              />
+              <div
+                v-else
+                class="codicon codicon-play"
+                style="color: #3858e9;"
+              />
+            </div>
+          </div>
+          <div class="console-toolbar-group">
+            <div
+              class="console-toolbar-button menu"
+              :title="__('Save snippet to Library')"
+              @click="handleSaveScratchpadSnippet"
+            >
+              <div
+                class="codicon codicon-save"
+                style="color: #3858e9;"
+              />
+            </div>
+          </div>
+        </template>
+
+        <div class="console-toolbar-group group-clear">
+          <div
+            class="console-toolbar-button"
+            :title="__('Clear')"
+            @click="isScratchpad ? handleClearScratchpad() : clearConsole()"
           >
             <div class="codicon codicon-circle-slash" />
             <span>{{ __('Clear') }}</span>
           </div>
         </div>
-        <div class="console-toolbar-group">
+
+        <div class="console-toolbar-group group-format">
           <div
             class="console-toolbar-button"
             :title="__('Format code (Shift+Alt+F)')"
             @click="handleFormatCode"
           >
-            <div class="codicon codicon-wand" />
+            <div class="codicon codicon-json" />
             <span>{{ __('Format') }}</span>
           </div>
         </div>
-        <div class="console-toolbar-group">
+        <div class="console-toolbar-group group-users">
           <PaginatedSearchDropdown 
             v-model="selectedUser"
             :label="__('User')"
@@ -353,7 +681,7 @@ onUnmounted(() => {
           />
         </div>
         <div
-          class="console-toolbar-group"
+          class="console-toolbar-group group-sites"
         >
           <PaginatedSearchDropdown 
             v-if="isMultisite"
@@ -387,9 +715,10 @@ onUnmounted(() => {
             </div>
           </div>
         </div>
-        <div class="console-toolbar-group">
+        <div class="console-toolbar-group group-library">
           <div
             class="console-toolbar-button"
+            :title="__('Library')"
             @click="uiStore.openModal('library')"
           >
             <div class="codicon codicon-library" />
@@ -399,14 +728,43 @@ onUnmounted(() => {
         <div class="console-toolbar-group pull-right">
           <div
             class="console-toolbar-button menu"
+            :class="{
+              active: isScratchpad && isScratchpadOutputVisible,
+              disabled: !isScratchpad
+            }"
+            :title="isScratchpad ? __('Toggle output panel') : __('Toggle output panel (Scratchpad mode only)')"
+            @click="isScratchpad && (isScratchpadOutputVisible = !isScratchpadOutputVisible)"
+          >
+            <div class="codicon codicon-layout-panel" />
+          </div>
+          <div
+            class="console-toolbar-button menu"
+            :class="{ active: isSidebarVisible }"
+            :title="__('Toggle sidebar outline')"
+            @click="toggleSidebar"
+          >
+            <div class="codicon codicon-layout-sidebar-right" />
+          </div>
+          <div
+            class="console-toolbar-button menu"
+            :title="__('About Expression Lab')"
             @click="uiStore.openModal('about')"
           >
             <div class="codicon codicon-info" />
           </div>
         </div>
       </div>
-      <div class="console-buffer">
-        <ul class="entries">
+      <div
+        class="console-buffer"
+        :class="{
+          'scratchpad-active': isScratchpad,
+          'sidebar-hidden': !isSidebarVisible
+        }"
+      >
+        <ul
+          v-show="!isScratchpad"
+          class="entries"
+        >
           <!-- History Log -->
           <ConsoleLog 
             :entries="history" 
@@ -419,14 +777,62 @@ onUnmounted(() => {
             :loading="loading"
             :completion-items="outlineStore.outlineFlat"
             :chain-data="outlineStore.outlineChained"
+            mode="repl"
             @execute="handleExecute"
             @clear="clearConsole"
             @history-up="handleHistoryNav('up')"
             @history-down="handleHistoryNav('down')"
           />
         </ul>
+
+        <!-- Scratchpad Workspace -->
+        <div
+          v-show="isScratchpad"
+          class="scratchpad-workspace"
+          :class="{ 'auto-adjusting': isAutoAdjusting }"
+        >
+          <div
+            class="scratchpad-editor-section"
+            :style="isScratchpadOutputVisible ? { height: `${scratchpadEditorRatio}%` } : { height: '100%' }"
+          >
+            <ConsoleEditor
+              ref="scratchpadEditorRef"
+              :loading="false"
+              :completion-items="outlineStore.outlineFlat"
+              :chain-data="outlineStore.outlineChained"
+              mode="scratchpad"
+              @execute="executeScratchpad"
+            />
+          </div>
+
+          <div
+            v-if="isScratchpadOutputVisible"
+            class="scratchpad-splitter"
+            :class="{ dragging: isDraggingSplitter }"
+            :title="__('Drag to resize / Double-click to auto-fit')"
+            @mousedown="startSplitterDrag"
+          >
+            <div class="splitter-handle" />
+          </div>
+
+          <div
+            v-show="isScratchpadOutputVisible"
+            class="scratchpad-output-section"
+            :style="{ height: `calc(${100 - scratchpadEditorRatio}% - 6px)` }"
+          >
+            <ScratchpadOutput
+              :result="scratchpadResult"
+              :loading="loading"
+              @clear-output="clearScratchpadOutput"
+              @close="isScratchpadOutputVisible = false"
+              @tab-change="handleScratchpadTabChange"
+              @visualization-rendered="handleVisualizationRendered"
+            />
+          </div>
+        </div>
         
         <ConsoleSidebar 
+          v-show="isSidebarVisible"
           :outline-tree="outlineStore.outlineTree" 
           :loading="outlineStore.loading" 
           @item-click="handleSidebarItemClick"
