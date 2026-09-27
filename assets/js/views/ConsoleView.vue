@@ -609,7 +609,7 @@ onUnmounted(() => {
             :title="__('Toggle Scratchpad mode')"
             @click="toggleScratchpad"
           >
-            <div class="codicon codicon-edit" />
+            <div class="codicon codicon-notebook" />
             <span>{{ __('Scratchpad') }}</span>
           </div>
         </div>
