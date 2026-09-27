@@ -54,26 +54,11 @@ sequenceDiagram
     Engine-->>Browser: Return JSON response
 ```
 
-### 1. Cryptographic Authentication
+Authentication operates through client-side key derivation and cryptographic request signing. The browser generates ephemeral keys in memory to sign each request, and the backend verifies the signature without storing master passphrases, private keys, or credentials in the WordPress database.
 
-* **Client-Side Key Derivation**: When unlocking the console, the master passphrase derives an **Ed25519** key pair in browser memory for the active session, using **Argon2id** and the native [Web Crypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API).
-* **Zero Database Credentials**: Neither the master passphrase nor the private key is sent to the server or written to the WordPress database or server filesystem.
-* **Configuration Pinning**: The designated administrator's public key is configured in `wp-config.php`:
-  ```php
-  define( 'EXPRESSION_LAB_ADMIN_USER_ID', 1 );
-  define( 'EXPRESSION_LAB_ADMIN_PUBLIC_KEY', 'your_hex_encoded_public_key' );
-  define( 'EXPRESSION_LAB_ADMIN_SALT', 'your_unique_salt' );
-  ```
-* **Single Designated User**: Access is restricted to the specific user matching the `EXPRESSION_LAB_ADMIN_USER_ID` constant defined in `wp-config.php` (holding the `administrator` role).
-* **Challenge Nonces**: Short-lived challenge nonces and timestamps are validated on every request to mitigate replay risks.
+The runtime enforces strict operational boundaries. Expressions evaluate declaratively inside an isolated AST engine rather than arbitrary PHP execution, database operations default to read-only access, the console UI runs in a sandboxed iframe, and an execution timer acts as a CPU watchdog to terminate runaway requests.
 
-### 2. Operational Guardrails
-
-* **Read-Only by Default**: Database queries are read-only by default to prevent accidental modifications. Writing data requires opting in via `EXPRESSION_LAB_DATABASE_READONLY` in `wp-config.php`.
-* **In-Memory SQLite Mirroring (`Database.mirror()`)**: Allows copying subsets of table data into an ephemeral `:memory:` SQLite3 instance to perform complex queries, aggregations, and joins without running analytical queries against the live MySQL database.
-* **Filesystem Boundaries**: The `Files` inspection service is read-only. Reads are bounded (up to 256 KB for raw reads).
-* **Outbound Network Restrictions**: The `Http` service blocks outgoing requests by default and prevents self-requests to sensitive internal IP addresses.
-* **Execution Limits**: A CPU timer aborts expressions that exceed the configured threshold (default: 2 seconds).
+For an in-depth breakdown of the cryptographic model, boundary limits, and threat assumptions, see the [Security Model documentation](https://expressionlab.io/docs/security/security-and-environment).
 
 ---
 
@@ -108,11 +93,11 @@ Mirroring tables allows running SQL queries:
 
 ```javascript
 Database.mirror('posts', { 'post_author': 1 }, { 'limit': 100 })
-    .query('
-        SELECT 
-			(SELECT count(*) FROM wp_posts WHERE post_status = "publish") published,
-			(SELECT count(*) FROM wp_posts WHERE post_status = "draft") drafts,
-			(SELECT count(*) FROM wp_posts WHERE post_status = "trash") trashed
+  .query('
+    SELECT 
+      (SELECT count(*) FROM wp_posts WHERE post_status = "publish") published,
+      (SELECT count(*) FROM wp_posts WHERE post_status = "draft") drafts,
+      (SELECT count(*) FROM wp_posts WHERE post_status = "trash") trashed
   ')
 ```
 
@@ -151,19 +136,10 @@ prog[
 | **Environment** | Single-site & Multisite | Automated tests run against both configurations |
 | **Browser** | Modern Chromium, Firefox, or Safari | Requires native Web Crypto API support |
 
----
-
-## Security & Production Notice
-
-> [!CAUTION]
-> **DISCLAIMER**
-> 
-> * **Alpha Status**: This project is in active, experimental development.
-> * **No Independent Audit**: No formal third-party cryptographic or security review has been performed.
-> * **Environment Scope**: Intended for local sandbox analysis, troubleshooting, and staging servers. **Do not install in mission-critical or production deployments.**
-> * **No Warranty**: As provided by the GPL-2.0 license, the software comes with zero guarantees or liability for downtime, compromise, or data damage.
-
 ## Installation & Setup
+
+> [!WARNING]
+> Expression Lab is currently experimental alpha software intended for staging, local development, and sandboxed diagnostic environments. It has not undergone third-party security audits. Do not use in production or business-critical environments. Provided under the GPL-2.0 license without warranty.
 
 ### 1. Installation
 
@@ -246,7 +222,7 @@ pnpm run build          # Production minified bundle
 > ```php
 > define( 'EXPRESSION_LAB_SANDBOX_ENABLED', false );
 > ```
-> *Keep this enabled in production environments. Note: do not confuse this with `EXPRESSION_LAB_DEBUG_MODE`, which is reserved for internal plugin engine debugging and must not be enabled on active sites.*
+> *Keep this enabled in production environments.*
 
 ### Documentation (Docusaurus)
 
