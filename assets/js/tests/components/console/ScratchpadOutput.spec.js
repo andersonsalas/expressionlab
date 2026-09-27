@@ -14,7 +14,8 @@ jest.mock('../../../lib/api/client.js', () => ({
 
 jest.mock('vue-json-pretty', () => ({
   name: 'VueJsonPretty',
-  template: '<div class="vue-json-pretty-mock"></div>',
+  props: ['data', 'deep', 'showLength', 'showIcon'],
+  template: '<div class="vue-json-pretty-mock" :data-deep="deep"></div>',
 }));
 
 describe('ScratchpadOutput.vue', () => {
@@ -131,6 +132,26 @@ describe('ScratchpadOutput.vue', () => {
     });
     expect(nullWrapper.find('pre.hljs').html()).toContain('hljs-literal');
     expect(nullWrapper.text()).toContain('null');
+  });
+
+  it('renders VueJsonPretty with deep=1 for non-scalar results', () => {
+    const wrapper = mount(ScratchpadOutput, {
+      props: {
+        result: {
+          result: [{ option_id: '1', option_name: 'cron' }],
+          messages: [],
+          visualizations: [],
+          type: null,
+        },
+        loading: false,
+      },
+    });
+
+    const jsonPretty = wrapper.findComponent({ name: 'VueJsonPretty' });
+    expect(jsonPretty.exists()).toBe(true);
+    expect(jsonPretty.props('deep')).toBe(1);
+    expect(jsonPretty.props('showLength')).toBe(true);
+    expect(jsonPretty.props('showIcon')).toBe(true);
   });
 
   it('renders error entry when type is error', () => {

@@ -275,7 +275,7 @@ const copyOutput = () => {
             :data="rawResult"
             :show-length="true"
             :show-icon="true"
-            :deep="2"
+            :deep="1"
           />
           <ul
             v-else
