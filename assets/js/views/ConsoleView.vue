@@ -602,7 +602,7 @@ onUnmounted(() => {
   <div class="console-content">
     <div class="console-main">
       <div class="console-toolbar">
-        <div class="console-toolbar-group">
+        <div class="console-toolbar-group group-scratchpad">
           <div
             class="console-toolbar-button"
             :class="{ active: isScratchpad }"
@@ -647,7 +647,7 @@ onUnmounted(() => {
           </div>
         </template>
 
-        <div class="console-toolbar-group">
+        <div class="console-toolbar-group group-clear">
           <div
             class="console-toolbar-button"
             :title="__('Clear')"
@@ -658,7 +658,7 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div class="console-toolbar-group">
+        <div class="console-toolbar-group group-format">
           <div
             class="console-toolbar-button"
             :title="__('Format code (Shift+Alt+F)')"
@@ -668,7 +668,7 @@ onUnmounted(() => {
             <span>{{ __('Format') }}</span>
           </div>
         </div>
-        <div class="console-toolbar-group">
+        <div class="console-toolbar-group group-users">
           <PaginatedSearchDropdown 
             v-model="selectedUser"
             :label="__('User')"
@@ -681,7 +681,7 @@ onUnmounted(() => {
           />
         </div>
         <div
-          class="console-toolbar-group"
+          class="console-toolbar-group group-sites"
         >
           <PaginatedSearchDropdown 
             v-if="isMultisite"
@@ -715,9 +715,10 @@ onUnmounted(() => {
             </div>
           </div>
         </div>
-        <div class="console-toolbar-group">
+        <div class="console-toolbar-group group-library">
           <div
             class="console-toolbar-button"
+            :title="__('Library')"
             @click="uiStore.openModal('library')"
           >
             <div class="codicon codicon-library" />

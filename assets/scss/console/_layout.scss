@@ -1,12 +1,33 @@
+// Helper mixin for compact icon-only toolbar buttons
+@mixin toolbar-button-compact {
+	width: 34px;
+	height: 34px;
+	padding: 6px;
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+
+	span {
+		display: none;
+	}
+
+	.codicon {
+		margin-right: 0;
+	}
+}
+
 .console-content {
 	display: grid;
 	min-height: 0;
+	min-width: 0;
 }
 
 .console-main {
 	display: grid;
 	grid-template-rows: 45px 1fr;
 	min-height: 0;
+	min-width: 0;
 }
 
 // Toolbar
@@ -14,6 +35,9 @@
 	height: 100%;
 	border-bottom: solid 1px $border-color;
 	display: flex;
+	min-width: 0;
+	container-type: inline-size;
+	container-name: toolbar;
 
 	.console-toolbar-logo,
 	.console-toolbar-group {
@@ -109,6 +133,44 @@
 				&:last-child {
 					margin-right: 0;
 				}
+			}
+		}
+	}
+
+	// Responsive Container Queries
+	@container toolbar (max-width: 1200px) {
+		.group-clear,
+		.group-format,
+		.group-library {
+			.console-toolbar-button {
+				@include toolbar-button-compact;
+			}
+		}
+	}
+
+	@container toolbar (max-width: 1050px) {
+		.group-scratchpad {
+			.console-toolbar-button {
+				@include toolbar-button-compact;
+			}
+		}
+
+		.searchable-dropdown-container {
+			.searchable-dropdown-trigger {
+				width: 150px;
+			}
+		}
+	}
+
+	@container toolbar (max-width: 850px) {
+		.console-toolbar-group {
+			padding: 4px;
+		}
+
+		.searchable-dropdown-container {
+			.searchable-dropdown-trigger {
+				width: 120px;
+				padding: 6px 8px;
 			}
 		}
 	}
