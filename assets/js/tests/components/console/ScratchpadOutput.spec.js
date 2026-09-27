@@ -223,4 +223,31 @@ describe('ScratchpadOutput.vue', () => {
 
     expect(client.handleClipboardCopy).toHaveBeenCalledWith('Hello World');
   });
+
+  it('renders table visualization with defaultPageSize of 100 in scratchpad', async () => {
+    const wrapper = mount(ScratchpadOutput, {
+      props: {
+        result: {
+          result: [{ id: 1, name: 'Alice' }],
+          visualizations: [
+            {
+              type: 'table',
+              title: 'Test Table',
+              data: [{ id: 1, name: 'Alice' }],
+            },
+          ],
+        },
+        loading: false,
+      },
+    });
+
+    await wrapper.vm.$nextTick();
+
+    const tableViz = wrapper.findComponent({ name: 'TableVisualization' });
+    expect(tableViz.exists()).toBe(true);
+    expect(tableViz.props('defaultPageSize')).toBe(100);
+    const select = wrapper.find('.page-size-select');
+    expect(select.exists()).toBe(true);
+    expect(select.element.value).toBe('100');
+  });
 });

@@ -8,18 +8,23 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  defaultPageSize: {
+    type: Number,
+    default: 10,
+  },
 });
 
 const emit = defineEmits(['rendered']);
 
+const availablePageSizes = [10, 20, 50, 100];
+
 const isPaginated = ref(true);
-const pageSize = ref(10);
+const initialPageSize = props.data?.pageSize || props.data?.defaultPageSize || props.defaultPageSize || 10;
+const pageSize = ref(availablePageSizes.includes(initialPageSize) ? initialPageSize : 10);
 const currentPage = ref(1);
 const sortColumn = ref(null);
 const sortOrder = ref('asc'); // 'asc' | 'desc'
 const searchQueries = ref({});
-
-const availablePageSizes = [10, 20, 50, 100];
 
 // Get columns from the first row of data, if available
 const columns = computed(() => {
@@ -102,6 +107,16 @@ watch(isPaginated, () => {
 watch(pageSize, () => {
   currentPage.value = 1;
 });
+
+watch(
+  [() => props.data?.pageSize, () => props.data?.defaultPageSize, () => props.defaultPageSize],
+  ([newCustomSize, newCustomDefault, newPropDefault]) => {
+    const size = newCustomSize || newCustomDefault || newPropDefault;
+    if (size && availablePageSizes.includes(size)) {
+      pageSize.value = size;
+    }
+  }
+);
 
 // Actions
 function toggleSort(column) {

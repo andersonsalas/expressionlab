@@ -301,6 +301,7 @@ const copyOutput = () => {
             :is="getComponent(visualizations[activeTab].type)"
             v-if="getComponent(visualizations[activeTab].type)"
             :data="visualizations[activeTab]"
+            :default-page-size="visualizations[activeTab].type === 'table' ? 100 : undefined"
             @rendered="onVizRendered"
           />
           <div
