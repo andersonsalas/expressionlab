@@ -72,12 +72,17 @@ const config = {
         docs: {
           sidebarPath: './sidebars.js',
           routeBasePath: 'docs', // Serve documentation under /docs/
+          lastVersion: 'current',
           versions: {
             current: {
-              label: 'Next',
+              label: '0.1.0-alpha',
+              path: '',
+              banner: 'none',
             },
             '0.0.3-alpha': {
               label: '0.0.3-alpha',
+              path: '0.0.3-alpha',
+              banner: 'none',
             },
           },
         },
