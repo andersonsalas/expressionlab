@@ -64,6 +64,27 @@ class Updater {
 	const HOMEPAGE_URL = 'https://expressionlab.io';
 
 	/**
+	 * Default minimum required WordPress version.
+	 *
+	 * @var string
+	 */
+	const DEFAULT_REQUIRES_WP = '6.4';
+
+	/**
+	 * Default minimum required PHP version.
+	 *
+	 * @var string
+	 */
+	const DEFAULT_REQUIRES_PHP = '8.2';
+
+	/**
+	 * Default tested WordPress version.
+	 *
+	 * @var string
+	 */
+	const DEFAULT_TESTED_WP = '7.1';
+
+	/**
 	 * Initializes update hooks.
 	 *
 	 * @since 0.0.1
@@ -111,9 +132,9 @@ class Updater {
 				'new_version'  => $manifest['version'],
 				'url'          => $homepage_url,
 				'package'      => $manifest['download_url'] ?? '',
-				'requires'     => $manifest['requires'] ?? '6.4',
-				'requires_php' => $manifest['requires_php'] ?? '8.1',
-				'tested'       => $manifest['tested'] ?? '6.9.4',
+				'requires'     => $manifest['requires'] ?? self::DEFAULT_REQUIRES_WP,
+				'requires_php' => $manifest['requires_php'] ?? self::DEFAULT_REQUIRES_PHP,
+				'tested'       => $this->normalize_tested_version( (string) ( $manifest['tested'] ?? self::DEFAULT_TESTED_WP ) ),
 			);
 
 			$transient->response[ $plugin_basename ] = $item;
@@ -126,9 +147,9 @@ class Updater {
 				'new_version'  => $current_version,
 				'url'          => $homepage_url,
 				'package'      => '',
-				'requires'     => $manifest['requires'] ?? '6.4',
-				'requires_php' => $manifest['requires_php'] ?? '8.1',
-				'tested'       => $manifest['tested'] ?? '6.9.4',
+				'requires'     => $manifest['requires'] ?? self::DEFAULT_REQUIRES_WP,
+				'requires_php' => $manifest['requires_php'] ?? self::DEFAULT_REQUIRES_PHP,
+				'tested'       => $this->normalize_tested_version( (string) ( $manifest['tested'] ?? self::DEFAULT_TESTED_WP ) ),
 			);
 
 			$transient->no_update[ $plugin_basename ] = $item;
@@ -171,9 +192,9 @@ class Updater {
 			'version'       => $manifest['version'] ?? $this->get_plugin_version(),
 			'author'        => '<a href="https://andersonsalas.com">Anderson Salas</a>',
 			'homepage'      => $this->get_homepage_url(),
-			'requires'      => $manifest['requires'] ?? '6.4',
-			'tested'        => $manifest['tested'] ?? '6.9.4',
-			'requires_php'  => $manifest['requires_php'] ?? '8.1',
+			'requires'      => $manifest['requires'] ?? self::DEFAULT_REQUIRES_WP,
+			'tested'        => $this->normalize_tested_version( (string) ( $manifest['tested'] ?? self::DEFAULT_TESTED_WP ) ),
+			'requires_php'  => $manifest['requires_php'] ?? self::DEFAULT_REQUIRES_PHP,
 			'last_updated'  => $manifest['last_updated'] ?? '',
 			'sections'      => $sections,
 			'download_link' => $manifest['download_url'] ?? '',
@@ -489,5 +510,53 @@ class Updater {
 		set_site_transient( $transient_key, $manifest, $cache_ttl );
 
 		return $manifest;
+	}
+
+	/**
+	 * Normalizes the tested WordPress version for compatibility checking.
+	 *
+	 * WordPress core compares the full running version (e.g. '7.1.2') against
+	 * the tested version using version_compare(). When a plugin specifies a
+	 * major/minor version (e.g. '7.1'), PHP evaluates '7.1.2' > '7.1.0',
+	 * triggering a false-positive "not tested with your current version" warning.
+	 *
+	 * When the current WordPress installation belongs to the same major/minor
+	 * release branch as $tested, this method resolves the tested version to match
+	 * the running environment (mirroring WordPress.org API behavior).
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param string      $tested     The tested version string from the manifest.
+	 * @param string|null $wp_version Optional. Running WordPress version to test against.
+	 * @return string The normalized tested version string.
+	 */
+	public function normalize_tested_version( string $tested, ?string $wp_version = null ): string {
+		if ( empty( $tested ) ) {
+			return $tested;
+		}
+
+		if ( null === $wp_version ) {
+			$wp_version = function_exists( 'wp_get_wp_version' ) ? wp_get_wp_version() : ( $GLOBALS['wp_version'] ?? '' );
+		}
+
+		if ( empty( $wp_version ) ) {
+			return $tested;
+		}
+
+		$clean_wp_version = preg_replace( '/-.*$/', '', (string) $wp_version );
+
+		// If running version is already <= tested, no normalization needed.
+		if ( version_compare( $clean_wp_version, $tested, '<=' ) ) {
+			return $tested;
+		}
+
+		$tested_branch = preg_replace( '/^(\d+\.\d+).*/', '$1', $tested );
+		$wp_branch     = preg_replace( '/^(\d+\.\d+).*/', '$1', $clean_wp_version );
+
+		if ( $tested_branch === $wp_branch ) {
+			return $clean_wp_version;
+		}
+
+		return $tested;
 	}
 }

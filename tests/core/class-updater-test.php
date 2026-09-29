@@ -596,5 +596,37 @@ class UpdaterTest extends WP_UnitTestCase {
 
 		unlink( $temp_file );
 	}
+
+	public function test_normalize_tested_version_returns_empty_when_tested_is_empty() {
+		$this->assertSame( '', $this->updater->normalize_tested_version( '' ) );
+	}
+
+	public function test_normalize_tested_version_expands_point_release_on_same_branch() {
+		$this->assertSame( '7.1.2', $this->updater->normalize_tested_version( '7.1', '7.1.2' ) );
+		$this->assertSame( '7.1.5', $this->updater->normalize_tested_version( '7.1.1', '7.1.5' ) );
+	}
+
+	public function test_normalize_tested_version_handles_prerelease_suffix() {
+		$this->assertSame( '7.1.2', $this->updater->normalize_tested_version( '7.1', '7.1.2-beta1' ) );
+		$this->assertSame( '7.1.2', $this->updater->normalize_tested_version( '7.1', '7.1.2-RC2' ) );
+	}
+
+	public function test_normalize_tested_version_preserves_when_already_compatible() {
+		$this->assertSame( '7.1', $this->updater->normalize_tested_version( '7.1', '7.1' ) );
+		$this->assertSame( '7.1', $this->updater->normalize_tested_version( '7.1', '6.4.2' ) );
+		$this->assertSame( '7.1.3', $this->updater->normalize_tested_version( '7.1.3', '7.1.2' ) );
+	}
+
+	public function test_normalize_tested_version_preserves_when_newer_major_or_different_branch() {
+		$this->assertSame( '7.1', $this->updater->normalize_tested_version( '7.1', '7.2.0' ) );
+		$this->assertSame( '7.1', $this->updater->normalize_tested_version( '7.1', '8.0.1' ) );
+	}
+
+	public function test_normalize_tested_version_uses_environment_wp_version_by_default() {
+		$wp_ver = preg_replace( '/-.*$/', '', $GLOBALS['wp_version'] );
+		// When tested matches current WP branch (e.g. 7.1), it should normalize to full version
+		$expected = str_starts_with( $wp_ver, '7.1.' ) ? $wp_ver : '7.1';
+		$this->assertSame( $expected, $this->updater->normalize_tested_version( '7.1' ) );
+	}
 }
 
