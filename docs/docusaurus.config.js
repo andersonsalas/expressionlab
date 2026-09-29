@@ -82,7 +82,6 @@ const config = {
             '0.0.3-alpha': {
               label: '0.0.3-alpha',
               path: '0.0.3-alpha',
-              banner: 'none',
             },
           },
         },
