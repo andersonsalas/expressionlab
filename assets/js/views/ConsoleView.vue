@@ -315,13 +315,12 @@ const adjustOutputForVisualization = (force = false, retryCount = 0) => {
       } else if (vizRoot) {
         const svgEl = vizRoot.querySelector('svg');
         const canvasEl = vizRoot.querySelector('canvas');
-        const vegaActions = vizRoot.querySelector('.vega-actions');
 
         if (svgEl || canvasEl) {
           const graphicEl = svgEl || canvasEl;
-          const graphicHeight = graphicEl.getBoundingClientRect().height;
-          const actionsHeight = vegaActions ? (vegaActions.getBoundingClientRect().height || 26) : 0;
-          vizContentHeight = graphicHeight + actionsHeight + 12;
+          // Note: Vega action buttons (.vega-actions) are positioned absolutely (top-right),
+          // so they do not consume vertical flow space.
+          vizContentHeight = graphicEl.getBoundingClientRect().height;
         } else {
           // Fallback: measure bounding box of all child elements
           const vizRect = vizRoot.getBoundingClientRect();
