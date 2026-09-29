@@ -144,7 +144,7 @@ if ( file_exists( $changelog_file ) ) {
 }
 
 if ( ! empty( $release_notes_file ) ) {
-	file_put_contents( $release_notes_file, $release_notes_markdown . PHP_EOL );
+	file_put_contents( $release_notes_file, "## Changelog\n\n" . $release_notes_markdown . PHP_EOL );
 }
 
 if ( ! isset( $data['sections'] ) ) {
