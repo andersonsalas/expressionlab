@@ -200,7 +200,7 @@ const copyToClipboard = (item, visualizationType = null, idx = null, direction =
         </div>  
       </div>
       <div 
-        v-if="item.mode === 'evaluate'"
+        v-if="!item.mode || item.mode === 'evaluate' || item.mode === 'repl'"
         class="out-container mode-evaluate-container"
       >
         <div

@@ -38,7 +38,7 @@ describe('stores/tabs.js - Tabs Management Store', () => {
   });
 
   describe('createTab()', () => {
-    it('creates and activates a new tab in repl mode by default', () => {
+    it('creates and activates a new tab in repl mode by default with banner', () => {
       const store = useTabsStore();
       const newTab = store.createTab();
 
@@ -48,16 +48,26 @@ describe('stores/tabs.js - Tabs Management Store', () => {
       expect(newTab.mode).toBe('repl');
       expect(store.activeTabId).toBe(newTab.id);
       expect(store.activeTab.id).toBe(newTab.id);
-      expect(newTab.history.length).toBe(0);
+      expect(newTab.history.length).toBe(1);
+      expect(newTab.history[0].messages).toEqual(['Welcome to Expression Lab']);
     });
 
-    it('creates a tab in scratchpad mode with default title Scratchpad', () => {
+    it('creates a tab in scratchpad mode with default title Scratchpad without banner', () => {
       const store = useTabsStore();
       const newTab = store.createTab({ mode: 'scratchpad' });
 
       expect(newTab.title).toBe('Scratchpad');
       expect(newTab.mode).toBe('scratchpad');
       expect(store.activeTabId).toBe(newTab.id);
+      expect(newTab.history.length).toBe(0);
+    });
+
+    it('allows creating a tab in repl mode with banner explicitly disabled', () => {
+      const store = useTabsStore();
+      const newTab = store.createTab({ withBanner: false });
+
+      expect(newTab.mode).toBe('repl');
+      expect(newTab.history.length).toBe(0);
     });
 
     it('creates a tab with custom title and preserves custom flag', () => {
@@ -123,7 +133,7 @@ describe('stores/tabs.js - Tabs Management Store', () => {
       expect(store.activeTabId).toBe(tab2.id);
     });
 
-    it('resets to a fresh tab when closing the sole remaining tab', () => {
+    it('resets to a fresh tab with banner when closing the sole remaining tab', () => {
       const store = useTabsStore();
       const originalId = store.activeTabId;
 
@@ -132,7 +142,9 @@ describe('stores/tabs.js - Tabs Management Store', () => {
       expect(store.tabCount).toBe(1);
       expect(store.activeTabId).not.toBe(originalId);
       expect(store.activeTab.title).toBe('Console');
-      expect(store.activeTab.history.length).toBe(0);
+      expect(store.activeTab.mode).toBe('repl');
+      expect(store.activeTab.history.length).toBe(1);
+      expect(store.activeTab.history[0].messages).toEqual(['Welcome to Expression Lab']);
     });
 
     it('returns false when trying to close a non-existent tab', () => {
@@ -310,7 +322,19 @@ describe('stores/tabs.js - Tabs Management Store', () => {
       expect(clone.scratchpadCode).toBe('$x = 100;');
       expect(clone.selectedUser).toBe(5);
       expect(clone.selectedSite).toBe(2);
+      expect(clone.history.length).toBe(0);
       expect(store.tabs[1].id).toBe(clone.id);
+    });
+
+    it('duplicates repl tab with banner initialized', () => {
+      const store = useTabsStore();
+      const tab1 = store.activeTab;
+      const clone = store.duplicateTab(tab1.id);
+
+      expect(clone).not.toBeNull();
+      expect(clone.mode).toBe('repl');
+      expect(clone.history.length).toBe(1);
+      expect(clone.history[0].messages).toEqual(['Welcome to Expression Lab']);
     });
 
     it('returns null when duplicating at max tabs limit', () => {

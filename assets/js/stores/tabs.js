@@ -42,7 +42,7 @@ export const createTabInstance = ({
   selectedUser = undefined,
   selectedSite = undefined,
   scratchpadCode = '',
-  withBanner = false,
+  withBanner = undefined,
 } = {}) => {
   const tabId = id || `tab_${Date.now()}_${tabCounter++}`;
   const isCustomTitle = Boolean(title);
@@ -53,6 +53,8 @@ export const createTabInstance = ({
     ? (window.el_settings.site?.sites?.[0]?.id ?? null)
     : null;
 
+  const showBanner = withBanner !== undefined ? Boolean(withBanner) : mode === 'repl';
+
   return {
     id: tabId,
     title: title || defaultTitle,
@@ -61,7 +63,7 @@ export const createTabInstance = ({
     selectedUser: selectedUser !== undefined ? selectedUser : defaultUser,
     selectedSite: selectedSite !== undefined ? selectedSite : defaultSite,
     isEvaluating: false,
-    history: withBanner ? getInitialBanner() : [],
+    history: showBanner ? getInitialBanner() : [],
     historyIndex: -1,
     replDraft: '',
     scratchpadCode: scratchpadCode || '',
@@ -75,7 +77,7 @@ export const createTabInstance = ({
 
 export const useTabsStore = defineStore('tabs', {
   state: () => {
-    const initialTab = createTabInstance({ withBanner: true });
+    const initialTab = createTabInstance();
     return {
       tabs: [initialTab],
       activeTabId: initialTab.id,
@@ -110,7 +112,7 @@ export const useTabsStore = defineStore('tabs', {
         return null;
       }
 
-      const newTab = createTabInstance({ ...options, withBanner: false });
+      const newTab = createTabInstance(options);
       this.tabs.push(newTab);
       this.activeTabId = newTab.id;
       return newTab;
@@ -130,7 +132,7 @@ export const useTabsStore = defineStore('tabs', {
 
       if (this.tabs.length === 1) {
         // If closing the sole tab, reset it to a clean slate
-        const cleanTab = createTabInstance({ withBanner: false });
+        const cleanTab = createTabInstance();
         this.tabs = [cleanTab];
         this.activeTabId = cleanTab.id;
         return true;
@@ -278,6 +280,35 @@ export const useTabsStore = defineStore('tabs', {
     },
 
     /**
+     * Appends a new REPL entry to the tab's history.
+     *
+     * @param {string} id
+     * @param {object} entry
+     * @return {number} Index of the added entry
+     */
+    addReplEntry(id, entry) {
+      const tab = this.tabs.find((t) => t.id === id);
+      if (!tab) return -1;
+      if (!tab.history) tab.history = [];
+      tab.history.push(entry);
+      tab.historyIndex = tab.history.length;
+      return tab.history.length - 1;
+    },
+
+    /**
+     * Updates an existing REPL entry in the tab's history.
+     *
+     * @param {string} id
+     * @param {number} index
+     * @param {object} patch
+     */
+    updateReplEntry(id, index, patch = {}) {
+      const tab = this.tabs.find((t) => t.id === id);
+      if (!tab || !tab.history || !tab.history[index]) return;
+      Object.assign(tab.history[index], patch);
+    },
+
+    /**
      * Duplicates an existing tab, placing the clone immediately after it.
      *
      * @param {string} id
@@ -296,7 +327,6 @@ export const useTabsStore = defineStore('tabs', {
         selectedUser: source.selectedUser,
         selectedSite: source.selectedSite,
         scratchpadCode: source.scratchpadCode,
-        withBanner: false,
       });
 
       clonedTab.scratchpadEditorRatio = source.scratchpadEditorRatio;
