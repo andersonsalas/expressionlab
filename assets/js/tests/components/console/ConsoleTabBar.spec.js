@@ -94,10 +94,43 @@ describe('ConsoleTabBar.vue', () => {
     });
 
     expect(tabsStore.tabCount).toBe(1);
-    await wrapper.find('.console-tab-add-btn').trigger('click');
+    await wrapper.find('.console-tab-add-btn.btn-add-main').trigger('click');
 
     expect(tabsStore.tabCount).toBe(2);
+    expect(tabsStore.activeTab.mode).toBe('repl');
     expect(wrapper.findAll('.console-tab-item').length).toBe(2);
+  });
+
+  it('toggles dropdown and creates scratchpad tab from dropdown item', async () => {
+    const wrapper = mount(ConsoleTabBar, {
+      global: {
+        plugins: [pinia],
+        mocks: {
+          __: (str) => str,
+        },
+      },
+      attachTo: document.body,
+    });
+
+    const dropdownBtn = wrapper.find('.btn-add-dropdown');
+    expect(dropdownBtn.exists()).toBe(true);
+
+    await dropdownBtn.trigger('click');
+    expect(document.body.querySelector('.console-tab-add-menu')).not.toBeNull();
+
+    const menuItems = document.body.querySelectorAll('.tab-add-menu-item');
+    expect(menuItems.length).toBe(2);
+
+    // Click scratchpad option
+    menuItems[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await wrapper.vm.$nextTick();
+
+    expect(tabsStore.tabCount).toBe(2);
+    expect(tabsStore.activeTab.mode).toBe('scratchpad');
+    expect(tabsStore.activeTab.title).toBe('Scratchpad');
+    expect(document.body.querySelector('.console-tab-add-menu')).toBeNull();
+
+    wrapper.unmount();
   });
 
   it('hides add button when 12 tabs limit is reached', async () => {

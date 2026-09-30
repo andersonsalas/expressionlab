@@ -18,6 +18,11 @@ const dragOverIndex = ref(null);
 const editingTabId = ref(null);
 const editingTitle = ref('');
 
+const isAddDropdownOpen = ref(false);
+const addDropdownBtnRef = ref(null);
+const dropdownMenuRef = ref(null);
+const dropdownStyle = ref({});
+
 let resizeObserver = null;
 
 const checkOverflow = () => {
@@ -35,6 +40,9 @@ const checkOverflow = () => {
 
 const handleScroll = () => {
   checkOverflow();
+  if (isAddDropdownOpen.value) {
+    updateDropdownPosition();
+  }
 };
 
 const scrollTabs = (delta) => {
@@ -66,10 +74,48 @@ const handleSelectTab = (tabId) => {
   tabsStore.setActiveTab(tabId);
 };
 
-const handleCreateTab = () => {
-  const newTab = tabsStore.createTab();
+const updateDropdownPosition = () => {
+  if (!addDropdownBtnRef.value) return;
+  const rect = addDropdownBtnRef.value.getBoundingClientRect();
+  dropdownStyle.value = {
+    position: 'fixed',
+    top: `${rect.bottom + 2}px`,
+    left: `${rect.left}px`,
+    zIndex: 99999,
+  };
+};
+
+const toggleAddDropdown = () => {
+  if (!tabsStore.canAddTab) return;
+  isAddDropdownOpen.value = !isAddDropdownOpen.value;
+  if (isAddDropdownOpen.value) {
+    nextTick(updateDropdownPosition);
+  }
+};
+
+const handleCreateTab = (mode = 'repl') => {
+  isAddDropdownOpen.value = false;
+  const newTab = tabsStore.createTab({ mode });
   if (newTab) {
     scrollToActiveTab();
+  }
+};
+
+const handleClickOutside = (event) => {
+  if (
+    isAddDropdownOpen.value &&
+    dropdownMenuRef.value &&
+    !dropdownMenuRef.value.contains(event.target) &&
+    addDropdownBtnRef.value &&
+    !addDropdownBtnRef.value.contains(event.target)
+  ) {
+    isAddDropdownOpen.value = false;
+  }
+};
+
+const handleKeydown = (event) => {
+  if (event.key === 'Escape' && isAddDropdownOpen.value) {
+    isAddDropdownOpen.value = false;
   }
 };
 
@@ -139,12 +185,22 @@ onMounted(() => {
     });
     resizeObserver.observe(scrollContainerRef.value);
   }
+  if (typeof window !== 'undefined') {
+    window.addEventListener('click', handleClickOutside);
+    window.addEventListener('keydown', handleKeydown);
+    window.addEventListener('resize', updateDropdownPosition);
+  }
 });
 
 onBeforeUnmount(() => {
   if (resizeObserver) {
     resizeObserver.disconnect();
     resizeObserver = null;
+  }
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('click', handleClickOutside);
+    window.removeEventListener('keydown', handleKeydown);
+    window.removeEventListener('resize', updateDropdownPosition);
   }
 });
 </script>
@@ -224,16 +280,54 @@ onBeforeUnmount(() => {
         </button>
       </div>
 
-      <!-- Add Tab Button (Inside scroll container at the end of tabs list) -->
-      <button
+      <!-- Add Tab Split Button Group (Inside scroll container at the end of tabs list) -->
+      <div
         v-if="tabsStore.canAddTab"
-        class="console-tab-add-btn"
-        :title="__('New tab')"
-        @click="handleCreateTab"
+        class="console-tab-add-group"
       >
-        <span class="codicon codicon-plus" />
-      </button>
+        <button
+          class="console-tab-add-btn btn-add-main"
+          :title="__('New Console tab')"
+          @click="handleCreateTab('repl')"
+        >
+          <span class="codicon codicon-plus" />
+        </button>
+        <button
+          ref="addDropdownBtnRef"
+          class="console-tab-add-btn btn-add-dropdown"
+          :class="{ active: isAddDropdownOpen }"
+          :title="__('New tab options')"
+          @click.stop="toggleAddDropdown"
+        >
+          <span class="codicon codicon-chevron-down" />
+        </button>
+      </div>
     </div>
+
+    <!-- Dropdown Menu for New Tab Options (Teleported to avoid scroll clipping) -->
+    <Teleport to="body">
+      <div
+        v-if="isAddDropdownOpen"
+        ref="dropdownMenuRef"
+        class="console-tab-add-menu"
+        :style="dropdownStyle"
+      >
+        <div
+          class="tab-add-menu-item"
+          @click="handleCreateTab('repl')"
+        >
+          <span class="codicon codicon-console" />
+          <span>{{ __('Console') }}</span>
+        </div>
+        <div
+          class="tab-add-menu-item"
+          @click="handleCreateTab('scratchpad')"
+        >
+          <span class="codicon codicon-notebook" />
+          <span>{{ __('Scratchpad') }}</span>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- Right Scroll Button -->
     <button

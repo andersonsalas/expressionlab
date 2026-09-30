@@ -124,6 +124,44 @@
 					}
 				}
 			}
+
+			&.btn-tab-creator {
+				position: relative;
+
+				.codicon {
+					font-size: 18px;
+					color: #2c3338;
+				}
+
+				.btn-badge {
+					position: absolute;
+					bottom: 4px;
+					left: 4px;
+					width: 11px;
+					height: 11px;
+					background-color: $wordpress-primary;
+					border-radius: 50%;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					pointer-events: none;
+					box-shadow: 0 0 0 1.5px #fff;
+					z-index: 2;
+
+					.codicon {
+						font-size: 8px !important;
+						line-height: 1 !important;
+						margin: 0 !important;
+						color: #fff !important;
+					}
+				}
+
+				&:hover:not(.disabled) {
+					.codicon {
+						color: #000;
+					}
+				}
+			}
 		}
 
 		&.pull-right {
@@ -152,7 +190,8 @@
 	}
 
 	@container toolbar (max-width: 1050px) {
-		.group-scratchpad {
+		.group-scratchpad,
+		.group-new-tabs {
 			.console-toolbar-button {
 				@include toolbar-button-compact;
 			}

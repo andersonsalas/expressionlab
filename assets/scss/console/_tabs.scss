@@ -51,12 +51,19 @@
 		border-color: #000;
 	}
 
+	&:active {
+		border-color: $wordpress-primary;
+	}
+
 	&.active {
 		background-color: #fff;
-		border-color: #8b8b8b;
-		color: #111;
+		border-color: black;
+		color: black;
 		font-weight: 500;
-		box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+
+		&:active {
+			border-color: black;
+		}
 	}
 
 	&.is-dragging {
@@ -132,6 +139,14 @@
 	}
 }
 
+.console-tab-add-group {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	flex-shrink: 0;
+	gap: 1px;
+}
+
 .console-tab-add-btn {
 	width: 28px;
 	height: 28px;
@@ -139,22 +154,81 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	background: none;
-	border: 1px dashed $border-color;
-	border-radius: 3px;
+    background: #e3e3e3;
+    border: none;
 	cursor: pointer;
 	color: #555;
 	flex-shrink: 0;
-	margin-left: 2px;
+	margin-left: 0;
 
 	.codicon {
 		font-size: 14px;
 	}
 
 	&:hover {
-		background-color: #fff;
-		border-color: $wordpress-primary;
-		color: $wordpress-primary;
+		background-color: #d1d1d1;
+		color: #000;
+	}
+
+	&:active {
+		background-color: #bdbdbd;
+	}
+
+	&.btn-add-main {
+		border-top-right-radius: 0;
+		border-bottom-right-radius: 0;
+	}
+
+	&.btn-add-dropdown {
+		width: 20px;
+		border-top-left-radius: 0;
+		border-bottom-left-radius: 0;
+		border-left: none;
+
+		.codicon {
+			font-size: 14px;
+		}
+
+		&.active {
+			background-color: #d1d1d1;
+			color: #000;
+		}
+	}
+}
+
+.console-tab-add-menu {
+	min-width: 155px;
+	background: #fff;
+	border: 1px solid black;
+	list-style: none;
+	margin: 0;
+	padding: 1px;
+	z-index: 100000;
+
+	.tab-add-menu-item {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 6px 12px;
+		cursor: pointer;
+		font-size: 14px;
+		color: #333;
+		height: 30px;
+		box-sizing: border-box;
+
+		.codicon {
+			font-size: 18px;
+			color: #888;
+		}
+
+		&:hover {
+			background: $wordpress-primary;
+			color: white;
+
+			.codicon {
+				color: white;
+			}
+		}
 	}
 }
 
@@ -171,6 +245,7 @@
 	color: #666;
 	line-height: 1;
 
+	// stylelint-disable-next-line
 	.codicon {
 		font-size: 14px;
 	}

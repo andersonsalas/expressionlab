@@ -89,12 +89,12 @@ const footerInfo = Object.freeze({
   network_readonly: window.el_settings.settings.network_readonly,
 });
 
-const toggleScratchpad = () => {
-  const newMode = isScratchpad.value ? 'repl' : 'scratchpad';
-  tabsStore.setTabMode(tabsStore.activeTabId, newMode);
-  nextTick(() => {
-    getActiveSession()?.focus();
-  });
+const handleCreateConsoleTab = () => {
+  tabsStore.createTab({ mode: 'repl' });
+};
+
+const handleCreateScratchpadTab = () => {
+  tabsStore.createTab({ mode: 'scratchpad' });
 };
 
 const handleExecuteActiveScratchpad = () => {
@@ -200,15 +200,28 @@ onUnmounted(() => {
     <div class="console-main">
       <!-- 1. Top Action Toolbar -->
       <div class="console-toolbar">
-        <div class="console-toolbar-group group-scratchpad">
+        <div class="console-toolbar-group group-new-tabs">
           <div
-            class="console-toolbar-button"
-            :class="{ active: isScratchpad }"
-            :title="__('Toggle Scratchpad mode')"
-            @click="toggleScratchpad"
+            class="console-toolbar-button menu btn-tab-creator"
+            :class="{ disabled: !tabsStore.canAddTab }"
+            :title="__('New Console tab')"
+            @click="tabsStore.canAddTab && handleCreateConsoleTab()"
           >
+            <div class="btn-badge">
+              <div class="codicon codicon-add" />
+            </div>
+            <div class="codicon codicon-console" />
+          </div>
+          <div
+            class="console-toolbar-button menu btn-tab-creator"
+            :class="{ disabled: !tabsStore.canAddTab }"
+            :title="__('New Scratchpad tab')"
+            @click="tabsStore.canAddTab && handleCreateScratchpadTab()"
+          >
+            <div class="btn-badge">
+              <div class="codicon codicon-add" />
+            </div>
             <div class="codicon codicon-notebook" />
-            <span>{{ __('Scratchpad') }}</span>
           </div>
         </div>
 
@@ -250,20 +263,18 @@ onUnmounted(() => {
 
         <div class="console-toolbar-group group-actions">
           <div
-            class="console-toolbar-button"
-            :title="__('Clear')"
+            class="console-toolbar-button menu"
+            :title="__('Clear session')"
             @click="handleClear"
           >
             <div class="codicon codicon-circle-slash" />
-            <span>{{ __('Clear') }}</span>
           </div>
           <div
-            class="console-toolbar-button"
+            class="console-toolbar-button menu"
             :title="__('Format code (Shift+Alt+F)')"
             @click="handleFormatCode"
           >
             <div class="codicon codicon-json" />
-            <span>{{ __('Format') }}</span>
           </div>
         </div>
 
