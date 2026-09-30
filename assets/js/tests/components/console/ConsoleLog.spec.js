@@ -2,6 +2,7 @@ import { mount, shallowMount } from '@vue/test-utils';
 
 jest.mock('../../../components/console/visualizations/VisualizationRenderer.vue', () => ({
   name: 'VisualizationRenderer',
+  props: ['item', 'resultType', 'modelValue'],
   template: '<div class="mock-visualization-renderer" />',
 }));
 
@@ -151,4 +152,35 @@ describe('ConsoleLog.vue', () => {
     expect(updateEntry.exists()).toBe(true);
     expect(updateEntry.text()).toContain('Update available: Version 1.2.0 is available');
   });
+
+  it('renders mode-evaluate container and VisualizationRenderer for evaluated entries and visualizations', () => {
+    const entries = [
+      {
+        input: '1 + 1',
+        output: 2,
+        pending: false,
+        mode: 'evaluate',
+        visualizations: [],
+      },
+      {
+        input: 'Graph.usa({})',
+        output: { result: 'ok' },
+        pending: false,
+        mode: 'evaluate',
+        visualizations: [{ type: 'usa', title: 'USA Map' }],
+      },
+    ];
+
+    const wrapper = mount(ConsoleLog, {
+      props: { entries },
+    });
+
+    const outContainers = wrapper.findAll('.mode-evaluate-container');
+    expect(outContainers.length).toBe(2);
+
+    const vizRenderers = wrapper.findAllComponents({ name: 'VisualizationRenderer' });
+    expect(vizRenderers.length).toBe(2);
+    expect(vizRenderers[1].props('item').visualizations).toEqual([{ type: 'usa', title: 'USA Map' }]);
+  });
 });
+

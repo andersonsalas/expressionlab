@@ -1,0 +1,260 @@
+// Console Tab Bar
+.console-tabbar {
+	height: 40px;
+	min-height: 40px;
+	box-sizing: border-box;
+	border-bottom: solid 1px $border-color;
+	display: flex;
+	align-items: center;
+	padding: 0 5px;
+	user-select: none;
+	position: relative;
+	width: 100%;
+	min-width: 0;
+	gap: 6px;
+}
+
+.console-tabbar-scroll-wrapper {
+	display: flex;
+	align-items: center;
+	flex: 1;
+	min-width: 0;
+	height: 100%;
+	overflow: auto hidden;
+	scrollbar-width: none; // Firefox
+
+	&::-webkit-scrollbar {
+		display: none; // Chrome/Safari
+	}
+}
+
+.console-tab-item {
+	height: 28px;
+	min-width: 164px;
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	padding: 0 4px 0 10px;
+	margin-right: 5px;
+	background-color: #f5f5f5;
+	border: solid 1px $border-color;
+	border-radius: 0;
+	cursor: pointer;
+	font-size: 12px;
+	color: #333;
+	white-space: nowrap;
+	flex-shrink: 0;
+	gap: 3px;
+
+	&:hover {
+		background-color: #f0f0f0;
+		border-color: #000;
+	}
+
+	&:active {
+		border-color: $wordpress-primary;
+	}
+
+	&.active {
+		background-color: #fff;
+		border-color: black;
+		color: black;
+		font-weight: 500;
+
+		&:active {
+			border-color: black;
+		}
+	}
+
+	&.is-dragging {
+		opacity: 0.4;
+	}
+
+	&.drag-over {
+		border-color: $wordpress-primary;
+		box-shadow: 0 0 0 1px $wordpress-primary;
+	}
+
+	.tab-title {
+		flex: 1;
+		min-width: 0;
+		max-width: 180px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		line-height: 28px;
+	}
+
+	.tab-title-input {
+		flex: 1;
+		min-width: 0;
+		width: 120px;
+		height: 22px;
+		font-size: 12px;
+		padding: 1px 4px;
+		border: 1px solid $wordpress-primary;
+		background: #fff;
+		outline: none;
+		margin-left: -8px;
+    	text-indent: 2px;
+	}
+
+	.tab-spinner {
+		width: 14px;
+		height: 14px;
+		margin-left: 6px;
+		flex-shrink: 0;
+	}
+}
+
+.console-tabbar-scroll-btn {
+	width: 28px;
+	height: 28px;
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: #e8e8e8;
+	border: 1px solid $border-color;
+	border-radius: 3px;
+	cursor: pointer;
+	color: #555;
+	flex-shrink: 0;
+	margin: 0 2px;
+	transition: background-color 0.15s ease, color 0.15s ease;
+
+	.codicon {
+		font-size: 14px;
+	}
+
+	&:disabled {
+		opacity: 0.35;
+		cursor: default;
+	}
+
+	&:hover:not(:disabled) {
+		background-color: #fff;
+		color: $wordpress-primary;
+		border-color: #b0b0b0;
+	}
+}
+
+.console-tab-add-group {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	flex-shrink: 0;
+	gap: 1px;
+}
+
+.console-tab-add-btn {
+	width: 28px;
+	height: 28px;
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+    background: #e3e3e3;
+    border: none;
+	cursor: pointer;
+	color: #555;
+	flex-shrink: 0;
+	margin-left: 0;
+
+	.codicon {
+		font-size: 14px;
+	}
+
+	&:hover {
+		background-color: #d1d1d1;
+		color: #000;
+	}
+
+	&:active {
+		background-color: #bdbdbd;
+	}
+
+	&.btn-add-main {
+		border-top-right-radius: 0;
+		border-bottom-right-radius: 0;
+	}
+
+	&.btn-add-dropdown {
+		width: 20px;
+		border-top-left-radius: 0;
+		border-bottom-left-radius: 0;
+		border-left: none;
+
+		.codicon {
+			font-size: 14px;
+		}
+
+		&.active {
+			background-color: #d1d1d1;
+			color: #000;
+		}
+	}
+}
+
+.console-tab-add-menu {
+	min-width: 155px;
+	background: #fff;
+	border: 1px solid black;
+	list-style: none;
+	margin: 0;
+	padding: 1px;
+	z-index: 100000;
+
+	.tab-add-menu-item {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 6px 12px;
+		cursor: pointer;
+		font-size: 14px;
+		color: #333;
+		height: 30px;
+		box-sizing: border-box;
+
+		.codicon {
+			font-size: 18px;
+			color: #888;
+		}
+
+		&:hover {
+			background: $wordpress-primary;
+			color: white;
+
+			.codicon {
+				color: white;
+			}
+		}
+	}
+}
+
+.console-tab-item .tab-close-btn {
+	background: none;
+	border: none;
+	padding: 2px;
+	margin-left: auto;
+	border-radius: 50%;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	color: #666;
+	line-height: 1;
+
+	// stylelint-disable-next-line
+	.codicon {
+		font-size: 14px;
+	}
+
+	&:hover {
+		background-color: #D32F2F;
+
+		.codicon {
+			color: white;
+		}
+	}
+}
