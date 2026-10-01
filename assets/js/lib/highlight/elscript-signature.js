@@ -35,6 +35,17 @@ export default function elscriptSignature(hljs) {
     'number',
   ];
 
+  const NUMBER_MODE = {
+    className: 'number',
+    variants: [
+      { match: /\b0[xX][0-9a-fA-F](_?[0-9a-fA-F])*\b/ },
+      { match: /\b0[bB][01](_?[01])*\b/ },
+      { match: /\b0[oO][0-7](_?[0-7])*\b/ },
+      { match: /(?:\b\d[0-9_]*(?:\.[0-9_]+)?|\B\.[0-9_]+)(?:[eE][+-]?[0-9_]+)?\b/ },
+    ],
+    relevance: 0,
+  };
+
   return {
     name: 'elscript-signature',
     keywords: {
@@ -45,7 +56,7 @@ export default function elscriptSignature(hljs) {
       hljs.C_BLOCK_COMMENT_MODE,
       hljs.APOS_STRING_MODE,
       hljs.QUOTE_STRING_MODE,
-      hljs.C_NUMBER_MODE,
+      NUMBER_MODE,
 
       // Target object/class before dot or :: (e.g., "Database." or "Posts::")
       {

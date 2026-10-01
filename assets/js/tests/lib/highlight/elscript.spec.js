@@ -50,4 +50,17 @@ describe('elscript highlight.js grammar', () => {
     expect(res.value).toContain('<span class="hljs-operator">~</span>');
     expect(res.value).toContain('<span class="hljs-comment">/* block comment */</span>');
   });
+
+  it('highlights numbers with underscore separators, hex, binary, octal and scientific notation', () => {
+    const code = '1_000_000 100_000.50_01 0x1f_ff 0b1010_0101 0o755 1_000e-2 .5';
+    const res = hljs.highlight(code, { language: 'elscript' });
+    expect(res.value).toContain('<span class="hljs-number">1_000_000</span>');
+    expect(res.value).toContain('<span class="hljs-number">100_000.50_01</span>');
+    expect(res.value).toContain('<span class="hljs-number">0x1f_ff</span>');
+    expect(res.value).toContain('<span class="hljs-number">0b1010_0101</span>');
+    expect(res.value).toContain('<span class="hljs-number">0o755</span>');
+    expect(res.value).toContain('<span class="hljs-number">1_000e-2</span>');
+    expect(res.value).toContain('<span class="hljs-number">.5</span>');
+  });
 });
+
