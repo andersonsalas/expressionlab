@@ -105,6 +105,28 @@
 					margin: 0;
 				}
 
+				.custom-icon {
+					&.custom-icon-panel-bottom {
+						display: inline-block;
+						width: 18px;
+						height: 18px;
+						border: 1px solid #3c434a;
+						border-width: 1px;
+						border-bottom-width: 8px;
+						border-radius: 2px;
+					}
+
+					&.custom-icon-panel-right {
+						display: inline-block;
+						width: 18px;
+						height: 18px;
+						border: 1px solid #3c434a;
+						border-width: 1px;
+						border-right-width: 8px;
+						border-radius: 2px;
+					}
+				}
+
 				.metro-spinner {
 					width: 16px;
 					height: 16px;
@@ -160,6 +182,12 @@
 					.codicon {
 						color: #000;
 					}
+				}
+			}
+
+			&:active, &.active {
+				.custom-icon {
+					border-color: $wordpress-primary !important
 				}
 			}
 		}

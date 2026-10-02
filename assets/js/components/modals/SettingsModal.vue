@@ -193,6 +193,7 @@ onUnmounted(() => {
               :disabled="!hasOutlineCache || isClearingCache"
               @click="handleClearCache"
             >
+              <div class="codicon codicon-trash" />
               {{ isClearingCache ? __('Clearing...') : __('Clear cache') }}
             </button>
           </div>

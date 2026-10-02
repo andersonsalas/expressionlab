@@ -16,7 +16,7 @@
 
 	.settings-section-title {
 		font-weight: 700;
-		font-size: 16px;
+		font-size: 15px;
 		color: #1a1a1a;
 		margin-bottom: 12px;
 		border-bottom: dotted 1px silver;
@@ -112,5 +112,15 @@
 	.settings-cache-actions {
 		display: flex;
 		align-items: center;
+
+		.btn {
+			display: flex;
+			align-items: center;
+
+			.codicon {
+				color: #F44336;
+				margin-right: 3px;
+			}
+		}
 	}
 }
