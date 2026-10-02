@@ -356,7 +356,7 @@ onUnmounted(() => {
             :title="isScratchpad ? __('Toggle output panel') : __('Toggle output panel (Scratchpad mode only)')"
             @click="toggleOutputPanel"
           >
-            <div class="codicon codicon-layout-panel" />
+            <div class="custom-icon custom-icon-panel-bottom" />
           </div>
           <div
             class="console-toolbar-button menu"
@@ -364,7 +364,7 @@ onUnmounted(() => {
             :title="__('Toggle sidebar outline')"
             @click="toggleSidebar"
           >
-            <div class="codicon codicon-layout-sidebar-right" />
+            <div class="custom-icon custom-icon-panel-right" />
           </div>
           <div
             class="console-toolbar-button menu"
