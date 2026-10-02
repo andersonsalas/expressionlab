@@ -1,9 +1,11 @@
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useTabsStore } from '../../stores/tabs.js';
+import { useSettingsStore } from '../../stores/settings.js';
 import { __ } from '../../lib/helpers.js';
 
 const tabsStore = useTabsStore();
+const settingsStore = useSettingsStore();
 
 const scrollContainerRef = ref(null);
 const renameInputRef = ref(null);
@@ -99,6 +101,20 @@ const handleCreateTab = (mode = 'repl') => {
   if (newTab) {
     scrollToActiveTab();
   }
+};
+
+const defaultAddTabMode = computed(() => {
+  return settingsStore.defaultTabMode === 'scratchpad' ? 'scratchpad' : 'repl';
+});
+
+const defaultAddTabTitle = computed(() => {
+  return defaultAddTabMode.value === 'scratchpad'
+    ? __('New Scratchpad tab')
+    : __('New Console tab');
+});
+
+const handleCreateDefaultTab = () => {
+  handleCreateTab(defaultAddTabMode.value);
 };
 
 const handleClickOutside = (event) => {
@@ -287,8 +303,8 @@ onBeforeUnmount(() => {
       >
         <button
           class="console-tab-add-btn btn-add-main"
-          :title="__('New Console tab')"
-          @click="handleCreateTab('repl')"
+          :title="defaultAddTabTitle"
+          @click="handleCreateDefaultTab"
         >
           <span class="codicon codicon-plus" />
         </button>

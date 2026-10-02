@@ -5,6 +5,7 @@ import { sendToSandbox, requestFromSandbox } from '../sandbox-communication.js';
 
 let activeChallengeRequest = null;
 export function isSandboxEnabled() {
+  if (typeof window === 'undefined') return false;
   return true === window.el_settings?.settings?.enable_sandbox && false === window.el_settings?.settings?.debug_mode;
 }
 

@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import ConsoleTabBar from '../../../components/console/ConsoleTabBar.vue';
 import { useTabsStore } from '../../../stores/tabs.js';
+import { useSettingsStore } from '../../../stores/settings.js';
 
 describe('ConsoleTabBar.vue', () => {
   let pinia;
@@ -99,6 +100,28 @@ describe('ConsoleTabBar.vue', () => {
     expect(tabsStore.tabCount).toBe(2);
     expect(tabsStore.activeTab.mode).toBe('repl');
     expect(wrapper.findAll('.console-tab-item').length).toBe(2);
+  });
+
+  it('adds a scratchpad tab when add button is clicked and defaultTabMode is scratchpad', async () => {
+    const settingsStore = useSettingsStore();
+    settingsStore.defaultTabMode = 'scratchpad';
+
+    const wrapper = mount(ConsoleTabBar, {
+      global: {
+        plugins: [pinia],
+        mocks: {
+          __: (str) => str,
+        },
+      },
+    });
+
+    const addBtn = wrapper.find('.console-tab-add-btn.btn-add-main');
+    expect(addBtn.attributes('title')).toBe('New Scratchpad tab');
+
+    await addBtn.trigger('click');
+
+    expect(tabsStore.tabCount).toBe(2);
+    expect(tabsStore.activeTab.mode).toBe('scratchpad');
   });
 
   it('toggles dropdown and creates scratchpad tab from dropdown item', async () => {

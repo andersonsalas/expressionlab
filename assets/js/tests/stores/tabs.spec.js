@@ -349,4 +349,32 @@ describe('stores/tabs.js - Tabs Management Store', () => {
       expect(store.tabCount).toBe(12);
     });
   });
+
+  describe('Default Mode Settings Integration', () => {
+    it('initializes tab in scratchpad mode when defaultTabMode is scratchpad in localStorage', () => {
+      localStorage.setItem('el_user_settings', JSON.stringify({ defaultTabMode: 'scratchpad' }));
+      setActivePinia(createPinia());
+
+      const store = useTabsStore();
+      expect(store.activeTab.mode).toBe('scratchpad');
+      expect(store.activeTab.title).toBe('Scratchpad');
+
+      localStorage.removeItem('el_user_settings');
+    });
+
+    it('resets to clean tab in scratchpad mode when closing the sole tab with scratchpad default setting', () => {
+      localStorage.setItem('el_user_settings', JSON.stringify({ defaultTabMode: 'scratchpad' }));
+      setActivePinia(createPinia());
+
+      const store = useTabsStore();
+      const tabId = store.activeTab.id;
+      store.closeTab(tabId);
+
+      expect(store.tabCount).toBe(1);
+      expect(store.activeTab.mode).toBe('scratchpad');
+      expect(store.activeTab.title).toBe('Scratchpad');
+
+      localStorage.removeItem('el_user_settings');
+    });
+  });
 });
