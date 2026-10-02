@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, nextTick, computed, watch } from 'vue';
 import { useUiStore } from '../stores/ui';
 import { useOutlineStore } from '../stores/outline.js';
 import { useTabsStore } from '../stores/tabs.js';
+import { useSettingsStore } from '../stores/settings.js';
 import { debugLog, __ } from '../lib/helpers.js';
 import ConsoleTabBar from '../components/console/ConsoleTabBar.vue';
 import ConsoleSession from '../components/console/ConsoleSession.vue';
@@ -14,6 +15,7 @@ let signatureInterval = null;
 const uiStore = useUiStore();
 const outlineStore = useOutlineStore();
 const tabsStore = useTabsStore();
+const settingsStore = useSettingsStore();
 
 const showSensitive = ref(true);
 const isMultisite = ref(window.el_settings.multisite);
@@ -22,7 +24,7 @@ const initialSites = ref(window.el_settings.site?.sites ?? []);
 const signatureDuration = window.el_settings.settings?.signature_duration ?? 30;
 const signatureTimeRemaining = ref(0);
 const signatureProgress = ref(0);
-const isSidebarVisible = ref(true);
+const isSidebarVisible = computed(() => settingsStore.isSidebarVisible);
 const enableSandbox = window.el_settings.settings?.enable_sandbox;
 
 const sessionRefs = ref({});
@@ -114,7 +116,7 @@ const handleFormatCode = () => {
 };
 
 const toggleSidebar = () => {
-  isSidebarVisible.value = !isSidebarVisible.value;
+  settingsStore.toggleSidebarVisible();
 };
 
 const toggleOutputPanel = () => {
@@ -333,6 +335,14 @@ onUnmounted(() => {
           >
             <div class="codicon codicon-library" />
             <span>{{ __('Library') }}</span>
+          </div>
+          <div
+            class="console-toolbar-button"
+            :title="__('Settings')"
+            @click="uiStore.openModal('settings')"
+          >
+            <div class="codicon codicon-gear" />
+            <span>{{ __('Settings') }}</span>
           </div>
         </div>
 

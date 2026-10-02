@@ -17,7 +17,7 @@ const props = defineProps({
 });
 
 const uiStore = useUiStore();
-const isOpen = computed(() => uiStore.activeModal === 'about' || uiStore.activeModal === 'settings');
+const isOpen = computed(() => uiStore.activeModal === 'about');
 const version = computed(() => window.el_settings?.version || '');
 
 const closeModal = () => {

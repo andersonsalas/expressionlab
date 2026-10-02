@@ -73,34 +73,35 @@
 }
 
 .btn {
-    padding: 6px 16px;
-    border-radius: 2px !important;
-    cursor: pointer;
-    font-size: 13px;
-    transition: background 0.2s;
+	padding: 6px 16px;
+	border-radius: 2px !important;
+	cursor: pointer;
+	font-size: 13px;
+	transition: background 0.2s, border-color 0.2s, opacity 0.2s;
 
-	&:disabled, &.disabled {
-		opacity: 0.7;
+	&:disabled,
+	&.disabled {
+		opacity: 0.55;
 		cursor: not-allowed;
 	}
 
 	&.fw-80px {
 		min-width: 80px;
 	}
-	
+
 	&.fw-100px {
 		min-width: 100px;
 	}
 }
 
 .btn-primary {
-    background: $wordpress-primary;
-    color: white;
-    border: none;
+	background: $wordpress-primary;
+	color: white;
+	border: none;
 
-    &:hover {
-        background: $wordpress-primary-600;
-    }
+	&:hover {
+		background: $wordpress-primary-600;
+	}
 }
 
 .btn-default {
@@ -108,7 +109,17 @@
 	color: #333;
 	border: solid 1px #d0d0d0;
 
-	&:hover {
+	&:disabled,
+	&.disabled {
+		opacity: 0.55;
+		cursor: not-allowed !important;
+		background: #f5f5f5 !important;
+		border-color: #dcdcde !important;
+		color: #8c8f94 !important;
+		box-shadow: none !important;
+	}
+
+	&:hover:not(:disabled, .disabled) {
 		background: #e8e8e8;
 		border-color: #b0b0b0;
 	}

@@ -1,8 +1,19 @@
 import { defineStore } from 'pinia';
+import { getStoredDefaultTabMode } from './settings.js';
 
 export const MAX_TABS = 12;
 
 let tabCounter = 1;
+
+/**
+ * Resolves initial tab mode based on user settings.
+ *
+ * @return {'repl'|'scratchpad'}
+ */
+export const getInitialTabMode = () => {
+  const mode = getStoredDefaultTabMode();
+  return mode === 'scratchpad' ? 'scratchpad' : 'repl';
+};
 
 /**
  * Creates the initial banner entry if provided by WordPress settings.
@@ -77,7 +88,8 @@ export const createTabInstance = ({
 
 export const useTabsStore = defineStore('tabs', {
   state: () => {
-    const initialTab = createTabInstance();
+    const initialMode = getInitialTabMode();
+    const initialTab = createTabInstance({ mode: initialMode });
     return {
       tabs: [initialTab],
       activeTabId: initialTab.id,
@@ -132,7 +144,7 @@ export const useTabsStore = defineStore('tabs', {
 
       if (this.tabs.length === 1) {
         // If closing the sole tab, reset it to a clean slate
-        const cleanTab = createTabInstance();
+        const cleanTab = createTabInstance({ mode: getInitialTabMode() });
         this.tabs = [cleanTab];
         this.activeTabId = cleanTab.id;
         return true;
