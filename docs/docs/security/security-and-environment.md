@@ -29,7 +29,8 @@ graph TD
     D -->|Valid Signature| E["Expression Evaluated"]
 ```
 
-### 1. In-Memory Key Derivation
+### In-Memory Key Derivation
+
 * **Your passphrase remains in your browser**: When you unlock the console, your browser uses the native Web Crypto API and **Argon2id** to derive an **Ed25519** key pair in memory.
 * **Ephemeral key storage**: The private key is held exclusively in memory (`window`) and is discarded when you close or reload the browser tab. The server never sees your passphrase or your private key.
 * **Client-side request signing**: Every execution request is signed in your browser with Ed25519 and a timestamped payload.
@@ -55,7 +56,7 @@ Access to the console is restricted to the user whose ID matches `EXPRESSION_LAB
 * The frontend console application is never enqueued or delivered to their browser.
 * All backend evaluation requests without a valid signature matching the configured public key are rejected with an HTTP 403 error.
 
-### 4. Challenge-Response Protection
+### Challenge-Response Protection
 Every request sent to the server includes a short-lived challenge nonce and timestamp. The server verifies this nonce in constant time, ensures it has not expired, and immediately rotates it upon execution. This mitigates replay attacks from intercepted requests.
 
 ---
