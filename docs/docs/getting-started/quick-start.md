@@ -107,7 +107,7 @@ The Expression Lab console provides an interactive development environment desig
 
 <div className="desktop-window">
   <img 
-    src="/img/console.png" 
+    src="/img/0.2.0/console.png" 
     alt="Expression Lab console" 
   />
 </div>
@@ -122,13 +122,34 @@ The Expression Lab console provides an interactive development environment desig
 
 ### 2. Toolbar Controls
 
-* **Clear**: Clears the console output history buffer and resets the editor.
+* **New Tab Actions**: Create a new REPL Console tab or a new Scratchpad tab directly from the toolbar buttons.
+* **Scratchpad Controls**: When working in Scratchpad mode, execute expressions (<kbd>Ctrl</kbd> + <kbd>Enter</kbd> / <kbd>Cmd</kbd> + <kbd>Enter</kbd> / <kbd>Ctrl</kbd> + <kbd>R</kbd>) or save the code directly to the Snippet Library.
+* **Clear Session**: Clears the active console session output history and resets the editor prompt.
+* **Format Code (`{}`)**: Formats DSL and JSON expressions with clean indentation (<kbd>Shift</kbd> + <kbd>Alt</kbd> + <kbd>F</kbd>).
 * **User Context Switcher (`User`)**: Allows evaluating expressions in the context of another WordPress user account (changing the current user).
 * **Site Switcher (`Site`)**: (*Multisite only*) Switches the execution context to target a specific subsite in the network.
-* **Snippet Library (`Library`)**: Opens the snippet manager to save, load, import, or export reusable code snippets. Supports local disk storage via the browser's [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API).
-* **About**: Displays version information, licenses, and repository links.
+* **Snippet Library (`Library`)**: Opens the snippet manager to save, organize, tag, load, import, or export reusable code snippets. Supports local disk storage via the browser's [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API).
+* **Settings (`Gear`)**: Opens the configuration modal to customize console behavior, appearance, and execution settings.
+* **Right Controls**:
+  * **Toggle Output Panel**: (*Scratchpad only*) Toggles the visibility of the bottom output panel.
+  * **Toggle Sidebar**: Shows or hides the outline documentation explorer sidebar.
+  * **About Expression Lab (`Info`)**: Displays version information, licenses, and repository links.
 
-### 3. Sidebar Outline Explorer
+### 3. Tabs Bar
+
+The tabs bar enables multi-session workflows and distinct execution modes:
+
+* **Multiple Tabs**: Work across multiple independent sessions without losing command history or execution state.
+* **Session Modes**:
+  * **Console (REPL)**: Standard interactive shell with prompt evaluation and scrolling log.
+  * **Scratchpad**: Full-height code editor designed for writing, editing, and executing complex multiline scripts.
+* **Tab Operations**:
+  * **Add Tab (`+` / Dropdown)**: Click the `+` button or dropdown arrow to create a new Console or Scratchpad tab.
+  * **Close Tab (`×`)**: Closes active or background tabs.
+  * **Rename Tab**: Double-click any tab title to rename it for better organization during troubleshooting.
+  * **Reorder Tabs**: Drag and drop tabs to reorganize your workspace.
+
+### 4. Sidebar Outline Explorer
 
 The collapsible sidebar on the right provides real-time documentation and code completion resources:
 
@@ -137,7 +158,7 @@ The collapsible sidebar on the right provides real-time documentation and code c
 * **Constants**: Available system and WordPress constants.
 * **Click to Insert**: Clicking any item or function in the sidebar inserts its template into the editor prompt.
 
-### 4. Status Bar (Footer)
+### 5. Status Bar (Footer)
 
 The footer bar provides immediate visibility into your current runtime environment:
 
@@ -164,7 +185,7 @@ Press <kbd>Enter</kbd>. The result will appear in the output log:
 
 <div className="desktop-window">
   <img 
-    src="/img/console-input.png" 
+    src="/img/0.2.0/console-input.png" 
     alt="Expression Lab console input" 
   />
 </div>

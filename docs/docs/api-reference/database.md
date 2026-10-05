@@ -837,7 +837,7 @@ Database.table_list()
 
 <div className="desktop-window">
   <img 
-    src="/img/database-table-list.png" 
+    src="/img/0.2.0/database-table-list.png" 
     alt="Expression Lab table list" 
   />
 </div>
