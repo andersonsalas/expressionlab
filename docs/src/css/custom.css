@@ -987,3 +987,56 @@ html[data-theme='light'] .markdown table th code {
   color: #f8fafc !important;
 }
 
+/* ==========================================================================
+   Blog Author Alignment
+   ========================================================================== */
+
+.avatar {
+  align-items: center;
+}
+
+.avatar__photo-link {
+  display: flex;
+  align-items: center;
+}
+
+.avatar__intro,
+[class*='authorDetails'] {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-self: center !important;
+  gap: 6px;
+}
+
+[class*='authorSocials']:empty,
+[class*='authorSocials']:not(:has(a)) {
+  display: none !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+[class*='authorTitle'],
+.avatar__intro small,
+.avatar__subtitle {
+  color: var(--ifm-color-emphasis-700) !important;
+}
+
+/* ==========================================================================
+   Blog List Post Titles
+   ========================================================================== */
+
+.blog-list-page h2[class*='title_'],
+.blog-tags-post-list-page h2[class*='title_'],
+.blog-authors-posts-page h2[class*='title_'] {
+  font-size: 2.5rem;
+}
+
+@media (max-width: 576px) {
+  .blog-list-page h2[class*='title_'],
+  .blog-tags-post-list-page h2[class*='title_'],
+  .blog-authors-posts-page h2[class*='title_'] {
+    font-size: 1.8rem;
+  }
+}

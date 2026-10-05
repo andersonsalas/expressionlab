@@ -1,0 +1,14 @@
+{
+  "title": {
+    "message": "Blog",
+    "description": "El título para el blog utilizado en SEO"
+  },
+  "description": {
+    "message": "Blog de Expression Lab: artículos, arquitectura y novedades sobre el entorno interactivo de diagnóstico para WordPress.",
+    "description": "La descripción para el blog utilizada en SEO"
+  },
+  "sidebar.title": {
+    "message": "Publicaciones recientes",
+    "description": "La etiqueta para la barra lateral izquierda"
+  }
+}

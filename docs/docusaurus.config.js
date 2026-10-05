@@ -2,6 +2,7 @@
 // `@type` JSDoc annotations allow editor autocompletion and type checking
 // (when paired with `@ts-check`).
 
+const path = require('path');
 const { themes: prismThemes } = require('prism-react-renderer');
 const packageJson = require('./package.json');
 
@@ -94,6 +95,7 @@ const config = {
   ],
 
   plugins: [
+    path.resolve(__dirname, './plugins/blog-recent-posts'),
     function webpackFallbackPlugin() {
       return {
         name: 'webpack-fallback-plugin',
@@ -122,7 +124,8 @@ const config = {
         language: ['en', 'es'],
         docsRouteBasePath: '/docs',
         indexDocs: true,
-        indexBlog: false,
+        indexBlog: true,
+        blogRouteBasePath: '/blog',
         indexPages: true,
         highlightSearchTermsOnTargetPage: true,
       },
@@ -144,6 +147,16 @@ const config = {
             sidebarId: 'docsSidebar',
             position: 'left',
             label: 'Documentation',
+          },
+          {
+            to: '/blog',
+            label: 'Blog',
+            position: 'left',
+          },
+          {
+            href: 'https://github.com/andersonsalas/expressionlab/discussions',
+            label: 'Community',
+            position: 'left',
           },
           {
             type: 'docsVersionDropdown',
