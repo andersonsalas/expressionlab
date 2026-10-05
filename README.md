@@ -222,7 +222,7 @@ pnpm run build          # Production minified bundle
 > ```php
 > define( 'EXPRESSION_LAB_SANDBOX_ENABLED', false );
 > ```
-> *Keep this enabled in production environments.*
+> *Ensure this remains enabled outside of UI development sessions.*
 
 ### Documentation (Docusaurus)
 
