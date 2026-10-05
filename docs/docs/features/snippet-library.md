@@ -10,7 +10,7 @@ Save, organize, export, and re-run your favorite expressions, diagnostic routine
 
 <div className="desktop-window">
   <img 
-    src="/img/snippetlibrary.png" 
+    src="/img/0.2.0/snippetlibrary.png" 
     alt="Expression Lab snippet library modal" 
   />
 </div>
@@ -18,19 +18,21 @@ Save, organize, export, and re-run your favorite expressions, diagnostic routine
 The Snippet Library modal contains the following key components:
 
 ### Snippet List & Search
-* **Search Bar**: Quickly filter your saved snippets by title.
+* **Search Bar**: Quickly filter saved snippets by title or tags in real-time. Supports free-text search as well as explicit tag filters using `tag:<name>` (e.g., `tag:database` or `tag:[my tag]`).
 * **`+ Add Snippet` Button**: Creates a new blank snippet ready for editing.
-* **Snippet Navigation**: Click any snippet in the list to load its title and code into the editor.
+* **Snippet Navigation**: Click any snippet in the list to load its title, code, and tags into the editor.
 
 ### Snippet Editor
 * **Title Field**: Give your snippet a descriptive name (e.g., `Users (Database raw)`, `Option distribution`).
 * **Code Editor**: Write multiline DSL expressions with full syntax highlighting.
+* **Tags Input**: Assign custom tags to organize snippets into topics (e.g., `posts`, `database`, `diagnostics`). Displays existing tag suggestions, allows adding tags with <kbd>Enter</kbd> or comma, and lets you remove tags by clicking their delete icon.
+* **Format Code (`{}`)**: Beautifies and formats the snippet code in the editor with consistent indentation.
 * **Save (`Floppy Disk`)**: Commits changes to the selected snippet.
 * **Delete (`Trash`)**: Permanently removes the selected snippet from storage.
 
 ### Action Buttons
-* **Insert**: Injects the snippet code into the active console prompt at the bottom of the screen.
-* **Close**: Dismisses the modal without modifying the current editor prompt.
+* **Insert**: Injects the snippet code into the active console prompt or scratchpad editor.
+* **Close**: Dismisses the modal without modifying the current editor buffer.
 
 ---
 

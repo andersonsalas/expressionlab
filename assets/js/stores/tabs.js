@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { getStoredDefaultTabMode } from './settings.js';
+import { getStoredDefaultTabMode, useSettingsStore } from './settings.js';
 
 export const MAX_TABS = 12;
 
@@ -11,6 +11,14 @@ let tabCounter = 1;
  * @return {'repl'|'scratchpad'}
  */
 export const getInitialTabMode = () => {
+  try {
+    const settingsStore = useSettingsStore();
+    if (settingsStore && (settingsStore.defaultTabMode === 'scratchpad' || settingsStore.defaultTabMode === 'console')) {
+      return settingsStore.defaultTabMode === 'scratchpad' ? 'scratchpad' : 'repl';
+    }
+  } catch {
+    // Pinia not active or store not yet available
+  }
   const mode = getStoredDefaultTabMode();
   return mode === 'scratchpad' ? 'scratchpad' : 'repl';
 };
@@ -124,7 +132,12 @@ export const useTabsStore = defineStore('tabs', {
         return null;
       }
 
-      const newTab = createTabInstance(options);
+      const opts = { ...options };
+      if (!opts.mode) {
+        opts.mode = getInitialTabMode();
+      }
+
+      const newTab = createTabInstance(opts);
       this.tabs.push(newTab);
       this.activeTabId = newTab.id;
       return newTab;

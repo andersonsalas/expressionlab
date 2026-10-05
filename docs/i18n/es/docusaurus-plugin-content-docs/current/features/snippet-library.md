@@ -10,7 +10,7 @@ Permite guardar, organizar, exportar y reejecutar expresiones habituales, rutina
 
 <div className="desktop-window">
   <img 
-    src="../../img/snippetlibrary.png" 
+    src="../../img/0.2.0/snippetlibrary.png" 
     alt="Modal de la biblioteca de snippets de Expression Lab" 
   />
 </div>
@@ -18,18 +18,20 @@ Permite guardar, organizar, exportar y reejecutar expresiones habituales, rutina
 El modal de la Biblioteca de Snippets se compone de las siguientes áreas:
 
 ### Lista de snippets y búsqueda
-* **Barra de búsqueda**: Filtra los fragmentos guardados por título.
+* **Barra de búsqueda**: Filtra los fragmentos guardados en tiempo real por título o por etiquetas asociadas. Permite búsquedas de texto libre así como filtros explícitos mediante la sintaxis `tag:nombre` (por ejemplo, `tag:database` o `tag:[mi etiqueta]`).
 * **Botón `+ Agregar Fragmento`**: Crea un nuevo fragmento en blanco para edición.
-* **Navegación de snippets**: Al pulsar cualquier elemento de la lista se carga su título y código en el panel de edición.
+* **Navegación de snippets**: Al pulsar cualquier elemento de la lista se carga su título, código y etiquetas en el panel de edición.
 
 ### Editor de snippets
 * **Campo de título**: Asigna un nombre descriptivo al fragmento (por ejemplo, `Usuarios (Database sin procesar)` o `Distribución de opciones`).
 * **Editor de código**: Edición de expresiones multilínea con resaltado de sintaxis completo.
+* **Campo de etiquetas (*Tags*)**: Asigna etiquetas personalizadas para categorizar fragmentos por temática (por ejemplo, `posts`, `database`, `diagnostics`). Muestra sugerencias de etiquetas existentes, permite añadir nuevas pulsando <kbd>Enter</kbd> o coma, y eliminarlas mediante el icono de borrado en sus chips.
+* **Formatear código (`{}`)**: Aplica formato y sangrado limpio a la expresión en el editor.
 * **Guardar (`Icono de disquete`)**: Guarda los cambios en el fragmento seleccionado.
 * **Eliminar (`Icono de Papelera`)**: Elimina el fragmento del almacenamiento.
 
 ### Botones de acción
-* **Insertar**: Inserta el código del fragmento en el editor de la consola.
+* **Insertar**: Inserta el código del fragmento en el editor activo de la consola o del scratchpad.
 * **Cerrar**: Cierra el modal sin alterar el contenido actual del editor.
 
 ---

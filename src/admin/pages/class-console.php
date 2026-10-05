@@ -262,6 +262,11 @@ class Console extends AdminPage {
 		return array(
 			// Toolbar & Controls.
 			'Clear'                                      => __( 'Clear', 'expression-lab' ),
+			'Clear session'                              => __( 'Clear session', 'expression-lab' ),
+			'Format code (Shift+Alt+F)'                  => __( 'Format code (Shift+Alt+F)', 'expression-lab' ),
+			'Settings'                                   => __( 'Settings', 'expression-lab' ),
+			'About Expression Lab'                       => __( 'About Expression Lab', 'expression-lab' ),
+			'Toggle sidebar outline'                     => __( 'Toggle sidebar outline', 'expression-lab' ),
 			'User'                                       => __( 'User', 'expression-lab' ),
 			'Search users...'                            => __( 'Search users...', 'expression-lab' ),
 			'Site'                                       => __( 'Site', 'expression-lab' ),
@@ -279,6 +284,34 @@ class Console extends AdminPage {
 			'No results found'                           => __( 'No results found', 'expression-lab' ),
 			'Loading outline'                            => __( 'Loading outline', 'expression-lab' ),
 			'No outline available'                       => __( 'No outline available', 'expression-lab' ),
+
+			// Tabs & Workspaces.
+			'New Console tab'                            => __( 'New Console tab', 'expression-lab' ),
+			'New Scratchpad tab'                         => __( 'New Scratchpad tab', 'expression-lab' ),
+			'New tab options'                            => __( 'New tab options', 'expression-lab' ),
+			'Close tab'                                  => __( 'Close tab', 'expression-lab' ),
+			'Scroll tabs left'                           => __( 'Scroll tabs left', 'expression-lab' ),
+			'Scroll tabs right'                          => __( 'Scroll tabs right', 'expression-lab' ),
+			'Console'                                    => __( 'Console', 'expression-lab' ),
+			'Scratchpad'                                 => __( 'Scratchpad', 'expression-lab' ),
+
+			// Scratchpad & Execution.
+			'Run (Ctrl+Enter / Cmd+Enter / Ctrl+R)'      => __( 'Run (Ctrl+Enter / Cmd+Enter / Ctrl+R)', 'expression-lab' ),
+			'Run expression (Scratchpad mode only)'      => __( 'Run expression (Scratchpad mode only)', 'expression-lab' ),
+			'Save snippet to Library'                    => __( 'Save snippet to Library', 'expression-lab' ),
+			'Save snippet to Library (Scratchpad mode only)' => __( 'Save snippet to Library (Scratchpad mode only)', 'expression-lab' ),
+			'Toggle output panel'                        => __( 'Toggle output panel', 'expression-lab' ),
+			'Toggle output panel (Scratchpad mode only)' => __( 'Toggle output panel (Scratchpad mode only)', 'expression-lab' ),
+			'Evaluating expression...'                   => __( 'Evaluating expression...', 'expression-lab' ),
+			'Clear output'                               => __( 'Clear output', 'expression-lab' ),
+			'Hide output panel'                          => __( 'Hide output panel', 'expression-lab' ),
+			'Output'                                     => __( 'Output', 'expression-lab' ),
+			/* translators: %s: object type */
+			'Object Type: %s'                            => __( 'Object Type: %s', 'expression-lab' ),
+			'No deferred console messages available.'    => __( 'No deferred console messages available.', 'expression-lab' ),
+			'Run an expression (Ctrl+Enter or Play) to view results here.' => __( 'Run an expression (Ctrl+Enter or Play) to view results here.', 'expression-lab' ),
+			'Drag to resize / Double-click to auto-fit'  => __( 'Drag to resize / Double-click to auto-fit', 'expression-lab' ),
+			'Scratchpad Snippet'                         => __( 'Scratchpad Snippet', 'expression-lab' ),
 
 			// Documentation Tooltips.
 			'Parameters:'                                => __( 'Parameters:', 'expression-lab' ),
@@ -321,6 +354,16 @@ class Console extends AdminPage {
 			'Unlock'                                     => __( 'Unlock', 'expression-lab' ),
 			'If you forgot this passphrase, you must delete the Expression Lab constants from your <code>wp-config.php</code> to trigger a new installation.' => __( 'If you forgot this passphrase, you must delete the Expression Lab constants from your <code>wp-config.php</code> to trigger a new installation.', 'expression-lab' ),
 			'An error occurred during verification.'     => __( 'An error occurred during verification.', 'expression-lab' ),
+
+			// Settings Modal.
+			'Default new tab layout'                     => __( 'Default new tab layout', 'expression-lab' ),
+			'Choose the default layout for newly created tabs. This also affects the action of the New Tab button in the tab bar.' => __( 'Choose the default layout for newly created tabs. This also affects the action of the New Tab button in the tab bar.', 'expression-lab' ),
+			'Interactive single-expression evaluation with immediate output.' => __( 'Interactive single-expression evaluation with immediate output.', 'expression-lab' ),
+			'Multi-line script editor with dedicated execution and output inspection panels.' => __( 'Multi-line script editor with dedicated execution and output inspection panels.', 'expression-lab' ),
+			'Browser cache'                              => __( 'Browser cache', 'expression-lab' ),
+			'Clear cached WordPress functions, classes, and outline symbols stored in your browser.' => __( 'Clear cached WordPress functions, classes, and outline symbols stored in your browser.', 'expression-lab' ),
+			'Clear cache'                                => __( 'Clear cache', 'expression-lab' ),
+			'Clearing...'                                => __( 'Clearing...', 'expression-lab' ),
 
 			// About Modal.
 			'About'                                      => __( 'About', 'expression-lab' ),
@@ -366,6 +409,12 @@ class Console extends AdminPage {
 			'Delete'                                     => __( 'Delete', 'expression-lab' ),
 			'Search'                                     => __( 'Search', 'expression-lab' ),
 			'Add Snippet'                                => __( 'Add Snippet', 'expression-lab' ),
+			'Duplicate Snippet Name'                     => __( 'Duplicate Snippet Name', 'expression-lab' ),
+			/* translators: %s: snippet name */
+			'A snippet named "%s" already exists. Please choose a different name.' => __( 'A snippet named "%s" already exists. Please choose a different name.', 'expression-lab' ),
+			'Syntax error in snippet'                    => __( 'Syntax error in snippet', 'expression-lab' ),
+			'Add tags...'                                => __( 'Add tags...', 'expression-lab' ),
+			'Remove tag'                                 => __( 'Remove tag', 'expression-lab' ),
 			'(Untitled)'                                 => __( '(Untitled)', 'expression-lab' ),
 			'Untitled'                                   => __( 'Untitled', 'expression-lab' ),
 			'No snippets found.'                         => __( 'No snippets found.', 'expression-lab' ),
@@ -392,6 +441,7 @@ class Console extends AdminPage {
 			// Visualizations.
 			'Raw'                                        => __( 'Raw', 'expression-lab' ),
 			'Table'                                      => __( 'Table', 'expression-lab' ),
+			'Visualization'                              => __( 'Visualization', 'expression-lab' ),
 			/* translators: %s: visualization type */
 			'Unknown visualization type: %s'             => __( 'Unknown visualization type: %s', 'expression-lab' ),
 			'Paginate'                                   => __( 'Paginate', 'expression-lab' ),

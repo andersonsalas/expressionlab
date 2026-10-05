@@ -107,7 +107,7 @@ La consola de Expression Lab ofrece un entorno interactivo optimizado para la ev
 
 <div className="desktop-window">
   <img 
-    src="../../img/console.png" 
+    src="../../img/0.2.0/console.png" 
     alt="Consola de Expression Lab" 
   />
 </div>
@@ -122,13 +122,34 @@ La consola de Expression Lab ofrece un entorno interactivo optimizado para la ev
 
 ### 2. Controles de la barra de herramientas
 
-* **Limpiar**: Vacía el búfer de salida de la consola y reinicia el editor.
+* **Creación de pestañas**: Acceso rápido para añadir una nueva pestaña de Consola (REPL) o una pestaña de Scratchpad (bloc de notas).
+* **Controles de Scratchpad**: En el modo Scratchpad, permite ejecutar el script (<kbd>Ctrl</kbd> + <kbd>Enter</kbd> / <kbd>Cmd</kbd> + <kbd>Enter</kbd> / <kbd>Ctrl</kbd> + <kbd>R</kbd>) o guardar el código directamente como fragmento en la biblioteca.
+* **Limpiar sesión**: Vacía el búfer de salida de la sesión activa y reinicia el editor.
+* **Formatear código (`{}`)**: Da formato y sangrado limpio a las expresiones del editor (<kbd>Shift</kbd> + <kbd>Alt</kbd> + <kbd>F</kbd>).
 * **Selector de contexto de usuario (`Usuario`)**: Permite evaluar expresiones simulando el contexto de cualquier cuenta de usuario de WordPress (conmutando el usuario activo de la sesión).
 * **Selector de sitio (`Sitio`)**: (*Exclusivo para Multisite*) Modifica el contexto de ejecución para consultar un subsitio específico de la red.
-* **Biblioteca de snippets (`Biblioteca`)**: Abre el panel de fragmentos de código para guardar, cargar, importar o exportar expresiones reutilizables. Admite sincronización local con el disco mediante la [File System Access API](https://developer.mozilla.org/es/docs/Web/API/File_System_Access_API) del navegador.
-* **Acerca de**: Muestra información sobre la versión, licencias y enlaces al repositorio.
+* **Biblioteca de snippets (`Biblioteca`)**: Abre el panel de fragmentos de código para guardar, etiquetar, cargar, importar o exportar expresiones reutilizables. Admite sincronización local con el disco mediante la [File System Access API](https://developer.mozilla.org/es/docs/Web/API/File_System_Access_API) del navegador.
+* **Ajustes (`Engranaje`)**: Abre la configuración de preferencias de la consola, límites de ejecución y apariencia.
+* **Controles derechos**:
+  * **Conmutar panel de salida**: (*Solo en Scratchpad*) Muestra u oculta el panel inferior de resultados.
+  * **Conmutar barra lateral**: Despliega o colapsa el panel del explorador de documentación.
+  * **Acerca de (`Información`)**: Muestra información sobre la versión, licencias y enlaces al repositorio.
 
-### 3. Explorador lateral (Outline)
+### 3. Barra de pestañas (*Tabs*)
+
+La barra de pestañas permite gestionar múltiples entornos y sesiones simultáneas de trabajo:
+
+* **Trabajo multipestaña**: Mantén varias sesiones independientes abiertas en paralelo sin perder el historial ni el estado de ejecución.
+* **Modos de pestaña**:
+  * **Consola (REPL)**: Shell interactivo tradicional con entrada línea a línea e historial de resultados.
+  * **Scratchpad (Bloc de notas)**: Editor de código completo para redactar, probar y ejecutar scripts multilínea extensos.
+* **Operaciones de pestañas**:
+  * **Añadir pestaña (`+` / Menú desplegable)**: Haz clic en el botón `+` o en la flecha para abrir una pestaña de Consola o de Scratchpad.
+  * **Cerrar pestaña (`×`)**: Cierra pestañas activas o en segundo plano.
+  * **Renombrar pestaña**: Haz doble clic sobre el título de una pestaña para darle un nombre descriptivo durante tus pruebas o diagnósticos.
+  * **Reordenar pestañas**: Arrastra y suelta pestañas para organizarlas en el orden que prefieras.
+
+### 4. Explorador lateral (Outline)
 
 El panel lateral desplegable a la derecha brinda documentación contextual y autocompletado en tiempo real:
 
@@ -137,7 +158,7 @@ El panel lateral desplegable a la derecha brinda documentación contextual y aut
 * **Constantes**: Constantes del sistema y de WordPress disponibles.
 * **Clic para insertar**: Al pulsar sobre cualquier elemento del panel lateral, su plantilla se inserta en el editor.
 
-### 4. Barra de estado
+### 5. Barra de estado
 
 La barra inferior ofrece información clave sobre el entorno de ejecución activo:
 
@@ -164,7 +185,7 @@ Pulsar <kbd>Enter</kbd>. El resultado se mostrará en el panel de salida:
 
 <div className="desktop-window">
   <img 
-    src="../../img/console-input.png" 
+    src="../../img/0.2.0/console-input.png" 
     alt="Entrada en la consola de Expression Lab" 
   />
 </div>

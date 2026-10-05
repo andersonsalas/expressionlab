@@ -1,6 +1,6 @@
 {
   "name": "expressionlab",
-  "version": "0.1.0-alpha",
+  "version": "0.2.0-alpha",
   "description": "Expression Lab is a sandboxed diagnostics and data inspection environment for WordPress.",
   "main": "index.js",
   "scripts": {
@@ -25,7 +25,9 @@
     "test:php": "vendor/bin/phpunit --exclude-group multisite",
     "test:php:ms": "WP_MULTISITE=1 vendor/bin/phpunit --exclude-group singlesite",
     "test:php:all": "vendor/bin/phpunit --exclude-group multisite && WP_MULTISITE=1 vendor/bin/phpunit --exclude-group singlesite",
-    "i18n:make-pot": "wp i18n make-pot . languages/expression-lab.pot --slug=expression-lab --domain=expression-lab --exclude=\"docs,assets/build,assets/fonts,assets/img,tests\"",
+    "i18n:make-pot": "wp i18n make-pot . languages/expression-lab.pot --slug=expression-lab --domain=expression-lab --exclude=\"docs,assets/build,assets/fonts,assets/img,tests,build\"",
+    "i18n:update-po": "wp i18n update-po languages/expression-lab.pot languages/expression-lab-es_ES.po",
+    "i18n:make-mo": "wp i18n make-mo languages/expression-lab-es_ES.po languages/expression-lab-es_ES.mo",
     "docs:install": "pnpm --dir docs install",
     "docs:dev": "pnpm --dir docs start",
     "docs:dev:es": "pnpm --dir docs start --locale es",

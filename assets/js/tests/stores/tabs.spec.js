@@ -1,5 +1,6 @@
 import { setActivePinia, createPinia } from 'pinia';
 import { useTabsStore, MAX_TABS } from '../../stores/tabs.js';
+import { useSettingsStore } from '../../stores/settings.js';
 
 describe('stores/tabs.js - Tabs Management Store', () => {
   beforeEach(() => {
@@ -375,6 +376,47 @@ describe('stores/tabs.js - Tabs Management Store', () => {
       expect(store.activeTab.title).toBe('Scratchpad');
 
       localStorage.removeItem('el_user_settings');
+    });
+
+    it('resets to clean tab in scratchpad mode when closing sole tab with settingsStore defaultTabMode (sandbox iframe scenario)', () => {
+      setActivePinia(createPinia());
+      const settingsStore = useSettingsStore();
+      settingsStore.defaultTabMode = 'scratchpad';
+
+      const store = useTabsStore();
+      const tabId = store.activeTab.id;
+      store.closeTab(tabId);
+
+      expect(store.tabCount).toBe(1);
+      expect(store.activeTab.mode).toBe('scratchpad');
+      expect(store.activeTab.title).toBe('Scratchpad');
+    });
+
+    it('resets to scratchpad mode when closing sole tab after setting was changed dynamically during session', () => {
+      setActivePinia(createPinia());
+      const store = useTabsStore();
+      expect(store.activeTab.mode).toBe('repl');
+
+      const settingsStore = useSettingsStore();
+      settingsStore.defaultTabMode = 'scratchpad';
+
+      store.closeTab(store.activeTab.id);
+
+      expect(store.tabCount).toBe(1);
+      expect(store.activeTab.mode).toBe('scratchpad');
+      expect(store.activeTab.title).toBe('Scratchpad');
+    });
+
+    it('creates tab in scratchpad mode by default when defaultTabMode is scratchpad', () => {
+      setActivePinia(createPinia());
+      const settingsStore = useSettingsStore();
+      settingsStore.defaultTabMode = 'scratchpad';
+
+      const store = useTabsStore();
+      const newTab = store.createTab();
+
+      expect(newTab.mode).toBe('scratchpad');
+      expect(newTab.title).toBe('Scratchpad');
     });
   });
 });

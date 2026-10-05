@@ -245,7 +245,7 @@ Full syntax guides and API references are available on the project's [official w
 * **Language Reference**: [Basic Syntax](https://expressionlab.io/docs/getting-started/basic-syntax) &middot; [Scripting](https://expressionlab.io/docs/getting-started/scripting)
 * **API Reference**: [Database](https://expressionlab.io/docs/api-reference/database) &middot; [Options](https://expressionlab.io/docs/api-reference/options) &middot; 
 [Network Sites](https://expressionlab.io/docs/api-reference/sites) &middot; [Users](https://expressionlab.io/docs/api-reference/users) &middot; [Posts](https://expressionlab.io/docs/api-reference/posts) &middot; [Media](https://expressionlab.io/docs/api-reference/media) &middot; [Files](https://expressionlab.io/docs/api-reference/files) &middot; 
-[HTTP](https://expressionlab.io/docs/api-reference/http) &middot; [Console](https://expressionlab.io/docs/api-reference/console)
+[HTTP](https://expressionlab.io/docs/api-reference/http) &middot; [Console](https://expressionlab.io/docs/api-reference/console) &middot; [IP Lookup](https://expressionlab.io/docs/api-reference/ip-lookup) &middot; [Graph](https://expressionlab.io/docs/api-reference/graph)
 
 * **Security & Environment**: [Security Model](https://expressionlab.io/docs/security/security-and-environment)
 

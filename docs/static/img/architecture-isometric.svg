@@ -1,0 +1,251 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -14 560 474" fill="none" overflow="visible" aria-labelledby="hero-arch-title hero-arch-desc">
+  <defs>
+    <linearGradient id="grid-fade-v" x1="0" y1="120" x2="0" y2="260" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="1" />
+    </linearGradient>
+    <mask id="grid-mask-v">
+      <rect x="0" y="0" width="560" height="460" fill="url(#grid-fade-v)" />
+    </mask>
+    <linearGradient id="grid-fade-h" x1="0" y1="0" x2="560" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0" />
+      <stop offset="22%" stop-color="#ffffff" stop-opacity="1" />
+      <stop offset="78%" stop-color="#ffffff" stop-opacity="1" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+    </linearGradient>
+    <mask id="grid-mask-h">
+      <rect x="0" y="0" width="560" height="460" fill="url(#grid-fade-h)" />
+    </mask>
+
+    <style>
+      .iso-grid-line {
+        stroke: #cdd5df;
+        stroke-width: 1.2;
+        stroke-linecap: round;
+        transition: stroke 0.25s ease, opacity 0.25s ease;
+      }
+      [data-theme='light'] #iso-floor-shadow,
+      [data-theme='light'] .iso-shadow {
+        fill: #787f8a;
+        opacity: 0.42;
+        transition: fill 0.25s ease, opacity 0.25s ease;
+      }
+      .iso-block-stroke {
+        stroke: #111827;
+        stroke-width: 1.4;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        transition: stroke 0.25s ease, fill 0.25s ease;
+      }
+      .iso-top-face {
+        fill: #ffffff;
+        transition: fill 0.25s ease;
+      }
+      .iso-left-face {
+        fill: #ffffff;
+        transition: fill 0.25s ease;
+      }
+      .iso-right-face-expression-lab {
+        fill: #3858e9;
+        transition: fill 0.25s ease;
+      }
+      .iso-right-face-wordpress {
+        fill: #23282d;
+        transition: fill 0.25s ease;
+      }
+      .iso-right-face-server {
+        fill: #5d6c9c;
+        transition: fill 0.25s ease;
+      }
+      .iso-text {
+        fill: #ffffff;
+        text-anchor: middle;
+        dominant-baseline: central;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Dark Mode Color Harmony */
+      [data-theme='dark'] .iso-grid-line {
+        stroke: #252d3a;
+        opacity: 0.75;
+      }
+      [data-theme='dark'] #iso-floor-shadow,
+      [data-theme='dark'] .iso-shadow {
+        fill: rgb(33 48 73 / 31%) !important;
+        opacity: 1 !important;
+        animation-name: isoShadowPulseDark !important;
+      }
+      [data-theme='dark'] .iso-block-stroke {
+        stroke: #ffffff;
+      }
+      [data-theme='dark'] .iso-top-face {
+        fill: #323947;
+      }
+      [data-theme='dark'] .iso-left-face {
+        fill: #222732;
+      }
+      [data-theme='dark'] .iso-right-face-expression-lab {
+        fill: #3b5bdb;
+      }
+      [data-theme='dark'] .iso-right-face-wordpress {
+        fill: #1a1e24;
+      }
+      [data-theme='dark'] .iso-right-face-server {
+        fill: #4d5b82;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) .iso-grid-line {
+          stroke: #252d3a;
+          opacity: 0.75;
+        }
+        :root:not([data-theme='light']) #iso-floor-shadow,
+        :root:not([data-theme='light']) .iso-shadow {
+          fill: rgb(33 48 73 / 31%) !important;
+          opacity: 1 !important;
+          animation-name: isoShadowPulseDark !important;
+        }
+        :root:not([data-theme='light']) .iso-block-stroke {
+          stroke: #ffffff;
+        }
+        :root:not([data-theme='light']) .iso-top-face {
+          fill: #323947;
+        }
+        :root:not([data-theme='light']) .iso-left-face {
+          fill: #222732;
+        }
+        :root:not([data-theme='light']) .iso-right-face-expression-lab {
+          fill: #3b5bdb;
+        }
+        :root:not([data-theme='light']) .iso-right-face-wordpress {
+          fill: #1a1e24;
+        }
+        :root:not([data-theme='light']) .iso-right-face-server {
+          fill: #4d5b82;
+        }
+      }
+
+      /* Subtle infinite levitation animation */
+      @keyframes isoLevitate {
+        0%, 100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-9px);
+        }
+      }
+
+      @keyframes isoShadowPulse {
+        0%, 100% {
+          opacity: 0.42;
+        }
+        50% {
+          opacity: 0.28;
+        }
+      }
+
+      @keyframes isoShadowPulseDark {
+        0%, 100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
+      }
+
+      .iso-levitating-stack {
+        animation: isoLevitate 5.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+        will-change: transform;
+      }
+
+      .iso-pulsing-shadow {
+        animation: isoShadowPulse 5.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+        will-change: opacity;
+      }
+
+      [data-theme='dark'] .iso-pulsing-shadow {
+        animation-name: isoShadowPulseDark;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .iso-levitating-stack,
+        .iso-pulsing-shadow {
+          animation: none;
+        }
+      }
+    </style>
+  </defs>
+
+  <g mask="url(#grid-mask-h)">
+    <g mask="url(#grid-mask-v)">
+      <line class="iso-grid-line" x1="0" y1="-240.03" x2="560" y2="83.29" />
+      <line class="iso-grid-line" x1="0" y1="-198.03" x2="560" y2="125.29" />
+      <line class="iso-grid-line" x1="0" y1="-156.03" x2="560" y2="167.29" />
+      <line class="iso-grid-line" x1="0" y1="-114.03" x2="560" y2="209.29" />
+      <line class="iso-grid-line" x1="0" y1="-72.03" x2="560" y2="251.29" />
+      <line class="iso-grid-line" x1="0" y1="-30.03" x2="560" y2="293.29" />
+      <line class="iso-grid-line" x1="0" y1="11.97" x2="560" y2="335.29" />
+      <line class="iso-grid-line" x1="0" y1="53.97" x2="560" y2="377.29" />
+      <line class="iso-grid-line" x1="0" y1="95.97" x2="560" y2="419.29" />
+      <line class="iso-grid-line" x1="0" y1="137.97" x2="560" y2="461.29" />
+      <line class="iso-grid-line" x1="0" y1="179.97" x2="560" y2="503.29" />
+      <line class="iso-grid-line" x1="0" y1="221.97" x2="560" y2="545.29" />
+      <line class="iso-grid-line" x1="0" y1="263.97" x2="560" y2="587.29" />
+      <line class="iso-grid-line" x1="0" y1="305.97" x2="560" y2="629.29" />
+      <line class="iso-grid-line" x1="0" y1="347.97" x2="560" y2="671.29" />
+      <line class="iso-grid-line" x1="0" y1="389.97" x2="560" y2="713.29" />
+      <line class="iso-grid-line" x1="0" y1="431.97" x2="560" y2="755.29" />
+      <line class="iso-grid-line" x1="0" y1="473.97" x2="560" y2="797.29" />
+
+      <line class="iso-grid-line" x1="0" y1="86.03" x2="560" y2="-237.29" />
+      <line class="iso-grid-line" x1="0" y1="128.03" x2="560" y2="-195.29" />
+      <line class="iso-grid-line" x1="0" y1="170.03" x2="560" y2="-153.29" />
+      <line class="iso-grid-line" x1="0" y1="212.03" x2="560" y2="-111.29" />
+      <line class="iso-grid-line" x1="0" y1="254.03" x2="560" y2="-69.29" />
+      <line class="iso-grid-line" x1="0" y1="296.03" x2="560" y2="-27.29" />
+      <line class="iso-grid-line" x1="0" y1="338.03" x2="560" y2="14.71" />
+      <line class="iso-grid-line" x1="0" y1="380.03" x2="560" y2="56.71" />
+      <line class="iso-grid-line" x1="0" y1="422.03" x2="560" y2="98.71" />
+      <line class="iso-grid-line" x1="0" y1="464.03" x2="560" y2="140.71" />
+      <line class="iso-grid-line" x1="0" y1="506.03" x2="560" y2="182.71" />
+      <line class="iso-grid-line" x1="0" y1="548.03" x2="560" y2="224.71" />
+      <line class="iso-grid-line" x1="0" y1="590.03" x2="560" y2="266.71" />
+      <line class="iso-grid-line" x1="0" y1="632.03" x2="560" y2="308.71" />
+      <line class="iso-grid-line" x1="0" y1="674.03" x2="560" y2="350.71" />
+      <line class="iso-grid-line" x1="0" y1="716.03" x2="560" y2="392.71" />
+      <line class="iso-grid-line" x1="0" y1="758.03" x2="560" y2="434.71" />
+      <line class="iso-grid-line" x1="0" y1="800.03" x2="560" y2="476.71" />
+    </g>
+  </g>
+
+  <polygon id="iso-floor-shadow" class="iso-shadow iso-pulsing-shadow" points="246,406 427.87,301 318.75,238 136.88,343" />
+
+  <g id="brick-stack" class="iso-levitating-stack">
+    <g id="layer-server">
+      <polygon class="iso-top-face iso-block-stroke" points="246,318 427.87,213 318.75,150 136.88,255" />
+      <polygon class="iso-left-face iso-block-stroke" points="246,318 246,374 136.88,311 136.88,255" />
+      <polygon class="iso-block-stroke iso-right-face-server" fill="#5d6c9c" points="246,318 427.87,213 427.87,269 246,374" />
+      <g transform="matrix(0.866025, -0.5, 0, 1, 336.93, 293.5)">
+        <text class="iso-text" x="0" y="0"  font-weight="600" font-size="18.5" letter-spacing="0.01em">Server</text>
+      </g>
+    </g>
+
+    <g id="layer-wordpress">
+      <polygon class="iso-top-face iso-block-stroke" points="246,246 427.87,141 318.75,78 136.88,183" />
+      <polygon class="iso-left-face iso-block-stroke" points="246,246 246,302 136.88,239 136.88,183" />
+      <polygon class="iso-block-stroke iso-right-face-wordpress" fill="#23282d" points="246,246 427.87,141 427.87,197 246,302" />
+      <g transform="matrix(0.866025, -0.5, 0, 1, 336.93, 221.5)">
+        <text class="iso-text" x="0" y="0"  font-weight="600" font-size="18.5" letter-spacing="0.01em">WordPress</text>
+      </g>
+    </g>
+
+    <g id="layer-expression-lab">
+      <polygon class="iso-top-face iso-block-stroke" points="246,174 427.87,69 318.75,6 136.88,111" />
+      <polygon class="iso-left-face iso-block-stroke" points="246,174 246,230 136.88,167 136.88,111" />
+      <polygon class="iso-block-stroke iso-right-face-expression-lab" fill="#3858e9" points="246,174 427.87,69 427.87,125 246,230" />
+      <g transform="matrix(0.866025, -0.5, 0, 1, 336.93, 149.5)">
+        <text class="iso-text" x="0" y="0"  font-weight="600" font-size="17" letter-spacing="0.01em">Expression Lab</text>
+      </g>
+    </g>
+  </g>
+</svg>
