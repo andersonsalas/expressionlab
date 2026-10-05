@@ -2,12 +2,12 @@
 
 ## Supported Versions
 
-Only the latest released version and the `master` branch receive security updates:
+Only the latest release (`master` branch) receives security updates:
 
-| Version | Supported |
+| Version | Status |
 | :--- | :--- |
-| `master` / Latest release | :white_check_mark: |
-| Older releases | :x: |
+| Latest release | **Supported** |
+| Older releases | **Unsupported** |
 
 ---
 
