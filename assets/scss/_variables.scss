@@ -11,6 +11,8 @@ $wordpress-primary-700: color.scale($wordpress-primary, $lightness: -20%);
 $wordpress-primary-800: color.scale($wordpress-primary, $lightness: -30%);
 $wordpress-primary-900: color.scale($wordpress-primary, $lightness: -40%);
 $border-color: #cdcdcd;
+$wp-text-dark: #1d2327;
+$wp-text-muted: #646970;
 $font-family-monospace: 'Cascadia Mono', monospace;
 $font-family-sans: 'Roboto', sans-serif;
 $font-family-serif: 'Roboto Slab', serif;

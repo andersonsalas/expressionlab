@@ -139,6 +139,20 @@ if ( ! defined( 'EXPRESSION_LAB_TEST_ENV' ) ) {
 	define( 'EXPRESSION_LAB_TEST_ENV', false );
 }
 
+if ( ! defined( 'EXPRESSION_LAB_STAGING_URL' ) ) {
+	/**
+	 * Authorized staging site URL, domain, or pattern.
+	 *
+	 * When defined, Expression Lab verifies that the current site's URL matches
+	 * this pattern before booting. Supports domain wildcards (*.example.com) and
+	 * specific URL paths (127.0.0.1/site). If it does not match, Expression Lab
+	 * deactivates gracefully into a dormant state.
+	 *
+	 * @var string|null
+	 */
+	define( 'EXPRESSION_LAB_STAGING_URL', null );
+}
+
 if ( ! defined( 'EXPRESSION_LAB_SANDBOX_ENABLED' ) ) {
 	/**
 	 * Security sandbox.

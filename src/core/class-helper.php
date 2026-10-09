@@ -332,4 +332,210 @@ class Helper {
 
 		return $normalized_real;
 	}
+
+	/**
+	 * Checks if the current site environment matches the authorized staging environment.
+	 *
+	 * When the `EXPRESSION_LAB_STAGING_URL` constant is defined and non-empty,
+	 * this method validates that the current WordPress home URL matches the specified
+	 * domain or wildcard pattern.
+	 *
+	 * To protect against HTTP host spoofing attacks, the verification is strictly
+	 * performed against the site URL stored in the database (`get_option('home')`),
+	 * never relying on incoming HTTP request headers.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @return bool True if the environment is authorized or unrestricted, false otherwise.
+	 */
+	public static function is_environment_allowed(): bool {
+		$configured_staging = defined( 'EXPRESSION_LAB_STAGING_URL' ) ? constant( 'EXPRESSION_LAB_STAGING_URL' ) : null;
+
+		return self::check_environment( $configured_staging, (string) get_option( 'home' ) );
+	}
+
+	/**
+	 * Evaluates the environment guardrail for a given staging pattern and home URL.
+	 *
+	 * Pure counterpart of is_environment_allowed(), kept separate so the decision
+	 * table can be unit tested without redefining PHP constants.
+	 *
+	 * - A null, non-scalar or blank pattern disables the guardrail (returns true).
+	 * - Once a pattern is configured the check fails closed: an empty or unparsable
+	 *   home URL is treated as a mismatch.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param mixed  $configured_staging Value of EXPRESSION_LAB_STAGING_URL.
+	 * @param string $home_url           Site URL persisted in the database.
+	 * @return bool True if the environment is authorized or unrestricted, false otherwise.
+	 */
+	public static function check_environment( $configured_staging, string $home_url ): bool {
+		if ( null === $configured_staging || ! is_scalar( $configured_staging ) ) {
+			return true;
+		}
+
+		$configured_staging = trim( (string) $configured_staging );
+		if ( '' === $configured_staging ) {
+			return true;
+		}
+
+		$home_url = trim( $home_url );
+		if ( '' === $home_url ) {
+			return false;
+		}
+
+		return self::matches_url_pattern( $home_url, $configured_staging );
+	}
+
+	/**
+	 * Matches a site URL against a domain, hostname, wildcard, or URL path pattern.
+	 *
+	 * Supports:
+	 * - Exact domain/host: `staging.example.com`
+	 * - Domain with wildcard: `*.staging.example.com` or `staging-*.example.com`
+	 * - Domain with port: `localhost:8080`
+	 * - URL with path: `127.0.0.1/expressionlab` or `staging.example.com/subsite`
+	 * - Wildcard path: `127.0.0.1/site-*`
+	 *
+	 * Protocols (`http://`, `https://`) and trailing slashes are normalized and stripped.
+	 * If no path is specified in the pattern, any path on that host is allowed.
+	 * If no port is specified in the pattern, any port on that host is allowed.
+	 * Wildcards never match across `/` boundaries. Comparison is case-insensitive.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param string $home_url Site URL to test (usually from get_option('home')).
+	 * @param string $pattern  Domain, hostname, or URL pattern configured in EXPRESSION_LAB_STAGING_URL.
+	 * @return bool True if the URL matches the pattern, false otherwise.
+	 */
+	public static function matches_url_pattern( string $home_url, string $pattern ): bool {
+		$home_url = trim( $home_url );
+		$pattern  = trim( $pattern );
+
+		if ( '' === $home_url || '' === $pattern ) {
+			return false;
+		}
+
+		// Normalize pattern: strip protocol, then split into authority (host[:port]) and path.
+		$normalized_pattern = (string) preg_replace( '#^[a-z][a-z0-9+.\-]*://#i', '', $pattern );
+		$pattern_parts      = explode( '/', $normalized_pattern, 2 );
+		$pattern_authority  = strtolower( trim( $pattern_parts[0] ) );
+		$pattern_path       = self::normalize_url_path( isset( $pattern_parts[1] ) ? $pattern_parts[1] : '' );
+
+		// Host is either a bracketed IPv6 literal or a colon-free name; port is optional.
+		if ( ! preg_match( '/^(\[[^\]]+\]|[^:\[\]]+)(?::(\d{1,5}))?$/', $pattern_authority, $authority ) ) {
+			return false;
+		}
+		$pattern_host = rtrim( $authority[1], '.' );
+		$pattern_port = isset( $authority[2] ) && '' !== $authority[2] ? (int) $authority[2] : null;
+		if ( '' === $pattern_host ) {
+			return false;
+		}
+
+		// Ensure the home URL has a scheme, otherwise parse_url() cannot extract the host.
+		if ( ! preg_match( '#^[a-z][a-z0-9+.\-]*://#i', $home_url ) ) {
+			$home_url = 'http://' . ltrim( $home_url, '/' );
+		}
+
+		$parsed = wp_parse_url( $home_url );
+		if ( ! is_array( $parsed ) || empty( $parsed['host'] ) ) {
+			return false;
+		}
+
+		$home_host = rtrim( strtolower( (string) $parsed['host'] ), '.' );
+
+		// Port check (only when the pattern pins a port). Implicit ports default to the scheme's.
+		if ( null !== $pattern_port ) {
+			$home_port = isset( $parsed['port'] ) ? (int) $parsed['port'] : self::default_port_for_scheme( isset( $parsed['scheme'] ) ? (string) $parsed['scheme'] : '' );
+			if ( $home_port !== $pattern_port ) {
+				return false;
+			}
+		}
+
+		// Host check (exact or wildcard).
+		if ( ! self::matches_wildcard( $pattern_host, $home_host, '' ) ) {
+			return false;
+		}
+
+		// If no path was specified in the pattern, allow any path on this host.
+		if ( '' === $pattern_path ) {
+			return true;
+		}
+
+		$home_path = self::normalize_url_path( isset( $parsed['path'] ) ? (string) $parsed['path'] : '' );
+
+		// Path check: exact match or nested subpath, with segment-bound wildcards.
+		return self::matches_wildcard( $pattern_path, $home_path, '(?:/.*)?' );
+	}
+
+	/**
+	 * Normalizes a URL path for comparison: drops query/fragment, trims slashes and lowercases.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param string $path Raw path (with or without leading/trailing slashes).
+	 * @return string Normalized path starting with `/`, or an empty string for the root.
+	 */
+	private static function normalize_url_path( string $path ): string {
+		$path = (string) preg_replace( '/[?#].*$/s', '', $path );
+		$path = trim( $path );
+		$path = trim( $path, '/' );
+
+		return '' === $path ? '' : '/' . strtolower( $path );
+	}
+
+	/**
+	 * Matches a subject against a pattern where `*` stands for any run of non-slash characters.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param string $pattern Pattern (already normalized).
+	 * @param string $subject Subject (already normalized).
+	 * @param string $suffix  Optional regex suffix appended after the pattern (e.g. nested subpaths).
+	 * @return bool True on match.
+	 */
+	private static function matches_wildcard( string $pattern, string $subject, string $suffix ): bool {
+		$regex = '#^' . str_replace( '\*', '[^/]*', preg_quote( $pattern, '#' ) ) . $suffix . '$#i';
+
+		return 1 === preg_match( $regex, $subject );
+	}
+
+	/**
+	 * Returns the implicit TCP port for a URL scheme.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param string $scheme URL scheme.
+	 * @return int|null Default port, or null when unknown.
+	 */
+	private static function default_port_for_scheme( string $scheme ): ?int {
+		switch ( strtolower( $scheme ) ) {
+			case 'https':
+				return 443;
+			case 'http':
+				return 80;
+			default:
+				return null;
+		}
+	}
+
+	/**
+	 * Matches a site URL against a domain or wildcard pattern.
+	 *
+	 * Alias for matches_url_pattern for backward compatibility.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param string $home_url Site URL to test (usually from get_option('home')).
+	 * @param string $pattern  Domain or pattern configured in EXPRESSION_LAB_STAGING_URL.
+	 * @return bool True if the URL matches the pattern, false otherwise.
+	 */
+	public static function matches_domain_pattern( string $home_url, string $pattern ): bool {
+		return self::matches_url_pattern( $home_url, $pattern );
+	}
 }
