@@ -10,6 +10,29 @@
 @import 'https://fonts.googleapis.com/css2?family=Cascadia+Mono:ital,wght@0,200..700;1,200..700&family=Roboto+Slab:wght@100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap';
 @import "~highlight.js/styles/vs.min.css";
 
+html,
+body {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	background: #fff;
+	overflow: hidden;
+}
+
+body.expressionlab-admin-page {
+	height: 100%;
+	overflow: hidden;
+}
+
+@media (height <= 600px) {
+	html,
+	body,
+	body.expressionlab-admin-page {
+		overflow-y: auto !important;
+		height: auto !important;
+	}
+}
+
 iframe.expressionlab-app {
 	display: block;
 	width: 100%;
@@ -17,21 +40,40 @@ iframe.expressionlab-app {
 	border: none;
 }
 
-body {
-	background: white;
-}
-
 .expressionlab-app {
-	grid-template-rows: auto auto auto !important;
+	display: flex !important;
+	flex-direction: column !important;
+	height: 100vh !important;
+	min-height: 100vh !important;
+	width: 100%;
+	overflow: hidden !important;
+	box-sizing: border-box;
+
+	body.admin-bar & {
+		height: calc( 100vh - 32px ) !important;
+		min-height: calc( 100vh - 32px ) !important;
+
+		@media (width <= 782px) {
+			height: calc( 100vh - 46px ) !important;
+			min-height: calc( 100vh - 46px ) !important;
+		}
+	}
+
+	@media (height <= 600px) {
+		height: auto !important;
+		min-height: 540px !important;
+	}
 }
 
 .onboard-header {
+	flex: 0 0 auto;
 	display: flex;
 	justify-content: center;
 	align-items: center;
 	background: #fff;
-	padding-top: 50px;
-	padding-bottom: 50px;
+	padding: clamp(16px, 2.5vh, 28px) 24px;
+	width: 100%;
+	box-sizing: border-box;
 
 	.wizard-progress {
 		display: flex;
@@ -55,7 +97,7 @@ body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
         font-size: 14px;
         font-weight: 500;
-        color: #1d2327;
+        color: $wp-text-dark;
         margin-bottom: 12px;
         transition: color 0.2s ease;
     }
@@ -73,8 +115,6 @@ body {
 		height: 16px;
 		border-radius: 50%;
 		background-color: #dcdcde;
-
-		// border: 4px solid #fff;
 		box-sizing: content-box;
         z-index: 2;
         transition: background-color 0.2s ease;
@@ -92,21 +132,19 @@ body {
         transform: translateY(-50%);
     }
 
-	/* Active State */
 	.step-item.active {
 		.step-label {
 			font-weight: 700;
-			color: #1d2327;
+			color: $wp-text-dark;
 		}
 
 		.step-dot {
 			background-color: $wordpress-primary;
-			border-color: $wordpress-primary; /* Make the border blue too so it looks solid/larger vs the line */
-			box-shadow: 0 0 0 3px rgba($wordpress-primary, 0.2); /* optional glow */
+			border-color: $wordpress-primary; 
+			box-shadow: 0 0 0 3px rgba($wordpress-primary, 0.2); 
 		}
 	}
 
-	/* Completed State */
 	.step-item.completed {
 		.step-label {
              color: $wordpress-primary;
@@ -117,7 +155,6 @@ body {
 			border-color: $wordpress-primary;
 		}
 		
-		/* Color the line taking us TO the next step */
         .step-indicator::after {
             background-color: $wordpress-primary;
         }
@@ -125,57 +162,257 @@ body {
 }
 
 .onboard-wizard {
+	flex: 1 1 0;
+	min-height: 0;
 	display: flex;
 	justify-content: center;
+	align-items: stretch;
+	padding: 0 24px 8px;
+	width: 100%;
+	box-sizing: border-box;
 	font-family: $font-family-sans;
-	color: #3c434a;
+	color: $wp-text-muted;
+	overflow: hidden;
 
 	.step-container {
-		background: white;
-		max-width: 700px;
+		background: #fff;
+		max-width: 800px;
 		width: 100%;
+		height: 100%;
+		margin: 0 auto;
 		text-align: center;
-		min-height: 462px;
-		height: auto;
 		border: solid 1px #d4d4d4;
-		padding: 40px;
+		box-sizing: border-box;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
 
-		// transform: translateY(-30px);
-
-		&.welcome-step {
+		.step-header {
+			flex: 0 0 136px;
+			height: 136px;
+			padding: 32px 32px 0;
 			display: flex;
 			flex-direction: column;
-			justify-content: center;
-			padding: 0 40px;
+			align-items: center;
+			justify-content: flex-start;
+			background: #fff;
+			box-sizing: border-box;
+			border-bottom: 1px solid #d4d4d4;
+			width: 100%;
+
+			.step-codicon {
+				font-size: 36px;
+				height: 38px;
+				line-height: 38px;
+				display: block;
+				color: $wordpress-primary;
+				margin: 0 0 8px;
+			}
+
+			h1,
+			h2 {
+				font-weight: 500;
+				font-family: $font-family-serif;
+				margin: 0;
+				line-height: 1.25;
+				color: $wp-text-dark;
+			}
+
+			h1 {
+				font-size: 22px;
+				margin-bottom: 4px;
+			}
+
+			h2 {
+				font-size: 20px;
+			}
+
+			.welcome-subtitle {
+				margin: 0;
+				font-size: 13px;
+				line-height: 1.35;
+				color: $wp-text-muted;
+			}
 		}
 
+		.step-body,
 		.step-inner-container {
-			min-height: 256px;
+			flex: 1 1 0;
+			min-height: 0;
+			width: 100%;
+			overflow: hidden auto;
+			padding: 32px;
+			box-sizing: border-box;
+			display: flex;
+			flex-direction: column;
+			justify-content: flex-start;
+			align-items: stretch;
+			text-align: left;
+			font-size: 14px;
+
+			&::-webkit-scrollbar {
+				width: 6px;
+			}
+
+			&::-webkit-scrollbar-track {
+				background: transparent;
+			}
+
+			&::-webkit-scrollbar-thumb {
+				background: #dcdcde;
+				border-radius: 3px;
+
+				&:hover {
+					background: #c3c4c7;
+				}
+			}
+
+			scrollbar-width: thin;
+			scrollbar-color: #dcdcde transparent;
+
+			&.generating-keys {
+				justify-content: center;
+				align-items: center;
+				text-align: center;
+				gap: 28px;
+				height: 100%;
+			}
 		}
 
-		.step-codicon {
-			font-size: 38px;
-			height: 44px;
-			display: block;
-			color: $wordpress-primary;
+		// 3. Footer con los botones (alto fijo)
+		.step-footer {
+			flex: 0 0 68px;
+			height: 68px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 0 32px;
+			border-top: 1px solid #d4d4d4;
+			background: #fff;
+			box-sizing: border-box;
+			width: 100%;
+
+			.buttons {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				gap: 12px;
+				margin: 0;
+				width: 100%;
+			}
+		}
+
+		&.welcome-step {
+			.step-footer .buttons {
+				justify-content: center;
+			}
+
+			.step-body {
+				padding: 32px 100px;
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				align-items: stretch;
+
+				@media (width <= 820px) {
+					padding: 24px clamp(20px, 5vw, 60px);
+				}
+			}
+
+			.welcome-box {
+				display: flex;
+				flex-direction: column;
+				gap: 24px;
+				width: 100%;
+				margin: auto 0;
+			}
+
+			.welcome-header {
+				text-align: center;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+
+				.wizard-logo {
+					margin: 0 0 16px;
+					color: $wordpress-primary;
+					line-height: 1;
+
+					.wizard-icon {
+						height: 64px;
+						width: auto;
+						fill: currentcolor;
+						display: block;
+					}
+				}
+
+				h1 {
+					font-weight: 500;
+					font-family: $font-family-serif;
+					font-size: 26px;
+					margin: 0 0 8px;
+					line-height: 1.25;
+					color: $wp-text-dark;
+				}
+
+				.welcome-subtitle {
+					margin: 0;
+					font-size: 13.5px;
+					line-height: 1.4;
+					color: $wp-text-muted;
+				}
+			}
+		}
+
+		&.finishing-step {
+			.step-body {
+				display: grid;
+				grid-template-columns: 100%;
+				grid-template-rows: auto 1fr auto;
+				gap: 16px;
+				overflow: hidden;
+
+				.finishing-instruction,
+				.finishing-hint {
+					margin: 0;
+					width: 100%;
+				}
+
+				.config-output {
+					width: 100%;
+					height: 100%;
+					min-height: 0;
+					min-width: 0;
+					margin: 0;
+					font-family: $font-family-monospace;
+					font-size: 13px;
+					line-height: 1.5;
+					color: $wp-text-dark;
+					padding: 10px;
+					background: #f6f7f7;
+					border: 1px solid #dcdcde;
+					resize: none;
+					border-radius: 0;
+					box-sizing: border-box;
+				}
+			}
 		}
 	}
 
-	h1,
-	h2 {
-		font-weight: 500;
-		font-family: $font-family-serif;
-	}
-
-	h2 {
-		margin-bottom: 20px;
-		font-weight: 500;
-		margin-top: 8px;
-	}
-
+	// stylelint-disable-next-line
 	p {
 		margin-bottom: 15px;
 		line-height: 1.5;
+		color: $wp-text-muted;
+	}
+
+	code {
+		font-family: $font-family-monospace;
+		background: #f0f0f1;
+		padding: 2px 5px;
+		border-radius: 3px;
+		color: $wp-text-dark;
+		font-size: inherit !important;
 	}
 
 	.form-group input {
@@ -183,26 +420,6 @@ body {
 		padding: 8px;
 		border: 1px solid #8c8f94;
 		border-radius: 4px;
-	}
-
-	.welcome-step .wizard-logo {
-		margin-bottom: 12px;
-		color: $wordpress-primary;
-	}
-
-	.welcome-step .wizard-icon {
-		height: 48px;
-		width: auto;
-		fill: currentcolor;
-	}
-
-	.welcome-step h1 {
-		margin-bottom: 6px;
-	}
-
-	.welcome-step .welcome-subtitle {
-		margin-bottom: 16px;
-		color: #646970;
 	}
 
 	.requirements-list {
@@ -217,6 +434,10 @@ body {
 		justify-content: space-between;
 		padding: 10px 0;
 		border-bottom: 1px solid #f0f0f1;
+
+		&:first-child {
+			padding-top: 0;
+		}
 
 		&:last-child {
 			border-bottom: none;
@@ -237,7 +458,7 @@ body {
 		border-left: 4px solid #dba617;
 		border-radius: 4px;
 		padding: 14px 18px;
-		margin: 0 0 16px;
+		margin: 30px 0;
 		text-align: left;
 
 		.alpha-notice-title {
@@ -260,37 +481,63 @@ body {
 		.alpha-notice-description {
 			font-size: 12.5px;
 			line-height: 1.5;
-			color: #0c0c0c;
+			color: $wp-text-muted;
 			margin-bottom: 8px;
 			text-align: left;
 		}
 
-		.alpha-notice-list {
-			margin: 0;
-			padding-left: 18px;
-			list-style: disc;
+		&.requirements-warning {
+			margin-bottom: 20px;
 
-			li {
-				font-size: 12px;
-				line-height: 1.5;
-				color: #0c0c0c;
-				margin-bottom: 3px;
-
-				&:last-child {
-					margin-bottom: 0;
-				}
+			.alpha-notice-description:last-child {
+				margin-bottom: 0;
 			}
+		}
+	}
+
+	.keygen-cached-notice-box {
+		background: #f5fff6;
+		border: 1px solid #91b192;
+		border-left: 4px solid #4caf50;
+		border-radius: 4px;
+		padding: 14px 18px;
+		margin: 30px 0;
+		text-align: left;
+
+		.keygen-cached-notice-title {
+			font-family: $font-family-sans;
+			font-size: 14px;
+			font-weight: 600;
+			color: #1b5e20;
+			margin: 0 0 6px;
+			display: flex;
+			align-items: center;
+			gap: 6px;
+
+			.keygen-cached-notice-icon {
+				color: #2e7d32;
+				font-size: 16px;
+				flex-shrink: 0;
+			}
+		}
+
+		.keygen-cached-notice-description {
+			font-size: 12.5px;
+			line-height: 1.5;
+			color: $wp-text-muted;
+			margin-bottom: 8px;
+			text-align: left;
 		}
 	}
 
 	.agreement-check {
 		text-align: left;
-		margin-bottom: 20px;
-		font-size: 13px;
+		margin-bottom: 0;
+		font-size: 14px;
 		display: flex;
 		align-items: flex-start;
 		margin-top: 0;
-		justify-content: flex-start;
+		justify-content: center;
 		user-select: none;
 		position: relative;
 	}
@@ -301,6 +548,7 @@ body {
 		align-items: flex-start;
 		gap: 8px;
 		text-align: left;
+		color: $wp-text-dark;
 
 		input {
 			margin-top: 2px;
@@ -310,18 +558,19 @@ body {
 
 		span {
 			display: inline-block;
-			font-size: 12.5px;
+			font-size: 14px;
 			line-height: 1.45;
-			color: #2c3338;
+			color: $wp-text-dark;
 		}
 	}
 
 	.requirements-description, .key-generation-description {
 		text-align: justify;
+		color: $wp-text-muted;
 	}
 
 	.requirements-description {
-		color: #646970;
+		color: $wp-text-muted;
 	}
 
 	.key-generation-notes {
@@ -330,6 +579,7 @@ body {
 		margin-left: 20px;
 		padding: 0;
 		list-style: disc;
+		color: $wp-text-muted;
 	}
 
 	.requirements-list li .status {
@@ -337,7 +587,6 @@ body {
 	}
 
 	.form-group {
-		margin-bottom: 20px;
 		text-align: left;
 	}
 
@@ -345,32 +594,280 @@ body {
 		display: block;
 		margin-bottom: 5px;
 		font-weight: 500;
+		color: $wp-text-dark;
 	}
 
-	.step-inner-container.generating-keys {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: 20px;
-		text-align: center;
-		min-height: 100%;
-	}
 
-	.config-output {
+	.settings-input {
 		width: 100%;
-		height: 150px;
-		font-family: monospace;
-		padding: 10px;
-		margin-bottom: 10px;
-		background: #f6f7f7;
+		padding: 8px 12px;
+		border: 1px solid #8c8f94;
+		border-radius: 0 !important;
+		font-size: 14px;
+		margin-bottom: 6px;
+		box-sizing: border-box;
+
+		&:focus {
+			border-color: $wordpress-primary !important;
+		}
+	}
+
+	.constraint-input {
+		width: 72px;
+		padding: 6px 8px;
+		border: 1px solid #8c8f94;
+		border-radius: 0 !important;
+		font-size: 14px;
+		text-align: center;
+		box-sizing: border-box;
+
+		&:focus {
+			border-color: $wordpress-primary;
+		}
+	}
+
+	.settings-input.is-invalid,
+	.constraint-input.is-invalid {
+		border-color: #d63638 !important;
+	}
+
+	.settings-error {
+		display: block;
+		font-size: 12px;
+		line-height: 1.45;
+		color: #d63638;
+		margin-top: 4px;
+	}
+
+	.keygen-error {
+		background: #fcf0f1;
+		border: 1px solid #f0b8b9;
+		border-left: 4px solid #d63638;
+		border-radius: 4px;
+		color: #8a2424;
+		padding: 10px 14px;
+		margin: 0 0 20px;
+		font-size: 13px;
+		line-height: 1.45;
+	}
+
+	.alpha-notice-box.keygen-cached-notice {
+		margin: 0 0 20px;
+
+		.alpha-notice-description:last-child {
+			margin-bottom: 0;
+		}
+	}
+
+	.settings-step {
+		.step-inner-container {
+			text-align: left;
+		}
+
+		.settings-section-title {
+			margin: 0 0 20px;
+			padding: 0 0 12px;
+			border-bottom: dotted 1px #d4d4d4;
+			color: $wp-text-dark;
+		}
+
+		.settings-label {
+			font-family: $font-family-sans;
+			font-size: 14px;
+			font-weight: 700;
+			color: $wp-text-dark;
+			margin-bottom: 6px;
+			display: block;
+		}
+
+		.settings-description {
+			color: $wp-text-muted;
+			line-height: 1.5;
+			margin-bottom: 12px;
+			text-align: left;
+			font-size: 14px;
+		}
+
+		.settings-hint {
+			display: block;
+			font-size: 12px;
+			color: $wp-text-muted;
+			margin-top: 4px;
+		}
+
+		.settings-divider {
+			border: none;
+			border-top: 1px solid #d4d4d4;
+			margin: 24px 0;
+			opacity: 1;
+		}
+
+		.settings-intro {
+			font-size: 14px;
+			color: $wp-text-muted;
+			line-height: 1.5;
+			margin-bottom: 16px;
+			text-align: left;
+		}
+
+		.permission-list {
+			display: flex;
+			flex-direction: column;
+			gap: 12px;
+		}
+
+		.permission-item {
+			display: flex;
+			align-items: center;
+			gap: 14px;
+			cursor: pointer;
+			user-select: none;
+			padding: 8px 12px;
+			border-radius: 2px;
+
+			&:hover {
+				background: #eaeaea;
+			}
+
+			.permission-icon {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				flex-shrink: 0;
+				background: white;
+				color: #6b6b6b;
+				padding: 12px;
+				width: 56px;
+				height: 56px;
+				border: solid 1px #acacac;
+				border-radius: 3px;
+
+				.codicon {
+					font-size: 32px;
+				}
+			}
+
+			.permission-info {
+				display: flex;
+				flex-direction: column;
+				gap: 2px;
+				flex: 1;
+			}
+
+			.permission-title {
+				font-size: 14px;
+				font-weight: 700;
+				color: $wp-text-dark;
+			}
+
+			.permission-desc {
+				color: $wp-text-muted;
+				line-height: 1.45;
+			}
+		}
+
+		.constraint-group {
+			margin-bottom: 20px;
+
+			&:last-child {
+				margin-bottom: 0;
+			}
+		}
+
+		.constraint-title {
+			font-size: 14px;
+			font-weight: 700;
+			color: $wp-text-dark;
+			margin-bottom: 4px;
+		}
+
+		.constraint-description {
+			color: $wp-text-muted;
+			line-height: 1.45;
+			margin-bottom: 10px;
+			text-align: left;
+			font-size: 14px;
+		}
+
+		.constraint-field {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+
+			.constraint-input {
+				width: 72px;
+			}
+
+			.constraint-unit {
+				font-size: 14px;
+				color: $wp-text-muted;
+			}
+		}
+	}
+
+	.keygen-grid {
+		display: grid;
+		grid-template-columns: repeat(38, 12px);
+		grid-template-rows: repeat(10, 12px);
+		gap: 2px;
+		place-content: center;
+		margin: 0 auto;
+		user-select: none;
+
+		@media (width <= 580px) {
+			transform: scale(0.65);
+			transform-origin: center center;
+		}
+	}
+
+	.keygen-cell {
+		width: 12px;
+		height: 12px;
+		border-radius: 2px;
+		box-sizing: border-box;
+		background-color: #f6f7f7;
 		border: 1px solid #dcdcde;
-		resize: none;
-		border-radius: 0;
+		transition: background-color 0.16s ease, border-color 0.16s ease;
+
+		&.level-1 {
+			background-color: #c7d9fe;
+			border-color: #b0c9fd;
+		}
+
+		&.level-2 {
+			background-color: #8dafff;
+			border-color: #799ff7;
+		}
+
+		&.level-3 {
+			background-color: #4b82f6;
+			border-color: #3b73e8;
+		}
+
+		&.level-4 {
+			background-color: #1e59e9;
+			border-color: #154cd6;
+		}
+	}
+
+	.keygen-status {
+		font-size: 15px;
+		font-weight: 600;
+		color: $wp-text-dark;
+		margin: 0;
 	}
 }
 
 .onboard-footer {
+	flex: 0 0 auto;
 	text-align: center;
 	font-family: $font-family-serif;
+	padding: 12px 24px clamp(12px, 2vh, 24px);
+	color: $wp-text-muted;
+	font-size: 13px;
+
+	// stylelint-disable-next-line
+	p {
+		margin: 0;
+	}
 }

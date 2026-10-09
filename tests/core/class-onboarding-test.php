@@ -56,6 +56,7 @@ class OnboardingTest extends WP_UnitTestCase {
 		$this->assertIsArray( $data );
 		$this->assertArrayHasKey( 'version', $data );
 		$this->assertArrayHasKey( 'user_id', $data );
+		$this->assertArrayHasKey( 'site_url', $data );
 		$this->assertArrayHasKey( 'server', $data );
 		$this->assertArrayHasKey( 'i18n', $data );
 
@@ -63,6 +64,29 @@ class OnboardingTest extends WP_UnitTestCase {
 		$this->assertIsBool( $data['server']['sqlite_enabled'] );
 		$this->assertIsBool( $data['server']['sodium_enabled'] );
 		$this->assertNotEmpty( $data['i18n'] );
+	}
+
+	/**
+	 * @dataProvider provide_home_urls
+	 */
+	public function test_get_script_data_site_url_is_scheme_less_and_untrailed( $home, $expected ) {
+		update_option( 'home', $home );
+
+		$onboarding = Onboarding::get();
+		$reflection = new \ReflectionMethod( $onboarding, 'get_script_data' );
+		$data       = $reflection->invoke( $onboarding );
+
+		$this->assertSame( $expected, $data['site_url'] );
+	}
+
+	public function provide_home_urls() {
+		return array(
+			'https with trailing slash' => array( 'https://staging.example.com/', 'staging.example.com' ),
+			'http without slash'        => array( 'http://staging.example.com', 'staging.example.com' ),
+			'uppercase scheme'          => array( 'HTTPS://staging.example.com', 'staging.example.com' ),
+			'subdirectory install'      => array( 'http://127.0.0.1/expressionlab/', '127.0.0.1/expressionlab' ),
+			'port and path'             => array( 'http://localhost:8080/site/', 'localhost:8080/site' ),
+		);
 	}
 
 	public function test_render_rejects_subscribers_with_wp_die() {
