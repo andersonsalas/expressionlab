@@ -77,7 +77,7 @@ final class IPLookup implements ServiceInterface {
 		$salt = defined( 'AUTH_KEY' ) ? constant( 'AUTH_KEY' ) : ( function_exists( 'wp_salt' ) ? wp_salt( 'nonce' ) : 'expressionlab_salt' );
 		$hash = substr( hash_hmac( 'sha256', 'expressionlab_geolite2_country', $salt ), 0, 16 );
 
-		return wp_normalize_path( WP_CONTENT_DIR . '/expressionlab/' . $hash . '-GeoLite2-Country.mmdb' );
+		return wp_normalize_path( Helper::get_storage_dir() . '/' . $hash . '-GeoLite2-Country.mmdb' );
 	}
 
 	/**
