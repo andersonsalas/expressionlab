@@ -312,6 +312,29 @@ if ( ! defined( 'EXPRESSION_LAB_MAXMIND_PATH' ) ) {
 	define( 'EXPRESSION_LAB_MAXMIND_PATH', null );
 }
 
+if ( ! defined( 'EXPRESSION_LAB_STORAGE_PATH' ) ) {
+	/**
+	 * Path to the Expression Lab storage directory, relative to WP_CONTENT_DIR.
+	 *
+	 * When null, defaults to wp-content/expressionlab/.
+	 *
+	 * @var string|null
+	 */
+	define( 'EXPRESSION_LAB_STORAGE_PATH', null );
+}
+
+if ( ! defined( 'EXPRESSION_LAB_AUDIT_LOG_ENABLED' ) ) {
+	/**
+	 * Enable audit logging.
+	 *
+	 * When enabled, records expression evaluations, administrator ID, client IP,
+	 * execution timestamp, status, and expression hash in protected logs.
+	 *
+	 * @var bool
+	 */
+	define( 'EXPRESSION_LAB_AUDIT_LOG_ENABLED', true );
+}
+
 if ( file_exists( __DIR__ . '/vendor/scoper-autoload.php' ) ) {
 	require_once __DIR__ . '/vendor/scoper-autoload.php';
 } else {

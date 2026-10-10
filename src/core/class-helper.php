@@ -538,4 +538,284 @@ class Helper {
 	public static function matches_domain_pattern( string $home_url, string $pattern ): bool {
 		return self::matches_url_pattern( $home_url, $pattern );
 	}
+
+	/**
+	 * Files inside the storage directory that guard it against direct HTTP access.
+	 *
+	 * These files can never be targeted by the storage write primitives.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @var string[]
+	 */
+	const STORAGE_GUARD_FILES = array( '.htaccess', 'index.html' );
+
+	/**
+	 * Filename suffix reserved for append-only (WORM) storage files, such as audit logs.
+	 *
+	 * Files with this suffix can only be appended to; they can never be overwritten
+	 * or truncated through the storage API.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @var string
+	 */
+	const STORAGE_APPEND_ONLY_SUFFIX = '.log.php';
+
+	/**
+	 * Retrieves the absolute canonical path to the Expression Lab storage directory.
+	 *
+	 * Defaults to `wp-content/expressionlab`, but can be overridden using the
+	 * `EXPRESSION_LAB_STORAGE_PATH` constant.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @return string Canonical normalized storage directory path.
+	 * @throws \InvalidArgumentException If the custom path escapes WP_CONTENT_DIR or points to
+	 *                                   WP_CONTENT_DIR itself (which would deny HTTP access to
+	 *                                   the whole wp-content directory once secured).
+	 */
+	public static function get_storage_dir(): string {
+		$custom_dir = defined( 'EXPRESSION_LAB_STORAGE_PATH' ) ? constant( 'EXPRESSION_LAB_STORAGE_PATH' ) : null;
+
+		if ( ! empty( $custom_dir ) && is_string( $custom_dir ) ) {
+			$resolved     = rtrim( self::resolve_safe_path( $custom_dir, WP_CONTENT_DIR, false ), '/' );
+			$real_content = realpath( WP_CONTENT_DIR );
+			$content_dir  = rtrim( wp_normalize_path( false !== $real_content ? $real_content : WP_CONTENT_DIR ), '/' );
+
+			if ( $resolved === $content_dir ) {
+				throw new \InvalidArgumentException( 'Access denied: `EXPRESSION_LAB_STORAGE_PATH` must point to a dedicated subdirectory of WP_CONTENT_DIR.' );
+			}
+
+			return $resolved;
+		}
+
+		return wp_normalize_path( WP_CONTENT_DIR . '/expressionlab' );
+	}
+
+	/**
+	 * Resolves a relative filename to an absolute path confined to the storage directory.
+	 *
+	 * Rejects stream wrappers, null bytes, traversal outside the storage boundary,
+	 * the storage directory itself and the protective guard files.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param string $relative_filename Relative filename inside the storage directory.
+	 * @return string Canonical absolute file path.
+	 * @throws \InvalidArgumentException If the filename is invalid or escapes the storage boundary.
+	 */
+	public static function resolve_storage_file_path( string $relative_filename ): string {
+		$dir       = rtrim( self::get_storage_dir(), '/' );
+		$file_path = self::resolve_safe_path( $relative_filename, $dir, false );
+
+		$real_dir       = realpath( $dir );
+		$canonical_root = rtrim( wp_normalize_path( false !== $real_dir ? $real_dir : $dir ), '/' );
+
+		if ( rtrim( $file_path, '/' ) === $canonical_root ) {
+			throw new \InvalidArgumentException( 'Access denied: A filename inside the storage directory is required.' );
+		}
+
+		if ( in_array( strtolower( basename( $file_path ) ), self::STORAGE_GUARD_FILES, true ) ) {
+			throw new \InvalidArgumentException( 'Access denied: Storage guard files cannot be modified.' );
+		}
+
+		return $file_path;
+	}
+
+	/**
+	 * Ensures that the storage directory exists and is secured against direct access.
+	 *
+	 * Creates the storage directory if missing, creates an index.html file to suppress
+	 * directory listings, and an .htaccess file denying direct HTTP access.
+	 * Fails closed by throwing a RuntimeException if the directory or protective
+	 * files cannot be created.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @return bool True if directory exists and is secured.
+	 * @throws \RuntimeException If directory creation or securing fails.
+	 */
+	public static function ensure_storage_dir(): bool {
+		$dir = self::get_storage_dir();
+
+		if ( ! is_dir( $dir ) ) {
+			if ( ! wp_mkdir_p( $dir ) ) {
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+				throw new \RuntimeException( sanitize_text_field( "Failed to create storage directory: {$dir}" ) );
+			}
+		}
+
+		$index_file = wp_normalize_path( $dir . '/index.html' );
+		if ( ! file_exists( $index_file ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.PHP.NoSilencedErrors.Discouraged
+			if ( false === @file_put_contents( $index_file, '' ) ) {
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+				throw new \RuntimeException( sanitize_text_field( "Failed to secure storage directory with index.html: {$dir}" ) );
+			}
+		}
+
+		$htaccess_file = wp_normalize_path( $dir . '/.htaccess' );
+		if ( ! file_exists( $htaccess_file ) ) {
+			$htaccess_content = "<IfModule !mod_authz_core.c>\nOrder deny,allow\nDeny from all\n</IfModule>\n<IfModule mod_authz_core.c>\nRequire all denied\n</IfModule>\n";
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.PHP.NoSilencedErrors.Discouraged
+			if ( false === @file_put_contents( $htaccess_file, $htaccess_content ) ) {
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+				throw new \RuntimeException( sanitize_text_field( "Failed to secure storage directory with .htaccess: {$dir}" ) );
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Appends content atomically to a file inside the storage directory.
+	 *
+	 * Ensures the storage directory is initialized and secured, resolves the
+	 * target path safely within the storage boundary, and writes the payload
+	 * while holding an exclusive advisory lock.
+	 *
+	 * When a `$header` is provided, it is written before the payload only if the
+	 * file is empty. The emptiness check is performed *after* the exclusive lock
+	 * is acquired, so concurrent writers can never produce a file that starts
+	 * without the header or that contains the header in the middle.
+	 *
+	 * An \InvalidArgumentException is propagated if the filename is invalid or
+	 * escapes the storage boundary (see {@see Helper::resolve_storage_file_path()}).
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param string $relative_filename Relative filename inside the storage directory.
+	 * @param string $payload           Payload to append.
+	 * @param string $header            Optional. Header written once, at the very beginning of a new or empty file.
+	 * @return bool True on success.
+	 * @throws \RuntimeException If the directory cannot be secured or the write fails.
+	 */
+	public static function append_storage_file( string $relative_filename, string $payload, string $header = '' ): bool {
+		self::ensure_storage_dir();
+
+		$file_path = self::resolve_storage_file_path( $relative_filename );
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen, WordPress.PHP.NoSilencedErrors.Discouraged
+		$handle = @fopen( $file_path, 'ab' );
+
+		if ( false === $handle ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			throw new \RuntimeException( sanitize_text_field( "Failed to open storage file for appending: {$file_path}" ) );
+		}
+
+		$written = false;
+
+		try {
+			if ( ! flock( $handle, LOCK_EX ) ) {
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+				throw new \RuntimeException( sanitize_text_field( "Failed to lock storage file: {$file_path}" ) );
+			}
+
+			try {
+				if ( '' !== $header ) {
+					$stat = fstat( $handle );
+
+					if ( false === $stat ) {
+						// Fail closed: never risk writing a protected file without its header.
+						// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+						throw new \RuntimeException( sanitize_text_field( "Failed to inspect storage file: {$file_path}" ) );
+					}
+
+					if ( 0 === (int) $stat['size'] ) {
+						$payload = $header . $payload;
+					}
+				}
+
+				$written = self::write_fully( $handle, $payload );
+				fflush( $handle );
+			} finally {
+				flock( $handle, LOCK_UN );
+			}
+		} finally {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			fclose( $handle );
+		}
+
+		if ( ! $written ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			throw new \RuntimeException( sanitize_text_field( "Failed to append to storage file: {$file_path}" ) );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Writes content atomically to a file inside the storage directory.
+	 *
+	 * Ensures the storage directory is initialized and secured, resolves the
+	 * target path safely within the storage boundary, writes the payload to a
+	 * temporary sibling file and atomically renames it over the target, so
+	 * readers never observe a truncated or partially written file.
+	 *
+	 * Append-only files (suffix `.log.php`, e.g. audit logs) can never be
+	 * overwritten through this method.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param string $relative_filename Relative filename inside the storage directory.
+	 * @param string $payload           Payload to write.
+	 * @return bool True on success.
+	 * @throws \InvalidArgumentException If the filename is invalid, escapes the storage boundary
+	 *                                   or targets an append-only file.
+	 * @throws \RuntimeException         If the directory cannot be secured or the write fails.
+	 */
+	public static function write_storage_file( string $relative_filename, string $payload ): bool {
+		self::ensure_storage_dir();
+
+		$file_path = self::resolve_storage_file_path( $relative_filename );
+
+		if ( str_ends_with( strtolower( $file_path ), self::STORAGE_APPEND_ONLY_SUFFIX ) ) {
+			throw new \InvalidArgumentException( 'Access denied: Append-only storage files cannot be overwritten.' );
+		}
+
+		$tmp_path = $file_path . '.tmp.' . bin2hex( random_bytes( 8 ) );
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.PHP.NoSilencedErrors.Discouraged
+		$result = @file_put_contents( $tmp_path, $payload, LOCK_EX );
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename, WordPress.PHP.NoSilencedErrors.Discouraged
+		if ( strlen( $payload ) !== $result || ! @rename( $tmp_path, $file_path ) ) {
+			if ( file_exists( $tmp_path ) ) {
+				wp_delete_file( $tmp_path );
+			}
+
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			throw new \RuntimeException( sanitize_text_field( "Failed to write to storage file: {$file_path}" ) );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Writes the whole buffer to a stream, retrying on partial writes.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param resource $handle Writable stream handle.
+	 * @param string   $data   Data to write.
+	 * @return bool True if every byte was written.
+	 */
+	private static function write_fully( $handle, string $data ): bool {
+		$length = strlen( $data );
+		$offset = 0;
+
+		while ( $offset < $length ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
+			$bytes = fwrite( $handle, substr( $data, $offset ) );
+
+			if ( false === $bytes || 0 === $bytes ) {
+				return false;
+			}
+
+			$offset += $bytes;
+		}
+
+		return true;
+	}
 }
