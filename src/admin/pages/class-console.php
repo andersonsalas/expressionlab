@@ -15,6 +15,7 @@ use ExpressionLab\Core\Singleton;
 use ExpressionLab\Core\LanguageEngine;
 use ExpressionLab\Core\Helper;
 use ExpressionLab\Core\AdminPage;
+use ExpressionLab\Core\AuditLogger;
 use ExpressionLab\Core\Exceptions\SecurityException;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -700,6 +701,47 @@ class Console extends AdminPage {
 	}
 
 	/**
+	 * Creates a one-shot audit recorder for an authorized expression evaluation.
+	 *
+	 * The returned closure accepts a status (`success`, `error` or `aborted`) and
+	 * writes exactly one audit record: every call after the first one is a no-op.
+	 * This allows registering it as a shutdown function (status `aborted`) to
+	 * capture fatal errors and timeouts without duplicating regular records.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param string   $expression      The evaluated expression (hashed by the logger, never stored).
+	 * @param int      $actor_id        Authenticated user performing the evaluation.
+	 * @param int|null $context_user_id Execution-context user selected in the console, if any.
+	 * @param int|null $site_id         Execution-context site ID, if any.
+	 * @param float    $start_time      Request start time (microtime( true )).
+	 * @return \Closure(string): bool Recorder returning true when a record was written.
+	 */
+	public static function create_audit_recorder( string $expression, int $actor_id, ?int $context_user_id, ?int $site_id, float $start_time ): \Closure {
+		$recorded = false;
+
+		return static function ( string $status ) use ( &$recorded, $expression, $actor_id, $context_user_id, $site_id, $start_time ): bool {
+			if ( $recorded ) {
+				return false;
+			}
+
+			$recorded = true;
+
+			return AuditLogger::log_evaluation(
+				array(
+					'expression'      => $expression,
+					'user_id'         => $actor_id,
+					'context_user_id' => $context_user_id,
+					'site_id'         => $site_id,
+					'status'          => $status,
+					'duration_ms'     => ( microtime( true ) - $start_time ) * 1000,
+				)
+			);
+		};
+	}
+
+	/**
 	 * Evaluates an expression string sent via AJAX and returns the output.
 	 *
 	 * @since 0.0.1
@@ -708,12 +750,15 @@ class Console extends AdminPage {
 	 * @return void
 	 */
 	public function evaluate() {
+		$start_time = microtime( true );
+
 		try {
 			$this->validate_ajax_request();
 		} catch ( SecurityException $e ) {
 			wp_send_json_error( array( 'message' => $e->getMessage() ), $e->get_status_code() );
 		}
 
+		$actor_id        = get_current_user_id();
 		$expression      = isset( $_POST['expression'] ) ? wp_unslash( $_POST['expression'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$challenge_nonce = isset( $_POST['challenge_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['challenge_nonce'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$timestamp       = isset( $_POST['timestamp'] ) ? sanitize_text_field( wp_unslash( $_POST['timestamp'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -743,6 +788,12 @@ class Console extends AdminPage {
 			);
 		}
 
+		// Audit trail: exactly one record per authorized evaluation. The shutdown guard
+		// records an `aborted` event when a fatal error, timeout or exit prevents the
+		// success/error record below, so an expression cannot evade the log by crashing.
+		$record_audit = self::create_audit_recorder( $expression, $actor_id, $user_id, $site_id, $start_time );
+		register_shutdown_function( $record_audit, 'aborted' );
+
 		try {
 			$evaluation = LanguageEngine::get()
 				->set_user_id( $user_id )
@@ -753,7 +804,12 @@ class Console extends AdminPage {
 			$output      = $evaluation['output'];
 			$errors      = $evaluation['errors'];
 			$object_type = $evaluation['object_type'];
+
+			$record_audit( 'success' );
 		} catch ( \Throwable $e ) {
+			// The exception message is deliberately never logged: Symfony embeds the raw expression in it.
+			$record_audit( 'error' );
+
 			$error_message = '';
 
 			if ( $e instanceof \Symfony\Component\ExpressionLanguage\SyntaxError ) {

@@ -11,6 +11,7 @@
 
 namespace ExpressionLab\Core\Cli\Runners;
 
+use ExpressionLab\Core\Helper;
 use ExpressionLab\Core\Services\IPLookup;
 use MaxMind\Db\Reader;
 use splitbrain\PHPArchive\Tar;
@@ -140,14 +141,13 @@ class IPLookupRunner {
 			throw new \RuntimeException( 'No .mmdb database file found inside the extracted MaxMind archive.' );
 		}
 
-		$target_dir = dirname( $target_path );
-		if ( ! is_dir( $target_dir ) ) {
-			wp_mkdir_p( $target_dir );
-		}
+		Helper::ensure_storage_dir();
 
-		$index_file = wp_normalize_path( $target_dir . '/index.html' );
-		if ( ! file_exists( $index_file ) ) {
-			self::get_filesystem()->put_contents( $index_file, '' );
+		// A custom EXPRESSION_LAB_MAXMIND_PATH may live outside the storage directory.
+		$target_dir = dirname( $target_path );
+		if ( ! is_dir( $target_dir ) && ! wp_mkdir_p( $target_dir ) ) {
+			self::delete_directory( $tmp_extract_dir );
+			throw new \RuntimeException( 'Failed to create the destination directory for the GeoLite2 database.' );
 		}
 
 		$tmp_target = wp_normalize_path( $target_path . '.tmp.' . uniqid() );

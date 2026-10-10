@@ -271,4 +271,254 @@ class HelperTest extends WP_UnitTestCase {
 			$_SERVER['HTTP_HOST'] = $original_host;
 		}
 	}
+
+	public function test_get_storage_dir_returns_expected_path() {
+		$dir = Helper::get_storage_dir();
+		$this->assertIsString( $dir );
+		$this->assertSame( wp_normalize_path( WP_CONTENT_DIR . '/expressionlab' ), $dir );
+	}
+
+	public function test_ensure_storage_dir_creates_directory_and_security_files() {
+		$dir = Helper::get_storage_dir();
+		$this->assertTrue( Helper::ensure_storage_dir() );
+		$this->assertDirectoryExists( $dir );
+
+		$index_file = $dir . '/index.html';
+		$this->assertFileExists( $index_file );
+
+		$htaccess_file = $dir . '/.htaccess';
+		$this->assertFileExists( $htaccess_file );
+		$htaccess_content = file_get_contents( $htaccess_file );
+		$this->assertStringContainsString( 'Require all denied', $htaccess_content );
+	}
+
+	public function test_append_storage_file_writes_content_and_appends() {
+		$test_file = 'test-audit-' . uniqid() . '.log';
+		$dir       = Helper::get_storage_dir();
+		$full_path = $dir . '/' . $test_file;
+
+		Helper::append_storage_file( $test_file, "line1\n" );
+		$this->assertFileExists( $full_path );
+		$this->assertSame( "line1\n", file_get_contents( $full_path ) );
+
+		Helper::append_storage_file( $test_file, "line2\n" );
+		$this->assertSame( "line1\nline2\n", file_get_contents( $full_path ) );
+
+		if ( file_exists( $full_path ) ) {
+			unlink( $full_path );
+		}
+	}
+
+	public function test_write_storage_file_overwrites_content() {
+		$test_file = 'test-write-' . uniqid() . '.txt';
+		$dir       = Helper::get_storage_dir();
+		$full_path = $dir . '/' . $test_file;
+
+		Helper::write_storage_file( $test_file, 'initial' );
+		$this->assertSame( 'initial', file_get_contents( $full_path ) );
+
+		Helper::write_storage_file( $test_file, 'replaced' );
+		$this->assertSame( 'replaced', file_get_contents( $full_path ) );
+
+		if ( file_exists( $full_path ) ) {
+			unlink( $full_path );
+		}
+	}
+
+	public function test_append_storage_file_blocks_directory_traversal() {
+		$this->expectException( \InvalidArgumentException::class );
+		$this->expectExceptionMessage( 'Access denied' );
+		Helper::append_storage_file( '../evil.php', 'malicious content' );
+	}
+
+	public function storage_traversal_provider(): array {
+		return array(
+			'parent'             => array( '../evil.log' ),
+			'wp-config'          => array( '../../wp-config.php' ),
+			'nested traversal'   => array( 'subdir/../../../evil.php' ),
+			'absolute outside'   => array( '/etc/passwd' ),
+			'phar wrapper'       => array( 'phar://archive.phar/file' ),
+			'php filter wrapper' => array( 'php://filter/resource=index.php' ),
+			'null byte'          => array( "audit.log\0.php" ),
+			'storage dir itself' => array( '' ),
+			'storage dir dot'    => array( '.' ),
+		);
+	}
+
+	/**
+	 * @dataProvider storage_traversal_provider
+	 */
+	public function test_append_storage_file_rejects_unsafe_targets( string $target ) {
+		$this->expectException( \InvalidArgumentException::class );
+		Helper::append_storage_file( $target, 'payload' );
+	}
+
+	/**
+	 * @dataProvider storage_traversal_provider
+	 */
+	public function test_write_storage_file_rejects_unsafe_targets( string $target ) {
+		$this->expectException( \InvalidArgumentException::class );
+		Helper::write_storage_file( $target, 'hack' );
+	}
+
+	public function guard_file_provider(): array {
+		return array(
+			'htaccess'          => array( '.htaccess' ),
+			'index'             => array( 'index.html' ),
+			'index uppercase'   => array( 'INDEX.HTML' ),
+			'htaccess via dots' => array( 'sub/../.htaccess' ),
+		);
+	}
+
+	/**
+	 * @dataProvider guard_file_provider
+	 */
+	public function test_storage_guard_files_cannot_be_modified( string $target ) {
+		Helper::ensure_storage_dir();
+		$htaccess_before = file_get_contents( Helper::get_storage_dir() . '/.htaccess' );
+
+		try {
+			Helper::append_storage_file( $target, "\nAllow from all\n" );
+			$this->fail( 'Appending to a guard file must be rejected.' );
+		} catch ( \InvalidArgumentException $e ) {
+			$this->assertStringContainsString( 'Access denied', $e->getMessage() );
+		}
+
+		try {
+			Helper::write_storage_file( $target, "Allow from all\n" );
+			$this->fail( 'Overwriting a guard file must be rejected.' );
+		} catch ( \InvalidArgumentException $e ) {
+			$this->assertStringContainsString( 'Access denied', $e->getMessage() );
+		}
+
+		$this->assertSame( $htaccess_before, file_get_contents( Helper::get_storage_dir() . '/.htaccess' ) );
+	}
+
+	public function test_write_storage_file_refuses_to_overwrite_append_only_files() {
+		$test_file = 'test-worm-' . uniqid() . '.log.php';
+		$full_path = Helper::get_storage_dir() . '/' . $test_file;
+
+		try {
+			Helper::append_storage_file( $test_file, "record-1\n", "<?php exit; ?>\n" );
+
+			try {
+				Helper::write_storage_file( $test_file, '' );
+				$this->fail( 'Append-only files must not be truncated.' );
+			} catch ( \InvalidArgumentException $e ) {
+				$this->assertStringContainsString( 'Append-only', $e->getMessage() );
+			}
+
+			$this->assertSame( "<?php exit; ?>\nrecord-1\n", file_get_contents( $full_path ) );
+		} finally {
+			if ( file_exists( $full_path ) ) {
+				unlink( $full_path );
+			}
+		}
+	}
+
+	public function test_append_storage_file_writes_header_only_for_new_or_empty_files() {
+		$test_file = 'test-header-' . uniqid() . '.log';
+		$full_path = Helper::get_storage_dir() . '/' . $test_file;
+
+		try {
+			Helper::append_storage_file( $test_file, "a\n", "HEADER\n" );
+			Helper::append_storage_file( $test_file, "b\n", "HEADER\n" );
+			$this->assertSame( "HEADER\na\nb\n", file_get_contents( $full_path ) );
+
+			// An existing but empty file still receives the header.
+			file_put_contents( $full_path, '' );
+			Helper::append_storage_file( $test_file, "c\n", "HEADER\n" );
+			$this->assertSame( "HEADER\nc\n", file_get_contents( $full_path ) );
+		} finally {
+			if ( file_exists( $full_path ) ) {
+				unlink( $full_path );
+			}
+		}
+	}
+
+	public function test_write_storage_file_is_atomic_and_leaves_no_temporary_files() {
+		$test_file = 'test-atomic-' . uniqid() . '.json';
+		$dir       = Helper::get_storage_dir();
+		$full_path = $dir . '/' . $test_file;
+
+		try {
+			Helper::write_storage_file( $test_file, str_repeat( 'x', 4096 ) );
+			Helper::write_storage_file( $test_file, 'final' );
+
+			$this->assertSame( 'final', file_get_contents( $full_path ) );
+			$this->assertSame( array(), glob( $full_path . '.tmp.*' ) );
+		} finally {
+			if ( file_exists( $full_path ) ) {
+				unlink( $full_path );
+			}
+		}
+	}
+
+	public function test_htaccess_supports_apache_22_and_24() {
+		Helper::ensure_storage_dir();
+		$htaccess = file_get_contents( Helper::get_storage_dir() . '/.htaccess' );
+
+		$this->assertStringContainsString( '<IfModule mod_authz_core.c>', $htaccess );
+		$this->assertStringContainsString( 'Require all denied', $htaccess );
+		$this->assertStringContainsString( '<IfModule !mod_authz_core.c>', $htaccess );
+		$this->assertStringContainsString( 'Deny from all', $htaccess );
+	}
+
+	public function test_ensure_storage_dir_restores_deleted_guard_files() {
+		$dir = Helper::get_storage_dir();
+		Helper::ensure_storage_dir();
+
+		unlink( $dir . '/.htaccess' );
+		unlink( $dir . '/index.html' );
+
+		$this->assertTrue( Helper::ensure_storage_dir() );
+		$this->assertFileExists( $dir . '/.htaccess' );
+		$this->assertFileExists( $dir . '/index.html' );
+		$this->assertSame( '', file_get_contents( $dir . '/index.html' ) );
+	}
+
+	public function test_ensure_storage_dir_fails_closed_when_guards_cannot_be_written() {
+		if ( function_exists( 'posix_geteuid' ) && 0 === posix_geteuid() ) {
+			$this->markTestSkipped( 'File permissions are not enforced for root.' );
+		}
+
+		$dir = Helper::get_storage_dir();
+		Helper::ensure_storage_dir();
+		$perms = fileperms( $dir ) & 0777;
+		unlink( $dir . '/index.html' );
+		chmod( $dir, 0555 );
+
+		try {
+			Helper::ensure_storage_dir();
+			$this->fail( 'Expected a RuntimeException when the directory cannot be secured.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringContainsString( 'Failed to secure storage directory', $e->getMessage() );
+		} finally {
+			chmod( $dir, $perms );
+			Helper::ensure_storage_dir();
+		}
+	}
+
+	public function test_append_storage_file_never_writes_into_an_unsecured_directory() {
+		if ( function_exists( 'posix_geteuid' ) && 0 === posix_geteuid() ) {
+			$this->markTestSkipped( 'File permissions are not enforced for root.' );
+		}
+
+		$dir       = Helper::get_storage_dir();
+		$test_file = 'test-unsecured-' . uniqid() . '.log';
+		Helper::ensure_storage_dir();
+		$perms = fileperms( $dir ) & 0777;
+		unlink( $dir . '/.htaccess' );
+		chmod( $dir, 0555 );
+
+		try {
+			Helper::append_storage_file( $test_file, 'payload' );
+			$this->fail( 'Expected a RuntimeException.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertFileDoesNotExist( $dir . '/' . $test_file );
+		} finally {
+			chmod( $dir, $perms );
+			Helper::ensure_storage_dir();
+		}
+	}
 }
