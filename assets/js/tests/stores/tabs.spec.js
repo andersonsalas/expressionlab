@@ -156,6 +156,140 @@ describe('stores/tabs.js - Tabs Management Store', () => {
     });
   });
 
+  describe('closeAllTabs()', () => {
+    it('resets all tabs to a single fresh tab', () => {
+      const store = useTabsStore();
+      store.createTab({ title: 'Tab 2' });
+      store.createTab({ title: 'Tab 3' });
+      const oldIds = store.tabs.map((t) => t.id);
+      expect(store.tabCount).toBe(3);
+
+      const result = store.closeAllTabs();
+      expect(result).toBe(true);
+      expect(store.tabCount).toBe(1);
+      expect(oldIds).not.toContain(store.tabs[0].id);
+      expect(store.activeTabId).toBe(store.tabs[0].id);
+      expect(store.activeTab.title).toBe('Console');
+      expect(store.activeTab.mode).toBe('repl');
+      expect(store.activeTab.history.length).toBe(1);
+    });
+  });
+
+  describe('closeOtherTabs()', () => {
+    it('closes all other tabs and preserves the targeted tab', () => {
+      const store = useTabsStore();
+      const tab1 = store.activeTab;
+      const tab2 = store.createTab({ title: 'Tab 2' });
+      const tab3 = store.createTab({ title: 'Tab 3' });
+      expect(store.tabCount).toBe(3);
+
+      const result = store.closeOtherTabs(tab2.id);
+      expect(result).toBe(true);
+      expect(store.tabCount).toBe(1);
+      expect(store.activeTabId).toBe(tab2.id);
+      expect(store.tabs[0].id).toBe(tab2.id);
+      expect(store.tabs.some((t) => t.id === tab1.id)).toBe(false);
+      expect(store.tabs.some((t) => t.id === tab3.id)).toBe(false);
+    });
+
+    it('defaults to active tab when no id is provided', () => {
+      const store = useTabsStore();
+      store.createTab({ title: 'Tab 2' });
+      const tab3 = store.createTab({ title: 'Tab 3' });
+      expect(store.activeTabId).toBe(tab3.id);
+
+      const result = store.closeOtherTabs();
+      expect(result).toBe(true);
+      expect(store.tabCount).toBe(1);
+      expect(store.activeTabId).toBe(tab3.id);
+    });
+
+    it('returns false when targeted tab does not exist', () => {
+      const store = useTabsStore();
+      store.createTab({ title: 'Tab 2' });
+      const idsBefore = store.tabs.map((t) => t.id);
+      const activeBefore = store.activeTabId;
+      const result = store.closeOtherTabs('non-existent-id');
+      expect(result).toBe(false);
+      expect(store.tabCount).toBe(2);
+      expect(store.tabs.map((t) => t.id)).toEqual(idsBefore);
+      expect(store.activeTabId).toBe(activeBefore);
+    });
+  });
+
+  describe('closeTabsToTheRight()', () => {
+    it('closes all tabs positioned after the targeted tab', () => {
+      const store = useTabsStore();
+      const tab1 = store.activeTab;
+      const tab2 = store.createTab({ title: 'Tab 2' });
+      const tab3 = store.createTab({ title: 'Tab 3' });
+      const tab4 = store.createTab({ title: 'Tab 4' });
+
+      // Active tab is tab4 (index 3). Closing to right of tab2 (index 1) should switch active tab to tab2
+      const result = store.closeTabsToTheRight(tab2.id);
+      expect(result).toBe(true);
+      expect(store.tabCount).toBe(2);
+      expect(store.tabs.map((t) => t.id)).toEqual([tab1.id, tab2.id]);
+      expect(store.activeTabId).toBe(tab2.id);
+    });
+
+    it('preserves active tab if it was to the left of target tab', () => {
+      const store = useTabsStore();
+      const tab1 = store.activeTab;
+      const tab2 = store.createTab({ title: 'Tab 2' });
+      store.createTab({ title: 'Tab 3' });
+      store.setActiveTab(tab1.id);
+
+      // Active tab is tab1 (index 0). Closing to right of tab2 (index 1) keeps tab1 active
+      const result = store.closeTabsToTheRight(tab2.id);
+      expect(result).toBe(true);
+      expect(store.tabCount).toBe(2);
+      expect(store.activeTabId).toBe(tab1.id);
+    });
+
+    it('keeps the active tab when it is the target tab', () => {
+      const store = useTabsStore();
+      const tab1 = store.activeTab;
+      store.createTab({ title: 'Tab 2' });
+      store.createTab({ title: 'Tab 3' });
+      store.setActiveTab(tab1.id);
+
+      const result = store.closeTabsToTheRight(tab1.id);
+      expect(result).toBe(true);
+      expect(store.tabs.map((t) => t.id)).toEqual([tab1.id]);
+      expect(store.activeTabId).toBe(tab1.id);
+    });
+
+    it('defaults to the active tab when no id is provided', () => {
+      const store = useTabsStore();
+      const tab1 = store.activeTab;
+      const tab2 = store.createTab({ title: 'Tab 2' });
+      store.createTab({ title: 'Tab 3' });
+      store.setActiveTab(tab2.id);
+
+      const result = store.closeTabsToTheRight();
+      expect(result).toBe(true);
+      expect(store.tabs.map((t) => t.id)).toEqual([tab1.id, tab2.id]);
+      expect(store.activeTabId).toBe(tab2.id);
+    });
+
+    it('returns true without changing tabs if target is already the last tab', () => {
+      const store = useTabsStore();
+      store.createTab({ title: 'Tab 2' });
+      const tab3 = store.createTab({ title: 'Tab 3' });
+
+      const result = store.closeTabsToTheRight(tab3.id);
+      expect(result).toBe(true);
+      expect(store.tabCount).toBe(3);
+    });
+
+    it('returns false if target tab does not exist', () => {
+      const store = useTabsStore();
+      const result = store.closeTabsToTheRight('non-existent-id');
+      expect(result).toBe(false);
+    });
+  });
+
   describe('reorderTabs()', () => {
     it('reorders tabs from index to index cleanly', () => {
       const store = useTabsStore();

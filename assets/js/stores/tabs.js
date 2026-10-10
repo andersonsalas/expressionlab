@@ -175,6 +175,57 @@ export const useTabsStore = defineStore('tabs', {
     },
 
     /**
+     * Closes all tabs, resetting to a single fresh tab.
+     *
+     * @return {boolean}
+     */
+    closeAllTabs() {
+      const cleanTab = createTabInstance({ mode: getInitialTabMode() });
+      this.tabs = [cleanTab];
+      this.activeTabId = cleanTab.id;
+      return true;
+    },
+
+    /**
+     * Closes all tabs except the specified tab.
+     * Activates the preserved tab.
+     *
+     * @param {string} [id] Target tab ID. Defaults to active tab.
+     * @return {boolean}
+     */
+    closeOtherTabs(id = null) {
+      const targetId = id || this.activeTabId;
+      const targetTab = this.tabs.find((tab) => tab.id === targetId);
+      if (!targetTab) return false;
+
+      this.tabs = [targetTab];
+      this.activeTabId = targetTab.id;
+      return true;
+    },
+
+    /**
+     * Closes all tabs situated to the right of the specified tab.
+     *
+     * @param {string} [id] Target tab ID. Defaults to active tab.
+     * @return {boolean}
+     */
+    closeTabsToTheRight(id = null) {
+      const targetId = id || this.activeTabId;
+      const index = this.tabs.findIndex((tab) => tab.id === targetId);
+      if (index === -1) return false;
+      if (index >= this.tabs.length - 1) return true;
+
+      const targetTab = this.tabs[index];
+      const activeIndex = this.activeTabIndex;
+      if (activeIndex > index) {
+        this.activeTabId = targetTab.id;
+      }
+
+      this.tabs = this.tabs.slice(0, index + 1);
+      return true;
+    },
+
+    /**
      * Sets the active tab by ID.
      *
      * @param {string} id

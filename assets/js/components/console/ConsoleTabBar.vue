@@ -25,7 +25,23 @@ const addDropdownBtnRef = ref(null);
 const dropdownMenuRef = ref(null);
 const dropdownStyle = ref({});
 
+const isContextMenuOpen = ref(false);
+const contextMenuTab = ref(null);
+const contextMenuRef = ref(null);
+const contextMenuStyle = ref({});
+
 let resizeObserver = null;
+let addTabScrollTimeout = null;
+
+const canCloseOtherTabs = computed(() => {
+  return tabsStore.tabCount > 1;
+});
+
+const canCloseTabsToTheRight = computed(() => {
+  if (!contextMenuTab.value) return false;
+  const index = tabsStore.tabs.findIndex((t) => t.id === contextMenuTab.value.id);
+  return index !== -1 && index < tabsStore.tabs.length - 1;
+});
 
 const checkOverflow = () => {
   const el = scrollContainerRef.value;
@@ -44,6 +60,9 @@ const handleScroll = () => {
   checkOverflow();
   if (isAddDropdownOpen.value) {
     updateDropdownPosition();
+  }
+  if (isContextMenuOpen.value) {
+    isContextMenuOpen.value = false;
   }
 };
 
@@ -64,6 +83,17 @@ const scrollToActiveTab = () => {
     }
     checkOverflow();
   });
+};
+
+const scrollToEnd = () => {
+  const el = scrollContainerRef.value;
+  if (!el) return;
+  if (typeof el.scrollTo === 'function') {
+    el.scrollTo({ left: el.scrollWidth, behavior: 'smooth' });
+  } else {
+    el.scrollLeft = el.scrollWidth;
+  }
+  checkOverflow();
 };
 
 watch(() => tabsStore.activeTabId, scrollToActiveTab);
@@ -87,8 +117,45 @@ const updateDropdownPosition = () => {
   };
 };
 
+const CONTEXT_MENU_MARGIN = 4;
+
+const updateContextMenuPosition = (x, y) => {
+  if (!contextMenuRef.value) return;
+  const rect = contextMenuRef.value.getBoundingClientRect();
+  const menuWidth = rect.width || contextMenuRef.value.offsetWidth || 220;
+  const menuHeight = rect.height || contextMenuRef.value.offsetHeight || 160;
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  let left = x;
+  let top = y;
+
+  // Render to the right of cursor whenever possible.
+  // If it exceeds the right viewport edge, flip to the left of the cursor.
+  if (left + menuWidth > viewportWidth - CONTEXT_MENU_MARGIN) {
+    left = x - menuWidth;
+  }
+  if (top + menuHeight > viewportHeight - CONTEXT_MENU_MARGIN) {
+    top = y - menuHeight;
+  }
+
+  // Final clamp keeps a safe margin on every edge (min wins on tiny viewports).
+  left = Math.max(CONTEXT_MENU_MARGIN, Math.min(left, viewportWidth - menuWidth - CONTEXT_MENU_MARGIN));
+  top = Math.max(CONTEXT_MENU_MARGIN, Math.min(top, viewportHeight - menuHeight - CONTEXT_MENU_MARGIN));
+
+  contextMenuStyle.value = {
+    position: 'fixed',
+    top: `${top}px`,
+    left: `${left}px`,
+    zIndex: 99999,
+  };
+};
+
 const toggleAddDropdown = () => {
   if (!tabsStore.canAddTab) return;
+  if (isContextMenuOpen.value) {
+    isContextMenuOpen.value = false;
+  }
   isAddDropdownOpen.value = !isAddDropdownOpen.value;
   if (isAddDropdownOpen.value) {
     nextTick(updateDropdownPosition);
@@ -99,7 +166,13 @@ const handleCreateTab = (mode = 'repl') => {
   isAddDropdownOpen.value = false;
   const newTab = tabsStore.createTab({ mode });
   if (newTab) {
-    scrollToActiveTab();
+    if (addTabScrollTimeout) {
+      clearTimeout(addTabScrollTimeout);
+    }
+    addTabScrollTimeout = setTimeout(() => {
+      scrollToEnd();
+      addTabScrollTimeout = null;
+    }, 60);
   }
 };
 
@@ -117,6 +190,59 @@ const handleCreateDefaultTab = () => {
   handleCreateTab(defaultAddTabMode.value);
 };
 
+const handleContextMenu = (tab, event) => {
+  event.preventDefault();
+  if (editingTabId.value) return;
+
+  isAddDropdownOpen.value = false;
+  contextMenuTab.value = tab;
+
+  const clientX = event.clientX;
+  const clientY = event.clientY;
+
+  // Set default fixed position at cursor coordinates immediately so it doesn't render as a full-width block
+  contextMenuStyle.value = {
+    position: 'fixed',
+    top: `${clientY}px`,
+    left: `${clientX}px`,
+    zIndex: 99999,
+  };
+  isContextMenuOpen.value = true;
+
+  nextTick(() => {
+    updateContextMenuPosition(clientX, clientY);
+  });
+};
+
+const handleCloseAllTabs = () => {
+  isContextMenuOpen.value = false;
+  tabsStore.closeAllTabs();
+  nextTick(checkOverflow);
+};
+
+const handleCloseOtherTabs = () => {
+  if (!canCloseOtherTabs.value || !contextMenuTab.value) return;
+  const tabId = contextMenuTab.value.id;
+  isContextMenuOpen.value = false;
+  tabsStore.closeOtherTabs(tabId);
+  nextTick(checkOverflow);
+};
+
+const handleCloseTabsToTheRight = () => {
+  if (!canCloseTabsToTheRight.value || !contextMenuTab.value) return;
+  const tabId = contextMenuTab.value.id;
+  isContextMenuOpen.value = false;
+  tabsStore.closeTabsToTheRight(tabId);
+  nextTick(checkOverflow);
+};
+
+const handleRenameFromMenu = () => {
+  if (!contextMenuTab.value) return;
+  const tabToRename = contextMenuTab.value;
+  isContextMenuOpen.value = false;
+  startRename(tabToRename);
+};
+
 const handleClickOutside = (event) => {
   if (
     isAddDropdownOpen.value &&
@@ -127,11 +253,24 @@ const handleClickOutside = (event) => {
   ) {
     isAddDropdownOpen.value = false;
   }
+
+  if (
+    isContextMenuOpen.value &&
+    contextMenuRef.value &&
+    !contextMenuRef.value.contains(event.target)
+  ) {
+    isContextMenuOpen.value = false;
+  }
 };
 
 const handleKeydown = (event) => {
-  if (event.key === 'Escape' && isAddDropdownOpen.value) {
-    isAddDropdownOpen.value = false;
+  if (event.key === 'Escape') {
+    if (isAddDropdownOpen.value) {
+      isAddDropdownOpen.value = false;
+    }
+    if (isContextMenuOpen.value) {
+      isContextMenuOpen.value = false;
+    }
   }
 };
 
@@ -141,6 +280,8 @@ const handleCloseTab = (tabId) => {
 };
 
 const startRename = (tab) => {
+  if (!tab) return;
+  tabsStore.setActiveTab(tab.id);
   editingTabId.value = tab.id;
   editingTitle.value = tab.title;
   nextTick(() => {
@@ -193,6 +334,13 @@ const handleDragEnd = () => {
   dragOverIndex.value = null;
 };
 
+const handleWindowResize = () => {
+  updateDropdownPosition();
+  if (isContextMenuOpen.value) {
+    isContextMenuOpen.value = false;
+  }
+};
+
 onMounted(() => {
   checkOverflow();
   if (typeof window !== 'undefined' && 'ResizeObserver' in window && scrollContainerRef.value) {
@@ -203,20 +351,28 @@ onMounted(() => {
   }
   if (typeof window !== 'undefined') {
     window.addEventListener('click', handleClickOutside);
+    // Capture phase: runs before a tab's own contextmenu handler, so right-clicking
+    // elsewhere dismisses the menu while right-clicking another tab re-opens it.
+    window.addEventListener('contextmenu', handleClickOutside, true);
     window.addEventListener('keydown', handleKeydown);
-    window.addEventListener('resize', updateDropdownPosition);
+    window.addEventListener('resize', handleWindowResize);
   }
 });
 
 onBeforeUnmount(() => {
+  if (addTabScrollTimeout) {
+    clearTimeout(addTabScrollTimeout);
+    addTabScrollTimeout = null;
+  }
   if (resizeObserver) {
     resizeObserver.disconnect();
     resizeObserver = null;
   }
   if (typeof window !== 'undefined') {
     window.removeEventListener('click', handleClickOutside);
+    window.removeEventListener('contextmenu', handleClickOutside, true);
     window.removeEventListener('keydown', handleKeydown);
-    window.removeEventListener('resize', updateDropdownPosition);
+    window.removeEventListener('resize', handleWindowResize);
   }
 });
 </script>
@@ -238,6 +394,7 @@ onBeforeUnmount(() => {
     <div
       ref="scrollContainerRef"
       class="console-tabbar-scroll-wrapper"
+      :class="{ 'has-horizontal-scroll': isOverflowing }"
       @scroll="handleScroll"
     >
       <div
@@ -252,6 +409,7 @@ onBeforeUnmount(() => {
         :draggable="editingTabId !== tab.id"
         @click="handleSelectTab(tab.id)"
         @dblclick="startRename(tab)"
+        @contextmenu.prevent="handleContextMenu(tab, $event)"
         @dragstart="handleDragStart(index, $event)"
         @dragover.prevent="handleDragOver(index)"
         @dragleave="handleDragLeave(index)"
@@ -341,6 +499,58 @@ onBeforeUnmount(() => {
         >
           <span class="codicon codicon-notebook" />
           <span>{{ __('Scratchpad') }}</span>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Context Menu for Tab Items (Teleported to avoid scroll clipping) -->
+    <Teleport to="body">
+      <div
+        v-if="isContextMenuOpen"
+        ref="contextMenuRef"
+        class="console-tab-context-menu"
+        role="menu"
+        :style="contextMenuStyle"
+      >
+        <div
+          class="tab-menu-item btn-close-all"
+          role="menuitem"
+          @click="handleCloseAllTabs"
+        >
+          <span class="codicon codicon-close-all" />
+          <span>{{ __('Close all tabs') }}</span>
+        </div>
+        <div
+          class="tab-menu-item btn-close-other"
+          role="menuitem"
+          :class="{ disabled: !canCloseOtherTabs }"
+          :aria-disabled="!canCloseOtherTabs"
+          @click="handleCloseOtherTabs"
+        >
+          <span class="codicon codicon-close" />
+          <span>{{ __('Close all except current') }}</span>
+        </div>
+        <div
+          class="tab-menu-item btn-close-right"
+          role="menuitem"
+          :class="{ disabled: !canCloseTabsToTheRight }"
+          :aria-disabled="!canCloseTabsToTheRight"
+          @click="handleCloseTabsToTheRight"
+        >
+          <span class="codicon codicon-arrow-right" />
+          <span>{{ __('Close all to the right') }}</span>
+        </div>
+        <div
+          class="tab-menu-separator"
+          role="separator"
+        />
+        <div
+          class="tab-menu-item btn-rename"
+          role="menuitem"
+          @click="handleRenameFromMenu"
+        >
+          <span class="codicon codicon-edit" />
+          <span>{{ __('Rename') }}</span>
         </div>
       </div>
     </Teleport>
