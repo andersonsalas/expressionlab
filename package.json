@@ -115,7 +115,6 @@
     "vega-embed": "^7.1.0",
     "vega-interpreter": "^2.2.1",
     "vega-lite": "^6.4.2",
-    "vue-json-pretty": "^2.6.0",
     "vue-router": "^5.0.7",
     "vue-virtual-scroller": "^2.0.0-beta.8",
     "world-atlas": "^2.0.2"

@@ -6,6 +6,9 @@ jest.mock('../../../components/console/visualizations/VisualizationRenderer.vue'
   template: '<div class="mock-visualization-renderer" />',
 }));
 
+import { createTestingPinia } from '@pinia/testing';
+import { useUiStore } from '../../../stores/ui';
+
 import ConsoleLog from '../../../components/console/ConsoleLog.vue';
 
 jest.mock('../../../lib/api/client.js', () => ({
@@ -181,6 +184,35 @@ describe('ConsoleLog.vue', () => {
     const vizRenderers = wrapper.findAllComponents({ name: 'VisualizationRenderer' });
     expect(vizRenderers.length).toBe(2);
     expect(vizRenderers[1].props('item').visualizations).toEqual([{ type: 'usa', title: 'USA Map' }]);
+  });
+
+  it('opens data-viewer modal when inspect button is clicked in output entry', async () => {
+    const pinia = createTestingPinia();
+    const uiStore = useUiStore();
+
+    const entries = [
+      {
+        input: 'Options.get_raw("cron")',
+        output: 'a:10:{...}',
+        pending: false,
+      },
+    ];
+
+    const wrapper = mount(ConsoleLog, {
+      props: { entries },
+      global: {
+        plugins: [pinia],
+      },
+    });
+
+    const inspectBtn = wrapper.find('.action.inspect-action');
+    expect(inspectBtn.exists()).toBe(true);
+    expect(inspectBtn.find('.codicon.codicon-eye').exists()).toBe(true);
+
+    await inspectBtn.trigger('click');
+    expect(uiStore.openModal).toHaveBeenCalledWith('data-viewer', {
+      content: 'a:10:{...}',
+    });
   });
 });
 

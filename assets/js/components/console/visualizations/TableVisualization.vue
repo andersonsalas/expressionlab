@@ -1,6 +1,8 @@
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
-import { handleDownload } from '../../../lib/api/client.js';
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
+import { getActivePinia } from 'pinia';
+import { useUiStore } from '../../../stores/ui';
+import { handleDownload, handleClipboardCopy } from '../../../lib/api/client.js';
 import { __, sprintf, sanitizeHtml } from '../../../lib/helpers.js';
 
 const props = defineProps({
@@ -15,6 +17,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['rendered']);
+const getUiStore = () => (getActivePinia() ? useUiStore() : null);
 
 const availablePageSizes = [10, 20, 50, 100];
 
@@ -25,6 +28,13 @@ const currentPage = ref(1);
 const sortColumn = ref(null);
 const sortOrder = ref('asc'); // 'asc' | 'desc'
 const searchQueries = ref({});
+
+// Context Menu State
+const isContextMenuOpen = ref(false);
+const contextMenuRef = ref(null);
+const contextMenuStyle = ref({});
+const activeCell = ref({ value: null, column: null });
+const CONTEXT_MENU_MARGIN = 4;
 
 // Get columns from the first row of data, if available
 const columns = computed(() => {
@@ -128,20 +138,96 @@ function toggleSort(column) {
   }
 }
 
-function toggleCell(event) {
+function handleCellClick(event) {
   const target = event.currentTarget.querySelector('.inner-scroll');
   if (target) {
-    const isExpanded = target.classList.toggle('expanded');
-    if (isExpanded) {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || selection.toString().length === 0) {
       const range = document.createRange();
       range.selectNodeContents(target);
-      const selection = window.getSelection();
       selection.removeAllRanges();
       selection.addRange(range);
-    } else {
-      window.getSelection().removeAllRanges();
     }
   }
+}
+
+function updateContextMenuPosition(x, y, menuWidth = 180, menuHeight = 70) {
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  let left = x;
+  let top = y;
+
+  if (left + menuWidth > viewportWidth - CONTEXT_MENU_MARGIN) {
+    left = x - menuWidth;
+  }
+  if (top + menuHeight > viewportHeight - CONTEXT_MENU_MARGIN) {
+    top = y - menuHeight;
+  }
+
+  left = Math.max(CONTEXT_MENU_MARGIN, Math.min(left, viewportWidth - menuWidth - CONTEXT_MENU_MARGIN));
+  top = Math.max(CONTEXT_MENU_MARGIN, Math.min(top, viewportHeight - menuHeight - CONTEXT_MENU_MARGIN));
+
+  contextMenuStyle.value = {
+    position: 'fixed',
+    top: `${top}px`,
+    left: `${left}px`,
+    zIndex: 100000,
+  };
+}
+
+function handleCellContextMenu(value, column, event) {
+  activeCell.value = { value, column };
+  const { clientX, clientY } = event;
+  // First pass with an estimated size so the menu never renders off-screen,
+  // then re-clamp with the real rendered size.
+  updateContextMenuPosition(clientX, clientY);
+  isContextMenuOpen.value = true;
+  nextTick(() => {
+    const rect = contextMenuRef.value?.getBoundingClientRect();
+    if (isContextMenuOpen.value && rect && rect.width > 0 && rect.height > 0) {
+      updateContextMenuPosition(clientX, clientY, rect.width, rect.height);
+    }
+  });
+}
+
+function handleViewData() {
+  isContextMenuOpen.value = false;
+  const store = getUiStore();
+  if (store) {
+    store.openModal('data-viewer', {
+      content: activeCell.value.value,
+      column: activeCell.value.column,
+    });
+  }
+}
+
+async function handleCopyCellValue() {
+  isContextMenuOpen.value = false;
+  const content = activeCell.value.value;
+  const text = content === null ? 'null' : (content === undefined ? '' : (typeof content === 'object' ? JSON.stringify(content, null, 2) : String(content)));
+  await handleClipboardCopy(text);
+}
+
+function closeContextMenu() {
+  if (isContextMenuOpen.value) {
+    isContextMenuOpen.value = false;
+  }
+}
+
+function handleGlobalKeydown(event) {
+  if (isContextMenuOpen.value && event.key === 'Escape') {
+    isContextMenuOpen.value = false;
+  }
+}
+
+// Capture phase: runs before a cell's own handler, so right-clicking another cell
+// re-targets the menu, while right-clicking anywhere else (including another
+// table's cell) closes this instance's menu.
+function handleOutsideContextMenu(event) {
+  if (!isContextMenuOpen.value) return;
+  if (contextMenuRef.value && contextMenuRef.value.contains(event.target)) return;
+  isContextMenuOpen.value = false;
 }
 
 function exportCsv() {
@@ -168,9 +254,24 @@ function exportCsv() {
 }
 
 onMounted(() => {
+  window.addEventListener('click', closeContextMenu);
+  window.addEventListener('keydown', handleGlobalKeydown);
+  window.addEventListener('resize', closeContextMenu);
+  window.addEventListener('contextmenu', handleOutsideContextMenu, true);
+  // Scroll events do not bubble; capturing on window catches scrolling of any
+  // ancestor (console feed, page) that would detach the fixed menu from its cell.
+  window.addEventListener('scroll', closeContextMenu, true);
   nextTick(() => {
     emit('rendered');
   });
+});
+
+onUnmounted(() => {
+  window.removeEventListener('click', closeContextMenu);
+  window.removeEventListener('keydown', handleGlobalKeydown);
+  window.removeEventListener('resize', closeContextMenu);
+  window.removeEventListener('contextmenu', handleOutsideContextMenu, true);
+  window.removeEventListener('scroll', closeContextMenu, true);
 });
 
 watch(displayedData, () => {
@@ -243,7 +344,10 @@ watch(displayedData, () => {
       </div>
     </div>
     
-    <div class="table-scroll-wrapper">
+    <div
+      class="table-scroll-wrapper"
+      @scroll="closeContextMenu"
+    >
       <table
         v-if="columns.length"
         class="fp-table"
@@ -291,8 +395,8 @@ watch(displayedData, () => {
             <td 
               v-for="col in columns" 
               :key="col" 
-              :title="__('Click to expand/collapse')"
-              @click="toggleCell"
+              @click="handleCellClick"
+              @contextmenu.prevent="handleCellContextMenu(row[col], col, $event)"
             >
               <div class="inner-scroll">
                 {{ row[col] }}
@@ -305,6 +409,34 @@ watch(displayedData, () => {
         {{ __('No data to display.') }}
       </div>
     </div>
+
+    <!-- Cell Context Menu -->
+    <Teleport to="body">
+      <div
+        v-if="isContextMenuOpen"
+        ref="contextMenuRef"
+        class="table-cell-context-menu"
+        role="menu"
+        :style="contextMenuStyle"
+      >
+        <div
+          class="cell-menu-item btn-view-data"
+          role="menuitem"
+          @click.stop="handleViewData"
+        >
+          <span class="codicon codicon-eye" />
+          <span>{{ __('View data...') }}</span>
+        </div>
+        <div
+          class="cell-menu-item btn-copy-cell"
+          role="menuitem"
+          @click.stop="handleCopyCellValue"
+        >
+          <span class="codicon codicon-copy" />
+          <span>{{ __('Copy cell value') }}</span>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -429,17 +561,45 @@ td {
   overflow: hidden;
   display: block;
   word-break: break-all;
-  transition: max-height 0.2s ease;
-}
-
-.inner-scroll:not(.expanded) {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.inner-scroll.expanded {
-  max-height: 200px;
-  overflow-y: auto;
+.table-cell-context-menu {
+  position: fixed;
+  min-width: 170px;
+  background: #fff;
+  border: 1px solid black;
+  margin: 0;
+  padding: 1px;
+  z-index: 100000;
+
+  .cell-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #333;
+    height: 30px;
+    box-sizing: border-box;
+    white-space: nowrap;
+
+    .codicon {
+      font-size: 16px;
+      color: #666;
+    }
+
+    &:hover {
+      background: $wordpress-primary;
+      color: white;
+
+      .codicon {
+        color: white;
+      }
+    }
+  }
 }
 
 .page-size-select {

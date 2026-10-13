@@ -1,10 +1,20 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
-import VueJsonPretty from 'vue-json-pretty';
-import 'vue-json-pretty/lib/styles.css';
+import DataTree from '../../ui/DataTree.vue';
 import { visualizationHandlers } from './registry';
 import SafeFormattedText from '../SafeFormattedText.vue';
 import { __, sprintf } from '../../../lib/helpers.js';
+import hljs from 'highlight.js/lib/core';
+import elscriptLang from '../../../lib/highlight/elscript.js';
+import phpLang from 'highlight.js/lib/languages/php';
+import jsonLang from 'highlight.js/lib/languages/json';
+import DOMPurify from 'dompurify';
+import { detectDataType } from '../../../lib/data-detector.js';
+
+hljs.registerLanguage('elscript', elscriptLang);
+hljs.registerLanguage('expressionlab', elscriptLang);
+hljs.registerLanguage('php', phpLang);
+hljs.registerLanguage('json', jsonLang);
 
 const props = defineProps({
   item: {
@@ -24,7 +34,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue']);
 
-const localActiveTab = ref('json');
+const localActiveTab = ref('preview');
 
 const activeTab = computed({
   get: () => props.modelValue !== undefined ? props.modelValue : localActiveTab.value,
@@ -92,6 +102,68 @@ const parsed = computed(() => {
   };
 });
 
+const detectedData = computed(() => {
+  return detectDataType(parsed.value.result);
+});
+
+const canPreview = computed(() => {
+  if (isNonScalar(parsed.value.result)) {
+    return true;
+  }
+  return detectedData.value.format === 'json' || detectedData.value.format === 'php-serialized';
+});
+
+const previewPayload = computed(() => {
+  if (isNonScalar(parsed.value.result)) {
+    return parsed.value.result;
+  }
+  if (canPreview.value && detectedData.value.data !== null) {
+    return detectedData.value.data;
+  }
+  return parsed.value.result;
+});
+
+const rawString = computed(() => {
+  const data = parsed.value.result;
+  if (data === null) return 'null';
+  if (data === undefined) return 'undefined';
+  if (typeof data === 'object') {
+    return JSON.stringify(data, null, 2);
+  }
+  if (detectedData.value.unwrappedString) {
+    return detectedData.value.unwrappedString;
+  }
+  return String(data);
+});
+
+const escapeHtml = (str) => {
+  const div = document.createElement('div');
+  div.appendChild(document.createTextNode(str));
+  return div.innerHTML;
+};
+
+const highlightedRaw = computed(() => {
+  const text = rawString.value;
+  if (text.length > 200000) {
+    return DOMPurify.sanitize(escapeHtml(text));
+  }
+
+  const lang = (detectedData.value.suggestedLang && detectedData.value.suggestedLang !== 'auto')
+    ? detectedData.value.suggestedLang
+    : 'elscript';
+
+  try {
+    if (lang && hljs.getLanguage(lang)) {
+      const { value } = hljs.highlight(text, { language: lang });
+      return DOMPurify.sanitize(value);
+    }
+    const { value } = hljs.highlight(text, { language: 'elscript' });
+    return DOMPurify.sanitize(value);
+  } catch {
+    return DOMPurify.sanitize(escapeHtml(text));
+  }
+});
+
 watch(() => parsed.value.hasViz, (hasViz) => {
   if (hasViz) {
     activeTab.value = 0;
@@ -109,10 +181,17 @@ const getComponent = (type) => {
     <template v-if="parsed.hasViz">
       <ul class="visualization-tabs">
         <li
-          :class="{ active: activeTab === 'json' }"
-          @click="activeTab = 'json'"
+          :class="{ active: activeTab === 'raw' }"
+          @click="activeTab = 'raw'"
         >
           {{ __('Raw') }}
+        </li>
+        <li
+          v-if="canPreview"
+          :class="{ active: activeTab === 'preview' || activeTab === 'json' }"
+          @click="activeTab = 'preview'"
+        >
+          {{ __('Preview') }}
         </li>
         <li
           v-for="(viz, idx) in parsed.visualizations"
@@ -125,22 +204,22 @@ const getComponent = (type) => {
       </ul>
 
       <div class="visualization-content">
-        <!-- JSON/Raw Result Tab -->
-        <div v-if="activeTab === 'json'">
-          <vue-json-pretty
-            v-if="isNonScalar(parsed.result)"
-            :data="parsed.result"
-            :show-length="true"
-            :show-icon="true"
-            :deep="1"
-          />
+        <!-- Raw Result Tab -->
+        <div v-if="activeTab === 'raw'">
+          <!-- eslint-disable vue/no-v-html -->
           <pre
-            v-else
-            :class="{ 'no-highlight': props.resultType }"
-          ><SafeFormattedText
-            v-if="props.resultType"
-            :text="parsed.result === null ? 'null' : (parsed.result === undefined ? 'undefined' : parsed.result)"
-          /><template v-else>{{ parsed.result === null ? 'null' : (parsed.result === undefined ? 'undefined' : parsed.result) }}</template></pre>
+            class="hljs"
+            v-html="highlightedRaw"
+          />
+          <!-- eslint-enable vue/no-v-html -->
+        </div>
+
+        <!-- Preview Tab -->
+        <div v-else-if="activeTab === 'preview' || activeTab === 'json'">
+          <DataTree
+            :data="previewPayload"
+            :show-controls="true"
+          />
         </div>
 
         <!-- Visualization Tabs -->
@@ -163,22 +242,20 @@ const getComponent = (type) => {
       </div>
     </template>
 
-    <!-- No Visualizations - Just render result -->
+    <!-- No Visualizations -->
     <template v-else>
-      <vue-json-pretty
-        v-if="isNonScalar(parsed.result)"
-        :data="parsed.result"
-        :show-length="true"
-        :show-icon="true"
-        :deep="1"
+      <DataTree
+        v-if="canPreview"
+        :data="previewPayload"
+        :show-controls="true"
       />
       <pre
         v-else
         :class="{ 'no-highlight': props.resultType }"
       ><SafeFormattedText
         v-if="props.resultType"
-        :text="parsed.result === null ? 'null' : (parsed.result === undefined ? 'undefined' : parsed.result)"
-      /><template v-else>{{ parsed.result === null ? 'null' : (parsed.result === undefined ? 'undefined' : parsed.result) }}</template></pre>
+        :text="rawString"
+      /><template v-else>{{ rawString }}</template></pre>
     </template>
   </div>
 </template>
