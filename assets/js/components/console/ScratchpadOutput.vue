@@ -1,17 +1,21 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue';
-import VueJsonPretty from 'vue-json-pretty';
-import 'vue-json-pretty/lib/styles.css';
+import DataTree from '../ui/DataTree.vue';
 import { visualizationHandlers } from './visualizations/registry.js';
 import SafeFormattedText from './SafeFormattedText.vue';
 import { handleClipboardCopy } from '../../lib/api/client.js';
 import { __, sprintf } from '../../lib/helpers.js';
+import { detectDataType } from '../../lib/data-detector.js';
 import hljs from 'highlight.js/lib/core';
 import elscriptLang from '../../lib/highlight/elscript.js';
+import jsonLang from 'highlight.js/lib/languages/json';
+import phpLang from 'highlight.js/lib/languages/php';
 import DOMPurify from 'dompurify';
 
 hljs.registerLanguage('elscript', elscriptLang);
 hljs.registerLanguage('expressionlab', elscriptLang);
+hljs.registerLanguage('json', jsonLang);
+hljs.registerLanguage('php', phpLang);
 
 const props = defineProps({
   result: {
@@ -27,6 +31,16 @@ const props = defineProps({
 const emit = defineEmits(['clear-output', 'close', 'tab-change', 'visualization-rendered']);
 
 const activeTab = ref('raw');
+const wordWrap = ref(false);
+const treeRef = ref(null);
+
+const expandAllTree = () => {
+  treeRef.value?.expandAll();
+};
+
+const collapseAllTree = () => {
+  treeRef.value?.collapseAll();
+};
 
 const isNonScalar = (val) => typeof val === 'object' && val !== null;
 
@@ -56,14 +70,61 @@ const rawResult = computed(() => {
   return props.result;
 });
 
-const highlightedScalar = computed(() => {
-  const text =
-    rawResult.value === null
-      ? 'null'
-      : rawResult.value === undefined
-        ? 'undefined'
-        : String(rawResult.value);
+const detectedData = computed(() => {
+  return detectDataType(rawResult.value);
+});
+
+const canPreview = computed(() => {
+  if (isNonScalar(rawResult.value)) {
+    return true;
+  }
+  return detectedData.value.format === 'json' || detectedData.value.format === 'php-serialized';
+});
+
+const previewPayload = computed(() => {
+  if (isNonScalar(rawResult.value)) {
+    return rawResult.value;
+  }
+  if (canPreview.value && detectedData.value.data !== null) {
+    return detectedData.value.data;
+  }
+  return rawResult.value;
+});
+
+const rawString = computed(() => {
+  const data = rawResult.value;
+  if (data === null) return 'null';
+  if (data === undefined) return 'undefined';
+  if (typeof data === 'object') {
+    return JSON.stringify(data, null, 2);
+  }
+  if (detectedData.value.unwrappedString) {
+    return detectedData.value.unwrappedString;
+  }
+  return String(data);
+});
+
+const escapeHtml = (str) => {
+  const div = document.createElement('div');
+  div.appendChild(document.createTextNode(str));
+  return div.innerHTML;
+};
+
+const highlightedRaw = computed(() => {
+  const text = rawString.value;
+  if (text.length > 200000) {
+    return DOMPurify.sanitize(escapeHtml(text));
+  }
+
+  const lang = (detectedData.value.suggestedLang && detectedData.value.suggestedLang !== 'auto')
+    ? detectedData.value.suggestedLang
+    : 'elscript';
+
   try {
+    if (lang && hljs.getLanguage(lang)) {
+      const { value } = hljs.highlight(text, { language: lang });
+      return DOMPurify.sanitize(value);
+    }
     const { value } = hljs.highlight(text, { language: 'elscript' });
     return DOMPurify.sanitize(value);
   } catch {
@@ -88,6 +149,8 @@ watch(
       (rawResult.value === null || rawResult.value === 'null' || rawResult.value === undefined)
     ) {
       activeTab.value = 'output';
+    } else if (canPreview.value) {
+      activeTab.value = 'preview';
     } else {
       activeTab.value = 'raw';
     }
@@ -106,12 +169,6 @@ const onVizRendered = () => {
 };
 
 const getComponent = (type) => visualizationHandlers.value[type] || null;
-
-const escapeHtml = (str) => {
-  const div = document.createElement('div');
-  div.appendChild(document.createTextNode(str));
-  return div.innerHTML;
-};
 
 const generateHTMLTable = (data) => {
   if (!Array.isArray(data) || !data.length) return '';
@@ -153,9 +210,7 @@ const copyOutput = () => {
     }
   }
 
-  const data = rawResult.value;
-  const text = isNonScalar(data) ? JSON.stringify(data, null, 2) : String(data ?? 'null');
-  handleClipboardCopy(text);
+  handleClipboardCopy(rawString.value);
 };
 </script>
 
@@ -171,6 +226,16 @@ const copyOutput = () => {
           @click="activeTab = 'raw'"
         >
           <span>{{ __('Raw') }}</span>
+        </button>
+
+        <button
+          v-if="canPreview"
+          type="button"
+          class="scratchpad-tab-btn"
+          :class="{ active: activeTab === 'preview' }"
+          @click="activeTab = 'preview'"
+        >
+          <span>{{ __('Preview') }}</span>
         </button>
 
         <button
@@ -199,6 +264,38 @@ const copyOutput = () => {
       </div>
 
       <div class="scratchpad-output-actions">
+        <!-- Tree controls when on Preview tab -->
+        <template v-if="activeTab === 'preview'">
+          <button
+            type="button"
+            class="output-action-btn"
+            :title="__('Expand all')"
+            @click="expandAllTree"
+          >
+            <span class="codicon codicon-expand-all" />
+          </button>
+          <button
+            type="button"
+            class="output-action-btn"
+            :title="__('Collapse all')"
+            @click="collapseAllTree"
+          >
+            <span class="codicon codicon-collapse-all" />
+          </button>
+        </template>
+
+        <!-- Word wrap toggle when on Raw tab -->
+        <button
+          v-if="activeTab === 'raw'"
+          type="button"
+          class="output-action-btn"
+          :class="{ active: wordWrap }"
+          :title="__('Word Wrap')"
+          @click="wordWrap = !wordWrap"
+        >
+          <span class="codicon codicon-word-wrap" />
+        </button>
+
         <div
           v-if="objectType"
           class="object-type-badge"
@@ -269,27 +366,30 @@ const copyOutput = () => {
         <div
           v-else-if="activeTab === 'raw'"
           class="scratchpad-tab-content raw-content"
+          :class="{ 'has-word-wrap': wordWrap }"
         >
-          <vue-json-pretty
-            v-if="isNonScalar(rawResult)"
-            :data="rawResult"
-            :show-length="true"
-            :show-icon="true"
-            :deep="1"
-          />
-          <ul
-            v-else
-            class="entries scratchpad-entries"
-          >
+          <ul class="entries scratchpad-entries">
             <li class="entry out mode-evaluate">
               <!-- eslint-disable vue/no-v-html -->
               <pre
                 class="hljs"
-                v-html="highlightedScalar"
+                v-html="highlightedRaw"
               />
               <!-- eslint-enable vue/no-v-html -->
             </li>
           </ul>
+        </div>
+
+        <!-- Preview Tab -->
+        <div
+          v-else-if="activeTab === 'preview'"
+          class="scratchpad-tab-content preview-content"
+        >
+          <DataTree
+            ref="treeRef"
+            :data="previewPayload"
+            :show-search="true"
+          />
         </div>
 
         <!-- Visualization Tabs -->

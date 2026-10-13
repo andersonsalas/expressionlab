@@ -443,8 +443,34 @@ class Console extends AdminPage {
 			'User Avatar'                                => __( 'User Avatar', 'expression-lab' ),
 			'Avatar'                                     => __( 'Avatar', 'expression-lab' ),
 
-			// Visualizations.
+			// Visualizations & Data Viewer.
 			'Raw'                                        => __( 'Raw', 'expression-lab' ),
+			'Preview'                                    => __( 'Preview', 'expression-lab' ),
+			'Data viewer'                                => __( 'Data viewer', 'expression-lab' ),
+			/* translators: %s: column name */
+			'Data viewer - %s'                           => __( 'Data viewer - %s', 'expression-lab' ),
+			'View data...'                               => __( 'View data...', 'expression-lab' ),
+			'Copy cell value'                            => __( 'Copy cell value', 'expression-lab' ),
+			'Word Wrap'                                  => __( 'Word Wrap', 'expression-lab' ),
+			'Auto'                                       => __( 'Auto', 'expression-lab' ),
+			'No highlighting'                            => __( 'No highlighting', 'expression-lab' ),
+			'No preview available'                       => __( 'No preview available', 'expression-lab' ),
+			'Copied!'                                    => __( 'Copied!', 'expression-lab' ),
+			'Expand all'                                 => __( 'Expand all', 'expression-lab' ),
+			'Collapse all'                               => __( 'Collapse all', 'expression-lab' ),
+			'Search in data...'                          => __( 'Search in data...', 'expression-lab' ),
+			'Search path (e.g. response.args[0])...'     => __( 'Search path (e.g. response.args[0])...', 'expression-lab' ),
+			'Free text search'                           => __( 'Free text search', 'expression-lab' ),
+			'Path expression (Symfony / Dot-syntax)'     => __( 'Path expression (Symfony / Dot-syntax)', 'expression-lab' ),
+			'Clear search'                               => __( 'Clear search', 'expression-lab' ),
+			'No matches found'                           => __( 'No matches found', 'expression-lab' ),
+			'Path found'                                 => __( 'Path found', 'expression-lab' ),
+			'Path not found'                             => __( 'Path not found', 'expression-lab' ),
+			'1 match'                                    => __( '1 match', 'expression-lab' ),
+			/* translators: %d: number of search matches */
+			'%d matches'                                 => __( '%d matches', 'expression-lab' ),
+			/* translators: %s: PHP class that declares the private property */
+			'Declared in %s'                             => __( 'Declared in %s', 'expression-lab' ),
 			'Table'                                      => __( 'Table', 'expression-lab' ),
 			'Visualization'                              => __( 'Visualization', 'expression-lab' ),
 			/* translators: %s: visualization type */

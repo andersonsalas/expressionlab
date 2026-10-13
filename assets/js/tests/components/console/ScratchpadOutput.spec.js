@@ -12,12 +12,6 @@ jest.mock('../../../lib/api/client.js', () => ({
   handleClipboardCopy: jest.fn(),
 }));
 
-jest.mock('vue-json-pretty', () => ({
-  name: 'VueJsonPretty',
-  props: ['data', 'deep', 'showLength', 'showIcon'],
-  template: '<div class="vue-json-pretty-mock" :data-deep="deep"></div>',
-}));
-
 describe('ScratchpadOutput.vue', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -134,7 +128,7 @@ describe('ScratchpadOutput.vue', () => {
     expect(nullWrapper.text()).toContain('null');
   });
 
-  it('renders VueJsonPretty with deep=1 for non-scalar results', () => {
+  it('renders DataTree for non-scalar results and switches between Preview and Raw tabs', async () => {
     const wrapper = mount(ScratchpadOutput, {
       props: {
         result: {
@@ -147,11 +141,67 @@ describe('ScratchpadOutput.vue', () => {
       },
     });
 
-    const jsonPretty = wrapper.findComponent({ name: 'VueJsonPretty' });
-    expect(jsonPretty.exists()).toBe(true);
-    expect(jsonPretty.props('deep')).toBe(1);
-    expect(jsonPretty.props('showLength')).toBe(true);
-    expect(jsonPretty.props('showIcon')).toBe(true);
+    await wrapper.vm.$nextTick();
+
+    // Default tab for structured previewable payload is preview
+    expect(wrapper.find('.scratchpad-tab-btn.active').text()).toContain('Preview');
+    const dataTree = wrapper.findComponent({ name: 'DataTree' });
+    expect(dataTree.exists()).toBe(true);
+
+    // Expand / collapse all buttons on preview tab
+    const expandBtn = wrapper.find('.output-action-btn[title="Expand all"]');
+    const collapseBtn = wrapper.find('.output-action-btn[title="Collapse all"]');
+    expect(expandBtn.exists()).toBe(true);
+    expect(collapseBtn.exists()).toBe(true);
+    await expandBtn.trigger('click');
+    await collapseBtn.trigger('click');
+
+    // Switch to Raw tab
+    const rawTabBtn = wrapper.findAll('.scratchpad-tab-btn').find(b => b.text().includes('Raw'));
+    await rawTabBtn.trigger('click');
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find('.scratchpad-tab-btn.active').text()).toContain('Raw');
+    expect(wrapper.find('.raw-content pre.hljs').exists()).toBe(true);
+    expect(wrapper.find('.raw-content pre.hljs').text()).toContain('"option_id": "1"');
+
+    // Word wrap toggle on Raw tab
+    const wordWrapBtn = wrapper.find('.output-action-btn[title="Word Wrap"]');
+    expect(wordWrapBtn.exists()).toBe(true);
+    expect(wrapper.find('.raw-content').classes()).not.toContain('has-word-wrap');
+    await wordWrapBtn.trigger('click');
+    expect(wrapper.find('.raw-content').classes()).toContain('has-word-wrap');
+  });
+
+  it('renders Preview tree and highlighted PHP in Raw for quoted serialized PHP strings', async () => {
+    const wrapper = mount(ScratchpadOutput, {
+      props: {
+        result: {
+          result: '\'a:1:{s:4:"host";s:9:"localhost";}\'',
+          messages: [],
+          visualizations: [],
+          type: null,
+        },
+        loading: false,
+      },
+    });
+
+    await wrapper.vm.$nextTick();
+
+    // Default tab for serialized payload is preview
+    expect(wrapper.find('.scratchpad-tab-btn.active').text()).toContain('Preview');
+    expect(wrapper.findComponent({ name: 'DataTree' }).exists()).toBe(true);
+
+    // Switch to Raw tab
+    const rawTabBtn = wrapper.findAll('.scratchpad-tab-btn').find(b => b.text().includes('Raw'));
+    await rawTabBtn.trigger('click');
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find('.scratchpad-tab-btn.active').text()).toContain('Raw');
+    const rawPre = wrapper.find('.raw-content pre.hljs');
+    expect(rawPre.exists()).toBe(true);
+    expect(rawPre.text()).toBe('a:1:{s:4:"host";s:9:"localhost";}');
+    expect(rawPre.html()).toContain('hljs-string');
   });
 
   it('renders error entry when type is error', () => {
@@ -199,15 +249,16 @@ describe('ScratchpadOutput.vue', () => {
       },
     });
 
-    const actionButtons = wrapper.findAll('.output-action-btn');
-    expect(actionButtons.length).toBeGreaterThanOrEqual(3);
+    const clearBtn = wrapper.find('.output-action-btn[title="Clear output"]');
+    const closeBtn = wrapper.find('.output-action-btn[title="Hide output panel"]');
 
-    // Clear output button
-    await actionButtons[1].trigger('click');
+    expect(clearBtn.exists()).toBe(true);
+    expect(closeBtn.exists()).toBe(true);
+
+    await clearBtn.trigger('click');
     expect(wrapper.emitted('clear-output')).toBeTruthy();
 
-    // Close button
-    await actionButtons[2].trigger('click');
+    await closeBtn.trigger('click');
     expect(wrapper.emitted('close')).toBeTruthy();
   });
 
@@ -218,7 +269,8 @@ describe('ScratchpadOutput.vue', () => {
       },
     });
 
-    const copyBtn = wrapper.find('.output-action-btn');
+    const copyBtn = wrapper.find('.output-action-btn[title="Copy to clipboard"]');
+    expect(copyBtn.exists()).toBe(true);
     await copyBtn.trigger('click');
 
     expect(client.handleClipboardCopy).toHaveBeenCalledWith('Hello World');

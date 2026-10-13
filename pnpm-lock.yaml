@@ -107,9 +107,6 @@ importers:
       vega-lite:
         specifier: ^6.4.2
         version: 6.4.3(vega@6.2.0)
-      vue-json-pretty:
-        specifier: ^2.6.0
-        version: 2.6.0(vue@3.5.34)
       vue-router:
         specifier: ^5.0.7
         version: 5.0.7(@vue/compiler-sfc@3.5.34)(pinia@3.0.4(vue@3.5.34))(vue@3.5.34)
@@ -9637,12 +9634,6 @@ packages:
         optional: true
       typescript:
         optional: true
-
-  vue-json-pretty@2.6.0:
-    resolution: {integrity: sha512-glz1aBVS35EO8+S9agIl3WOQaW2cJZW192UVKTuGmryx01ZvOVWc4pR3t+5UcyY4jdOfBUgVHjcpRpcnjRhCAg==}
-    engines: {node: '>= 10.0.0', npm: '>= 5.0.0'}
-    peerDependencies:
-      vue: '>=3.0.0'
 
   vue-loader@17.4.2:
     resolution: {integrity: sha512-yTKOA4R/VN4jqjw4y5HrynFL8AK0Z3/Jt7eOJXEitsm0GMRHDBjCfCiuTiLP7OESvsZYo2pATCWhDqxC5ZrM6w==}
@@ -22021,10 +22012,6 @@ snapshots:
       vue: 3.5.34
     transitivePeerDependencies:
       - supports-color
-
-  vue-json-pretty@2.6.0(vue@3.5.34):
-    dependencies:
-      vue: 3.5.34
 
   vue-loader@17.4.2(@vue/compiler-sfc@3.5.34)(vue@3.5.34)(webpack@5.106.2):
     dependencies:

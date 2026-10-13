@@ -12,6 +12,8 @@ import VisualizationRenderer from './visualizations/VisualizationRenderer.vue';
 import SafeFormattedText from './SafeFormattedText.vue';
 import { handleClipboardCopy } from '../../lib/api/client.js';
 import { __ } from '../../lib/helpers.js';
+import { getActivePinia } from 'pinia';
+import { useUiStore } from '../../stores/ui';
 
 hljs.registerLanguage('elscript', elscriptLang);
 hljs.registerLanguage('expressionlab', elscriptLang);
@@ -26,7 +28,7 @@ const visualizationStates = reactive({});
 
 const getVisualizationType = (item, idx) => {
   const activeIdx = visualizationStates[idx];
-  if (activeIdx === undefined || activeIdx === 'json') return null;
+  if (activeIdx === undefined || activeIdx === 'json' || activeIdx === 'preview' || activeIdx === 'raw') return null;
 
   const vizs = item.visualizations || (item.output && item.output.visualizations) || [];
   if (vizs[activeIdx]) {
@@ -104,7 +106,7 @@ const copyToClipboard = (item, visualizationType = null, idx = null, direction =
     const activeIdx = idx !== null ? visualizationStates[idx] : null;
     const vizs = item.visualizations || (item.output && item.output.visualizations) || [];
     
-    if (activeIdx !== undefined && activeIdx !== 'json' && vizs[activeIdx]) {
+    if (activeIdx !== undefined && activeIdx !== 'json' && activeIdx !== 'preview' && activeIdx !== 'raw' && vizs[activeIdx]) {
       targetData = vizs[activeIdx].data;
     }
   } else {
@@ -132,6 +134,26 @@ const copyToClipboard = (item, visualizationType = null, idx = null, direction =
   }
 
   handleClipboardCopy(text, html);
+};
+
+const getUiStore = () => (getActivePinia() ? useUiStore() : null);
+
+const getEntryOutputPayload = (item) => {
+  if (!item) return null;
+  let target = item.output !== undefined ? item.output : item;
+  if (target && typeof target === 'object' && target.result !== undefined) {
+    return target.result;
+  }
+  return target;
+};
+
+const openDataViewer = (item) => {
+  const store = getUiStore();
+  if (store) {
+    store.openModal('data-viewer', {
+      content: getEntryOutputPayload(item),
+    });
+  }
 };
 </script>
 
@@ -197,7 +219,14 @@ const copyToClipboard = (item, visualizationType = null, idx = null, direction =
           @click="$emit('edit-entry', idx, 'output')"
         >
           <div class="codicon codicon-edit" />
-        </div>  
+        </div>
+        <div
+          class="action inspect-action"
+          :title="__('View data...')"
+          @click="openDataViewer(item)"
+        >
+          <div class="codicon codicon-eye" />
+        </div>
       </div>
       <div 
         v-if="!item.mode || item.mode === 'evaluate' || item.mode === 'repl'"
