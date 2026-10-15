@@ -74,6 +74,7 @@ final class SiteOptions extends Options {
 	 * @param string $key           The option key.
 	 * @param mixed  $default_value The default value if the option is not set.
 	 * @return mixed The option value or default.
+	 * @throws \Exception If the site instance is unsaved or null.
 	 */
 	public function get_raw( string $key, $default_value = null ) {
 		$target_blog_id  = $this->ensure_valid_site();
@@ -95,6 +96,7 @@ final class SiteOptions extends Options {
 	 * @param string $key           The option key.
 	 * @param mixed  $default_value The default value if the option is not set.
 	 * @return mixed The processed option value.
+	 * @throws \Exception If the site instance is unsaved or null, or if serialized data contains unauthorized PHP classes.
 	 */
 	public function get( string $key, $default_value = null ) {
 		$target_blog_id  = $this->ensure_valid_site();
@@ -113,10 +115,11 @@ final class SiteOptions extends Options {
 	 *
 	 * @since 0.0.1
 	 *
-	 * @param string      $key      The option key.
-	 * @param string      $value    The raw string value to store.
-	 * @param string|bool $autoload Whether to autoload. 'yes', 'no' or null (keep existing).
+	 * @param string           $key      The option key.
+	 * @param string           $value    The raw string value to store.
+	 * @param string|bool|null $autoload Optional. Whether to autoload: `'yes'`/`true`, `'no'`/`false`, or `null` to keep the existing setting.
 	 * @return bool True on success, false on failure.
+	 * @throws \Exception If the site instance is unsaved or null, or if write protection is active.
 	 */
 	public function update_raw( string $key, string $value, $autoload = null ): bool {
 		$target_blog_id  = $this->ensure_valid_site();
@@ -135,18 +138,20 @@ final class SiteOptions extends Options {
 	 *
 	 * @since 0.0.1
 	 *
-	 * @param string $key                The option key.
-	 * @param mixed  $value              The option value.
-	 * @param string $serialization_type Serialization format type.
+	 * @param string           $key                The option key.
+	 * @param mixed            $value              The option value.
+	 * @param string           $serialization_type Serialization format type.
+	 * @param string|bool|null $autoload           Optional. Controls autoload behavior.
 	 * @return bool True on success, false on failure.
+	 * @throws \Exception If the site instance is unsaved or null, write protection is active, serialization fails, or a format mismatch is detected.
 	 */
-	public function update( string $key, $value, string $serialization_type = self::FORMAT_SERIALIZED ): bool {
+	public function update( string $key, $value, string $serialization_type = self::FORMAT_SERIALIZED, $autoload = null ): bool {
 		$target_blog_id  = $this->ensure_valid_site();
 		$current_site_id = LanguageEngine::get()->get_site_id();
 		LanguageEngine::get()->set_site_id( $target_blog_id );
 
 		try {
-			return parent::update( $key, $value, $serialization_type );
+			return parent::update( $key, $value, $serialization_type, $autoload );
 		} finally {
 			LanguageEngine::get()->set_site_id( $current_site_id );
 		}
@@ -159,6 +164,7 @@ final class SiteOptions extends Options {
 	 *
 	 * @param string $key The option key.
 	 * @return bool True on success, false on failure.
+	 * @throws \Exception If the site instance is unsaved or null, or if write protection is active.
 	 */
 	public function delete( string $key ): bool {
 		$target_blog_id  = $this->ensure_valid_site();

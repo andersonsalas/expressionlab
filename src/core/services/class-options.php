@@ -13,6 +13,7 @@ namespace ExpressionLab\Core\Services;
 
 use ExpressionLab\Core\LanguageEngine;
 use ExpressionLab\Core\Helper;
+use ExpressionLab\Core\Interfaces\ServiceInterface;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	die( 'No direct script access allowed' );
@@ -29,7 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @package ExpressionLab
  */
-class Options {
+class Options implements ServiceInterface {
 	/**
 	 * Format constant for JSON serialization.
 	 *
@@ -50,6 +51,34 @@ class Options {
 	 * Similar to `FORMAT_SERIALIZED` but the value will be casted to `stdClass`.
 	 */
 	public const FORMAT_SERIALIZED_OBJECT = 'serialized_object';
+
+	/**
+	 * Database prefix for transient values in the options table.
+	 */
+	public const TRANSIENT_PREFIX = '_transient_';
+
+	/**
+	 * Database prefix for transient expiration timestamps in the options table.
+	 */
+	public const TRANSIENT_TIMEOUT_PREFIX = '_transient_timeout_';
+
+	/**
+	 * Database prefix for site transient values in the options table (single-site fallback).
+	 */
+	public const SITE_TRANSIENT_PREFIX = '_site_transient_';
+
+	/**
+	 * Database prefix for site transient expiration timestamps in the options table (single-site fallback).
+	 */
+	public const SITE_TRANSIENT_TIMEOUT_PREFIX = '_site_transient_timeout_';
+
+	/**
+	 * Maximum length allowed for a transient key.
+	 *
+	 * WordPress limits option names to 191 characters. Subtracting the 19 characters of
+	 * `_transient_timeout_` leaves 172 characters for the transient key name.
+	 */
+	public const MAX_TRANSIENT_KEY_LENGTH = 172;
 
 	/**
 	 * Live database instance.
@@ -167,20 +196,7 @@ class Options {
 			return $value;
 		}
 
-		// If it's a serialized string, attempt to unserialize it with strict checks.
-		if ( is_serialized( $value ) ) {
-			return $this->strict_unserialize( $value, 'Options.get_raw()' );
-		}
-
-		// Otherwise, attempt to decode it as JSON.
-		$json_decoded = json_decode( $value, true );
-
-		if ( json_last_error() === JSON_ERROR_NONE ) {
-			return $json_decoded;
-		}
-
-		// If it's not JSON, return the raw value.
-		return $value;
+		return $this->decode_value( $value, 'Options.get_raw()' );
 	}
 
 	/**
@@ -286,6 +302,15 @@ class Options {
 			// Clear the cache.
 			wp_cache_delete( $key, 'options' );
 
+			// Purge the key from the `notoptions` cache, otherwise WordPress core keeps treating a freshly
+			// inserted row as non-existent (critical with persistent object caches such as Redis/Memcached).
+			$notoptions = wp_cache_get( 'notoptions', 'options' );
+
+			if ( is_array( $notoptions ) && isset( $notoptions[ $key ] ) ) {
+				unset( $notoptions[ $key ] );
+				wp_cache_set( 'notoptions', $notoptions, 'options' );
+			}
+
 			// Since we can't be sure if it was autoload without another select, we clear it for safety.
 			$alloptions = wp_load_alloptions();
 
@@ -337,15 +362,17 @@ class Options {
 	 * @see https://developer.wordpress.org/reference/functions/update_option/
 	 * @see https://expressionlab.io/docs/api-reference/options#optionsupdate
 	 *
-	 * @param string $key                The option key.
-	 * @param mixed  $value              The option value to store.
-	 * @param string $serialization_type Optional. Serialization format: `Options.FORMAT_SERIALIZED`,
-	 *                                   `Options.FORMAT_SERIALIZED_OBJECT`, or `Options.FORMAT_JSON`.
-	 *                                   Default `Options.FORMAT_SERIALIZED`.
+	 * @param string           $key                The option key.
+	 * @param mixed            $value              The option value to store.
+	 * @param string           $serialization_type Optional. Serialization format: `Options.FORMAT_SERIALIZED`,
+	 *                                             `Options.FORMAT_SERIALIZED_OBJECT`, or `Options.FORMAT_JSON`.
+	 *                                             Default `Options.FORMAT_SERIALIZED`.
+	 * @param string|bool|null $autoload           Optional. Controls autoload behavior (`'yes'` or `true`; `'no'` or `false`).
+	 *                                             If `null`, preserves default WordPress autoloading behavior.
 	 * @return bool `true` if value was updated or inserted, `false` if unchanged or on database error.
 	 * @throws \Exception If write protection is active, serialization fails, or a format mismatch is detected.
 	 */
-	public function update( string $key, $value, string $serialization_type = self::FORMAT_SERIALIZED ): bool {
+	public function update( string $key, $value, string $serialization_type = self::FORMAT_SERIALIZED, $autoload = null ): bool {
 		if ( defined( 'EXPRESSION_LAB_DATABASE_READONLY' ) && EXPRESSION_LAB_DATABASE_READONLY ) {
 			throw new \Exception( esc_html( 'Operation denied. Write protection is enabled. Set `EXPRESSION_LAB_DATABASE_READONLY` to `false` in `wp-config.php`.' ) );
 		}
@@ -399,6 +426,16 @@ class Options {
 				$this->strict_serialize_check( $value, 'Options.update_raw()' );
 			}
 
+			if ( null !== $autoload ) {
+				if ( is_bool( $autoload ) ) {
+					$autoload = $autoload ? 'yes' : 'no';
+				} else {
+					$autoload = (string) $autoload;
+				}
+
+				return update_option( $key, $value, $autoload );
+			}
+
 			return update_option( $key, $value );
 		} finally {
 			if ( $switched ) {
@@ -449,6 +486,285 @@ class Options {
 				restore_current_blog();
 			}
 		}
+	}
+
+	/**
+	 * Retrieves the expiration timestamp (Unix epoch) for a specific transient.
+	 *
+	 * Queries the `_transient_timeout_{$key}` option directly from the database without
+	 * triggering deserialization.
+	 *
+	 * The timeout is always resolved from the same storage scope that serves the transient value:
+	 * in single-site installations, `_site_transient_timeout_{$key}` is only consulted when the value
+	 * itself is served from the `_site_transient_{$key}` fallback. Orphaned timeout records (without
+	 * a matching value record) are reported as `null`, since the transient does not exist.
+	 *
+	 * Example:
+	 *
+	 * ```elscript
+	 * Options.get_transient_timeout('feed_cache')
+	 * ```
+	 *
+	 * @see https://expressionlab.io/docs/api-reference/options#optionsget_transient_timeout
+	 *
+	 * @param string $key The transient key name.
+	 * @return int|null The Unix timestamp when the transient expires, or `null` if it does not expire or does not exist.
+	 * @throws \InvalidArgumentException If the key is empty or exceeds the maximum key length.
+	 */
+	public function get_transient_timeout( string $key ): ?int {
+		$this->validate_transient_key( $key );
+
+		$transient = $this->locate_transient( $key );
+
+		return null === $transient ? null : $transient['timeout'];
+	}
+
+	/**
+	 * Calculates the remaining time to live (TTL in seconds) of a transient.
+	 *
+	 * Example:
+	 *
+	 * ```elscript
+	 * Options.get_transient_ttl('feed_cache')
+	 * ```
+	 *
+	 * @see https://expressionlab.io/docs/api-reference/options#optionsget_transient_ttl
+	 *
+	 * @param string $key The transient key name.
+	 * @return int|null Remaining seconds until expiration, `0` if expired or persistent without timeout, or `null` if the transient does not exist.
+	 * @throws \InvalidArgumentException If the key is empty or exceeds the maximum key length.
+	 */
+	public function get_transient_ttl( string $key ): ?int {
+		$this->validate_transient_key( $key );
+
+		$transient = $this->locate_transient( $key );
+
+		if ( null === $transient ) {
+			return null;
+		}
+
+		if ( null === $transient['timeout'] ) {
+			return 0;
+		}
+
+		return (int) max( 0, $transient['timeout'] - time() );
+	}
+
+	/**
+	 * Retrieves the raw value of a transient from the database.
+	 *
+	 * Queries `_transient_{$key}` without performing any deserialization or JSON decoding.
+	 *
+	 * In single-site installations, falls back to `_site_transient_{$key}` if standard transient is not found.
+	 *
+	 * By default, evaluates if the transient has expired; if expired, returns `$default_value`.
+	 *
+	 * Example:
+	 *
+	 * ```elscript
+	 * Options.get_transient_raw('remote_api_payload')
+	 * ```
+	 *
+	 * @see https://expressionlab.io/docs/api-reference/options#optionsget_transient_raw
+	 *
+	 * @param string $key              The transient key name.
+	 * @param mixed  $default_value    Optional. Default value returned if the transient does not exist or has expired. Default `null`.
+	 * @param bool   $check_expiration Optional. Whether to verify expiration against `_transient_timeout_{$key}`. Default `true`.
+	 * @return string|mixed|null The raw string value from the database, or `$default_value`.
+	 * @throws \InvalidArgumentException If the key is empty or exceeds the maximum key length.
+	 */
+	public function get_transient_raw( string $key, $default_value = null, bool $check_expiration = true ) {
+		$this->validate_transient_key( $key );
+
+		$transient = $this->locate_transient( $key, $check_expiration );
+
+		if ( null === $transient || ( $check_expiration && $this->is_transient_expired( $transient['timeout'] ) ) ) {
+			return $default_value;
+		}
+
+		return $transient['value'];
+	}
+
+	/**
+	 * Retrieves a transient value, decoding JSON strings or unserializing allowed types.
+	 *
+	 * Checks if the transient has expired according to its timeout record. If expired, returns
+	 * `$default_value`.
+	 *
+	 * In single-site installations, falls back to `_site_transient_{$key}` if standard transient is not found.
+	 * Otherwise, parses JSON or unserializes PHP data (disallowing unauthorized classes).
+	 *
+	 * Examples:
+	 *
+	 * ```elscript
+	 * Options.get_transient('github_releases')
+	 * ```
+	 *
+	 * ```elscript
+	 * Options.get_transient('cached_user_stats', [])
+	 * ```
+	 *
+	 * @see https://developer.wordpress.org/reference/functions/get_transient/
+	 * @see https://expressionlab.io/docs/api-reference/options#optionsget_transient
+	 *
+	 * @param string $key           The transient key name.
+	 * @param mixed  $default_value Optional. Default value returned if transient is not found or expired. Default `null`.
+	 * @return mixed The processed transient value, or `$default_value`.
+	 * @throws \InvalidArgumentException If the key is empty or exceeds the maximum key length.
+	 * @throws \Exception If the serialized data contains unauthorized PHP classes.
+	 */
+	public function get_transient( string $key, $default_value = null ) {
+		$this->validate_transient_key( $key );
+
+		$transient = $this->locate_transient( $key );
+
+		if ( null === $transient || $this->is_transient_expired( $transient['timeout'] ) ) {
+			return $default_value;
+		}
+
+		// Decode the value already fetched (single read: no double query, no TOCTOU between checks and decoding).
+		return $this->decode_value( $transient['value'], 'Options.get_transient_raw()' );
+	}
+
+	/**
+	 * Sets or updates a transient value with expiration and serialization safety checks.
+	 *
+	 * If `$expiration > 0`, stores an expiration timestamp in `_transient_timeout_{$key}` and ensures
+	 * autoload is set to `'no'` to prevent polluting WordPress's global autoload cache.
+	 * If `$expiration === 0`, removes any pre-existing timeout record.
+	 *
+	 * Examples:
+	 *
+	 * ```elscript
+	 * Options.set_transient('api_token', 'xyz123', 3600)
+	 * ```
+	 *
+	 * ```elscript
+	 * Options.set_transient('cached_stats', { 'views': 1200 }, 7200, Options.FORMAT_JSON)
+	 * ```
+	 *
+	 * @see https://developer.wordpress.org/reference/functions/set_transient/
+	 * @see https://expressionlab.io/docs/api-reference/options#optionsset_transient
+	 *
+	 * @param string $key                The transient key name.
+	 * @param mixed  $value              The transient value to store.
+	 * @param int    $expiration         Optional. Time until expiration in seconds. `0` means no expiration. Default `0`.
+	 * @param string $serialization_type Optional. Serialization format: `Options.FORMAT_SERIALIZED`,
+	 *                                   `Options.FORMAT_SERIALIZED_OBJECT`, or `Options.FORMAT_JSON`.
+	 *                                   Default `Options.FORMAT_SERIALIZED`.
+	 * @return bool `true` on successful update/insert, `false` if unchanged or on error.
+	 * @throws \InvalidArgumentException If the key is empty or exceeds the maximum key length, or if the expiration is negative.
+	 * @throws \Exception If write protection is active, serialization fails, or a format mismatch is detected.
+	 */
+	public function set_transient( string $key, $value, int $expiration = 0, string $serialization_type = self::FORMAT_SERIALIZED ): bool {
+		$this->validate_write_permission();
+		$this->validate_transient_key( $key );
+		$this->validate_transient_expiration( $expiration );
+
+		$data_key    = self::TRANSIENT_PREFIX . $key;
+		$timeout_key = self::TRANSIENT_TIMEOUT_PREFIX . $key;
+
+		if ( $expiration > 0 ) {
+			$data_result = $this->update( $data_key, $value, $serialization_type, 'no' );
+
+			if ( ! $data_result ) {
+				// `update_option()` short-circuits on unchanged values without applying the autoload change,
+				// so enforce it explicitly: expiring transients must never be loaded into `alloptions`.
+				$data_result = $this->disable_autoload( $data_key );
+			}
+
+			$timeout_result = $this->update_raw( $timeout_key, (string) ( time() + $expiration ), 'no' );
+
+			return $data_result || $timeout_result;
+		}
+
+		$data_result     = $this->update( $data_key, $value, $serialization_type );
+		$timeout_deleted = $this->delete( $timeout_key );
+
+		return $data_result || $timeout_deleted;
+	}
+
+	/**
+	 * Sets or updates a raw transient string value directly in the database without serialization or format checks.
+	 *
+	 * If `$expiration > 0`, manages `_transient_timeout_{$key}` and forces autoload `'no'`.
+	 *
+	 * Example:
+	 *
+	 * ```elscript
+	 * Options.set_transient_raw('raw_cache', 'precomputed_string', 600)
+	 * ```
+	 *
+	 * @see https://expressionlab.io/docs/api-reference/options#optionsset_transient_raw
+	 *
+	 * @param string $key        The transient key name.
+	 * @param string $value      The raw string payload to store.
+	 * @param int    $expiration Optional. Time until expiration in seconds. `0` means no expiration. Default `0`.
+	 * @return bool `true` on successful update/insert, `false` if unchanged or on database error.
+	 * @throws \InvalidArgumentException If the key is empty or exceeds the maximum key length, or if the expiration is negative.
+	 * @throws \Exception If write protection is active (`EXPRESSION_LAB_DATABASE_READONLY` is true).
+	 */
+	public function set_transient_raw( string $key, string $value, int $expiration = 0 ): bool {
+		$this->validate_write_permission();
+		$this->validate_transient_key( $key );
+		$this->validate_transient_expiration( $expiration );
+
+		$data_key    = self::TRANSIENT_PREFIX . $key;
+		$timeout_key = self::TRANSIENT_TIMEOUT_PREFIX . $key;
+
+		if ( $expiration > 0 ) {
+			$data_result    = $this->update_raw( $data_key, $value, 'no' );
+			$timeout_result = $this->update_raw( $timeout_key, (string) ( time() + $expiration ), 'no' );
+
+			return $data_result || $timeout_result;
+		}
+
+		$data_result     = $this->update_raw( $data_key, $value );
+		$timeout_deleted = $this->delete( $timeout_key );
+
+		return $data_result || $timeout_deleted;
+	}
+
+	/**
+	 * Deletes a transient and its associated expiration timeout from the database.
+	 *
+	 * Purges both `_transient_{$key}` and `_transient_timeout_{$key}`. In single-site installations,
+	 * also purges the `_site_transient_{$key}` and `_site_transient_timeout_{$key}` fallback records.
+	 *
+	 * Example:
+	 *
+	 * ```elscript
+	 * Options.delete_transient('feed_cache')
+	 * ```
+	 *
+	 * @see https://developer.wordpress.org/reference/functions/delete_transient/
+	 * @see https://expressionlab.io/docs/api-reference/options#optionsdelete_transient
+	 *
+	 * @param string $key The transient key name.
+	 * @return bool `true` if either the value or timeout was deleted, `false` if neither existed or on failure.
+	 * @throws \InvalidArgumentException If the key is empty or exceeds the maximum key length.
+	 * @throws \Exception If write protection is active (`EXPRESSION_LAB_DATABASE_READONLY` is true).
+	 */
+	public function delete_transient( string $key ): bool {
+		$this->validate_write_permission();
+		$this->validate_transient_key( $key );
+
+		$data_key    = self::TRANSIENT_PREFIX . $key;
+		$timeout_key = self::TRANSIENT_TIMEOUT_PREFIX . $key;
+
+		$data_deleted    = $this->delete( $data_key );
+		$timeout_deleted = $this->delete( $timeout_key );
+
+		$result = $data_deleted || $timeout_deleted;
+
+		if ( ! is_multisite() ) {
+			$site_data_deleted    = $this->delete( self::SITE_TRANSIENT_PREFIX . $key );
+			$site_timeout_deleted = $this->delete( self::SITE_TRANSIENT_TIMEOUT_PREFIX . $key );
+
+			$result = $result || $site_data_deleted || $site_timeout_deleted;
+		}
+
+		return $result;
 	}
 
 	/**
@@ -734,6 +1050,174 @@ class Options {
 		LanguageEngine::get()->tick();
 
 		return $autoload;
+	}
+
+	/**
+	 * Validates a transient key before any database access.
+	 *
+	 * Rejects empty keys and keys longer than `MAX_TRANSIENT_KEY_LENGTH` bytes so that the derived
+	 * `_transient_timeout_{$key}` option name always fits the `varchar(191)` column without truncation.
+	 * Length is measured in bytes (`strlen`), which is a conservative bound for multibyte keys.
+	 *
+	 * @internal
+	 *
+	 * @param string $key The transient key name.
+	 * @return void
+	 * @throws \InvalidArgumentException If the key is empty or exceeds the maximum key length.
+	 */
+	private function validate_transient_key( string $key ): void {
+		if ( '' === $key || strlen( $key ) > self::MAX_TRANSIENT_KEY_LENGTH ) {
+			throw new \InvalidArgumentException( esc_html( 'Transient key must be non-empty and cannot exceed ' . self::MAX_TRANSIENT_KEY_LENGTH . ' characters.' ) );
+		}
+	}
+
+	/**
+	 * Validates a transient expiration (in seconds).
+	 *
+	 * Negative values are rejected instead of being silently converted into a persistent transient,
+	 * and values that would overflow `time() + $expiration` are rejected as well.
+	 *
+	 * @internal
+	 *
+	 * @param int $expiration Time until expiration in seconds.
+	 * @return void
+	 * @throws \InvalidArgumentException If the expiration is negative or too large.
+	 */
+	private function validate_transient_expiration( int $expiration ): void {
+		if ( $expiration < 0 || $expiration > PHP_INT_MAX - time() ) {
+			throw new \InvalidArgumentException( esc_html( 'Transient expiration must be a non-negative number of seconds.' ) );
+		}
+	}
+
+	/**
+	 * Ensures write protection is disabled before a compound (multi-row) write starts.
+	 *
+	 * Every primitive enforces the guard as well; checking up front guarantees that compound
+	 * transient operations fail before performing any partial work.
+	 *
+	 * @internal
+	 *
+	 * @return void
+	 * @throws \Exception If write protection is active (`EXPRESSION_LAB_DATABASE_READONLY` is true).
+	 */
+	private function validate_write_permission(): void {
+		if ( defined( 'EXPRESSION_LAB_DATABASE_READONLY' ) && EXPRESSION_LAB_DATABASE_READONLY ) {
+			throw new \Exception( esc_html( 'Operation denied. Write protection is enabled. Set `EXPRESSION_LAB_DATABASE_READONLY` to `false` in `wp-config.php`.' ) );
+		}
+	}
+
+	/**
+	 * Locates the effective storage record of a transient without mutating the database.
+	 *
+	 * Standard `_transient_*` records take precedence. In single-site installations, falls back to
+	 * `_site_transient_*` records when no standard value exists. The timeout is always read from the
+	 * same scope as the value, keeping value, timeout and TTL coherent.
+	 *
+	 * @internal
+	 *
+	 * @param string $key          The transient key name.
+	 * @param bool   $with_timeout Optional. Whether to read the timeout record. Default `true`.
+	 * @return array{value: string, timeout: int|null}|null The raw value and parsed timeout, or `null` if no value exists.
+	 */
+	private function locate_transient( string $key, bool $with_timeout = true ): ?array {
+		$scopes = array( self::TRANSIENT_PREFIX => self::TRANSIENT_TIMEOUT_PREFIX );
+
+		if ( ! is_multisite() ) {
+			$scopes[ self::SITE_TRANSIENT_PREFIX ] = self::SITE_TRANSIENT_TIMEOUT_PREFIX;
+		}
+
+		foreach ( $scopes as $data_prefix => $timeout_prefix ) {
+			$raw_value = $this->get_raw( $data_prefix . $key );
+
+			if ( null === $raw_value ) {
+				continue;
+			}
+
+			return array(
+				'value'   => (string) $raw_value,
+				'timeout' => $with_timeout ? $this->parse_transient_timeout( $this->get_raw( $timeout_prefix . $key ) ) : null,
+			);
+		}
+
+		return null;
+	}
+
+	/**
+	 * Parses a raw timeout record into a Unix timestamp.
+	 *
+	 * Non-numeric (corrupt) timeouts are treated as "no timeout", mirroring WordPress core.
+	 *
+	 * @internal
+	 *
+	 * @param mixed $raw_timeout The raw timeout value from the database.
+	 * @return int|null The Unix timestamp, or `null` if missing or non-numeric.
+	 */
+	private function parse_transient_timeout( $raw_timeout ): ?int {
+		if ( null === $raw_timeout || ! is_numeric( $raw_timeout ) ) {
+			return null;
+		}
+
+		return (int) $raw_timeout;
+	}
+
+	/**
+	 * Determines whether a transient timeout has elapsed.
+	 *
+	 * Mirrors WordPress core: a transient expires once `time()` is strictly greater than its timeout.
+	 *
+	 * @internal
+	 *
+	 * @param int|null $timeout The parsed timeout, or `null` for persistent transients.
+	 * @return bool
+	 */
+	private function is_transient_expired( ?int $timeout ): bool {
+		return null !== $timeout && time() > $timeout;
+	}
+
+	/**
+	 * Forces `autoload = 'no'` on an existing option without altering its value.
+	 *
+	 * @internal
+	 *
+	 * @param string $key The option key.
+	 * @return bool `true` if the autoload flag was written, `false` if the option does not exist or on failure.
+	 * @throws \Exception If write protection is active (`EXPRESSION_LAB_DATABASE_READONLY` is true).
+	 */
+	private function disable_autoload( string $key ): bool {
+		$raw_value = $this->get_raw( $key );
+
+		if ( null === $raw_value ) {
+			return false;
+		}
+
+		return $this->update_raw( $key, (string) $raw_value, 'no' );
+	}
+
+	/**
+	 * Decodes a raw stored value: strict PHP unserialization, JSON decoding, or the raw string.
+	 *
+	 * @internal
+	 *
+	 * @param string $value       The raw value.
+	 * @param string $alternative The alternative method to suggest in case of failure (for error messages).
+	 * @return mixed The decoded value.
+	 * @throws \Exception If the serialized data contains unauthorized PHP classes.
+	 */
+	private function decode_value( string $value, string $alternative ) {
+		// If it's a serialized string, attempt to unserialize it with strict checks.
+		if ( is_serialized( $value ) ) {
+			return $this->strict_unserialize( $value, $alternative );
+		}
+
+		// Otherwise, attempt to decode it as JSON.
+		$json_decoded = json_decode( $value, true );
+
+		if ( json_last_error() === JSON_ERROR_NONE ) {
+			return $json_decoded;
+		}
+
+		// If it's not JSON, return the raw value.
+		return $value;
 	}
 
 	/**
