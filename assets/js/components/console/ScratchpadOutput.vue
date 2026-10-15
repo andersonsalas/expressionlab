@@ -396,6 +396,7 @@ const copyOutput = () => {
         <div
           v-else-if="typeof activeTab === 'number' && visualizations[activeTab]"
           class="scratchpad-tab-content visualization-content"
+          :class="[ 'visualization-type-' + (visualizations[activeTab].type || 'unknown') ]"
         >
           <component
             :is="getComponent(visualizations[activeTab].type)"

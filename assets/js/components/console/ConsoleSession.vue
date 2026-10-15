@@ -481,7 +481,7 @@ const adjustOutputForVisualization = (force = false, retryCount = 0) => {
 
       if (vizContentHeight <= 0) return;
 
-      const neededOutputHeight = Math.ceil(headerHeight + bodyPadding + vizContentHeight + 6);
+      const neededOutputHeight = Math.ceil(headerHeight + bodyPadding + vizContentHeight + 24);
       const currentOutputHeight = outputSectionEl.getBoundingClientRect().height;
 
       if (Math.abs(neededOutputHeight - currentOutputHeight) < 4) return;
