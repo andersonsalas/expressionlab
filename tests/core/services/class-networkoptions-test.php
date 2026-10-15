@@ -456,6 +456,21 @@ class NetworkOptionsTest extends WP_UnitTestCase {
 		}
 	}
 
+	/**
+	 * Returns the autoload values considered active across WordPress versions.
+	 *
+	 * Polyfill for `wp_autoload_values_to_autoload()`, which was introduced in WordPress 6.6.
+	 *
+	 * @return string[]
+	 */
+	private function autoload_values_to_autoload(): array {
+		if ( function_exists( 'wp_autoload_values_to_autoload' ) ) {
+			return wp_autoload_values_to_autoload();
+		}
+
+		return array( 'yes', 'on', 'auto-on', 'auto' );
+	}
+
 	public function test_transient_key_validation_rejects_without_touching_database() {
 		global $wpdb;
 
@@ -600,12 +615,12 @@ class NetworkOptionsTest extends WP_UnitTestCase {
 		};
 
 		$this->network_options->set_transient( $key, 'same', 0 );
-		$this->assertContains( $autoload( $data_key ), wp_autoload_values_to_autoload() );
+		$this->assertContains( $autoload( $data_key ), $this->autoload_values_to_autoload() );
 
 		// Same value, now expiring: autoload must be disabled despite update_option() short-circuiting.
 		$this->network_options->set_transient( $key, 'same', 600 );
-		$this->assertNotContains( $autoload( $data_key ), wp_autoload_values_to_autoload() );
-		$this->assertNotContains( $autoload( NetworkOptions::TRANSIENT_TIMEOUT_PREFIX . $key ), wp_autoload_values_to_autoload() );
+		$this->assertNotContains( $autoload( $data_key ), $this->autoload_values_to_autoload() );
+		$this->assertNotContains( $autoload( NetworkOptions::TRANSIENT_TIMEOUT_PREFIX . $key ), $this->autoload_values_to_autoload() );
 
 		$this->network_options->set_transient_raw( $key . '_raw', 'v', 600 );
 		$this->assertSame( 'no', $autoload( NetworkOptions::TRANSIENT_PREFIX . $key . '_raw' ) );

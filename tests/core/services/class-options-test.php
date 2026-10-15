@@ -433,6 +433,21 @@ class OptionsTest extends WP_UnitTestCase {
 		return $wpdb->get_var( $wpdb->prepare( "SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", $name ) );
 	}
 
+	/**
+	 * Returns the autoload values considered active across WordPress versions.
+	 *
+	 * Polyfill for `wp_autoload_values_to_autoload()`, which was introduced in WordPress 6.6.
+	 *
+	 * @return string[]
+	 */
+	private function autoload_values_to_autoload(): array {
+		if ( function_exists( 'wp_autoload_values_to_autoload' ) ) {
+			return wp_autoload_values_to_autoload();
+		}
+
+		return array( 'yes', 'on', 'auto-on', 'auto' );
+	}
+
 	public function test_transient_key_validation_rejects_without_touching_database() {
 		global $wpdb;
 
@@ -586,12 +601,12 @@ class OptionsTest extends WP_UnitTestCase {
 
 		// Persistent transients follow WordPress core and may be autoloaded.
 		$this->options->set_transient( $key, 'same_value', 0 );
-		$this->assertContains( $this->get_autoload_flag( $data_key ), wp_autoload_values_to_autoload() );
+		$this->assertContains( $this->get_autoload_flag( $data_key ), $this->autoload_values_to_autoload() );
 
 		// Converting to an expiring transient with the SAME value must still disable autoload.
 		$this->options->set_transient( $key, 'same_value', 3600 );
-		$this->assertNotContains( $this->get_autoload_flag( $data_key ), wp_autoload_values_to_autoload() );
-		$this->assertNotContains( $this->get_autoload_flag( Options::TRANSIENT_TIMEOUT_PREFIX . $key ), wp_autoload_values_to_autoload() );
+		$this->assertNotContains( $this->get_autoload_flag( $data_key ), $this->autoload_values_to_autoload() );
+		$this->assertNotContains( $this->get_autoload_flag( Options::TRANSIENT_TIMEOUT_PREFIX . $key ), $this->autoload_values_to_autoload() );
 		$this->assertArrayNotHasKey( $data_key, wp_load_alloptions() );
 		$this->assertSame( 'same_value', $this->options->get_transient( $key ) );
 	}
@@ -757,7 +772,7 @@ class OptionsTest extends WP_UnitTestCase {
 
 		switch_to_blog( $blog_id );
 		$this->assertSame( 1, $this->count_option_rows( Options::TRANSIENT_PREFIX . $key ) );
-		$this->assertNotContains( $this->get_autoload_flag( Options::TRANSIENT_PREFIX . $key ), wp_autoload_values_to_autoload() );
+		$this->assertNotContains( $this->get_autoload_flag( Options::TRANSIENT_PREFIX . $key ), $this->autoload_values_to_autoload() );
 		restore_current_blog();
 
 		$this->assertTrue( $site_options->delete_transient( $key ) );
