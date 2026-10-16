@@ -112,6 +112,8 @@ class LanguageEngine {
 		'siteoptions',
 		'expressionlab',
 		'iplookup',
+		'graph',
+		'cache',
 	);
 
 	/**

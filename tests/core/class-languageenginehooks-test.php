@@ -204,6 +204,9 @@ class LanguageEngineHooksTest extends WP_UnitTestCase {
         $this->assertTrue($this->engine->is_reserved_identifier('Console'));
         $this->assertTrue($this->engine->is_reserved_identifier('NetworkOptions'));
         $this->assertTrue($this->engine->is_reserved_identifier('NetworkSites'));
+        $this->assertTrue($this->engine->is_reserved_identifier('Cache'));
+        $this->assertTrue($this->engine->is_reserved_identifier('cache'));
+        $this->assertTrue($this->engine->is_reserved_identifier('CACHE'));
 
         // Attempt to hijack 'Database' object via hook.
         add_filter('expressionlab_register_objects', function($objects) {
