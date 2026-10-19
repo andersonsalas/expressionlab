@@ -21,7 +21,7 @@ describe('DataViewerModal.vue', () => {
     });
   };
 
-  it('renders tabs header and toolbar correctly when open with raw content', () => {
+  it('renders tabs header and toolbar correctly when open with raw content (preview tab hidden)', () => {
     const wrapper = mountModal({
       content: 'Hello World',
       column: 'option_value',
@@ -32,9 +32,8 @@ describe('DataViewerModal.vue', () => {
     expect(wrapper.find('.data-viewer-tabs-header').exists()).toBe(true);
 
     const tabs = wrapper.findAll('.scratchpad-tab-btn');
-    expect(tabs.length).toBe(2);
+    expect(tabs.length).toBe(1);
     expect(tabs[0].text()).toContain('Raw');
-    expect(tabs[1].text()).toContain('Preview');
 
     expect(wrapper.find('.scratchpad-output-actions .output-action-btn').exists()).toBe(true);
     expect(wrapper.find('.data-viewer-toolbar').exists()).toBe(true);
@@ -91,14 +90,18 @@ describe('DataViewerModal.vue', () => {
     expect(wrapper.find('.viewer-raw-area').classes()).toContain('has-word-wrap');
   });
 
-  it('renders empty preview state when content cannot be previewed as tree', async () => {
+  it('hides preview tab when content cannot be previewed as tree, and renders empty state if viewMode is forced to preview', async () => {
     const wrapper = mountModal({
       content: 'plain string content without tree preview',
     });
 
-    // Switch to preview tab
-    const previewTab = wrapper.findAll('.scratchpad-tab-btn')[1];
-    await previewTab.trigger('click');
+    // Preview tab should not exist in tab buttons
+    const tabs = wrapper.findAll('.scratchpad-tab-btn');
+    expect(tabs.length).toBe(1);
+    expect(tabs[0].text()).toContain('Raw');
+
+    // If viewMode is set to preview
+    await wrapper.setData({ viewMode: 'preview' });
 
     expect(wrapper.vm.viewMode).toBe('preview');
     expect(wrapper.find('.data-viewer-empty-state').exists()).toBe(true);
@@ -108,6 +111,87 @@ describe('DataViewerModal.vue', () => {
     // Expand/collapse should be disabled
     expect(wrapper.find('.btn-expand-all').attributes('disabled')).toBeDefined();
     expect(wrapper.find('.btn-collapse-all').attributes('disabled')).toBeDefined();
+  });
+
+  it('embeds image visualizations as tabs in viewer-preview-area and disables word wrap', async () => {
+    const wrapper = mountModal({
+      content: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      visualizations: [
+        {
+          type: 'image',
+          title: 'Image: sample.png',
+          filename: 'sample.png',
+          mime: 'image/png',
+          base64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+        },
+      ],
+    });
+
+    // Should have Raw and Image tabs
+    const tabs = wrapper.findAll('.scratchpad-tab-btn');
+    expect(tabs.length).toBe(2);
+    expect(tabs[0].text()).toContain('Raw');
+    expect(tabs[1].text()).toContain('Image: sample.png');
+
+    // Should initialize on image visualization tab (index 0)
+    expect(wrapper.vm.viewMode).toBe(0);
+    expect(tabs[1].classes()).toContain('active');
+
+    // Should be embedded inside viewer-preview-area
+    const previewArea = wrapper.find('.viewer-preview-area');
+    expect(previewArea.exists()).toBe(true);
+    expect(previewArea.findComponent({ name: 'ImageVisualization' }).exists()).toBe(true);
+
+    // Toolbar Word Wrap button should be disabled for image
+    const wordWrapBtn = wrapper.find('.btn-word-wrap');
+    expect(wordWrapBtn.attributes('disabled')).toBeDefined();
+  });
+
+  it('embeds file visualizations as tabs in viewer-preview-area and connects toolbar word wrap button', async () => {
+    const wrapper = mountModal({
+      content: 'console.log("hello world");',
+      visualizations: [
+        {
+          type: 'file',
+          title: 'File: app.js',
+          filename: 'app.js',
+          content: 'console.log("hello world");',
+          ext: 'js',
+          mime: 'application/javascript',
+          line_count: 1,
+        },
+      ],
+    });
+
+    const tabs = wrapper.findAll('.scratchpad-tab-btn');
+    expect(tabs.length).toBe(2);
+    expect(tabs[0].text()).toContain('Raw');
+    expect(tabs[1].text()).toContain('File: app.js');
+
+    // Should initialize on file visualization tab (index 0)
+    expect(wrapper.vm.viewMode).toBe(0);
+
+    // Should be embedded inside viewer-preview-area
+    const previewArea = wrapper.find('.viewer-preview-area');
+    expect(previewArea.exists()).toBe(true);
+    const fileViz = previewArea.findComponent({ name: 'FileVisualization' });
+    expect(fileViz.exists()).toBe(true);
+
+    // In DataViewer, redundant word wrap button in FileVisualization is omitted
+    expect(fileViz.props('hideWordWrap')).toBe(true);
+    expect(fileViz.find('.file-footer .btn-word-wrap').exists()).toBe(false);
+
+    // Word wrap button in .data-viewer-toolbar should be enabled for file visualization
+    const toolbarWordWrapBtn = wrapper.find('.btn-word-wrap');
+    expect(toolbarWordWrapBtn.attributes('disabled')).toBeUndefined();
+    expect(toolbarWordWrapBtn.classes()).not.toContain('active');
+    expect(fileViz.props('wordWrap')).toBe(false);
+
+    // Clicking word wrap in .data-viewer-toolbar toggles wordWrap
+    await toolbarWordWrapBtn.trigger('click');
+    expect(wrapper.vm.wordWrap).toBe(true);
+    expect(toolbarWordWrapBtn.classes()).toContain('active');
+    expect(fileViz.props('wordWrap')).toBe(true);
   });
 
   it('switches to raw mode and renders content with code formatting', async () => {

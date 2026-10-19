@@ -152,6 +152,28 @@ class LanguageEngine {
 	const MAX_EXPRESSION_LENGTH = 1048576; // 1 MB
 
 	/**
+	 * Maximum allowed JSON response payload size (in bytes).
+	 *
+	 * Caps the maximum size of the full response to prevent browser lockup.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @var int
+	 */
+	const MAX_PAYLOAD_BYTES = 5242880; // 5 MB
+
+	/**
+	 * Maximum allowed embedded binary data across all visualizations (in bytes).
+	 *
+	 * Limits cumulative Base64-encoded image payloads within an evaluation.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @var int
+	 */
+	const MAX_EMBEDDED_BINARY_BYTES = 2097152; // 2 MB
+
+	/**
 	 * Extension classes.
 	 *
 	 * @since 0.0.1
@@ -218,6 +240,15 @@ class LanguageEngine {
 	 * @var array
 	 */
 	private $visualizations = array();
+
+	/**
+	 * Total accumulated binary bytes across all visualizations in the current evaluation.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @var int
+	 */
+	private $accumulated_binary_bytes = 0;
 
 	/**
 	 * Silenced visualizations collected in non-interactive mode.
@@ -347,16 +378,17 @@ class LanguageEngine {
 	 */
 	public function reset() {
 		$this->variable_store->clear();
-		$this->messages                = array();
-		$this->system_messages         = array();
-		$this->visualizations          = array();
-		$this->silenced_visualizations = array();
-		$this->active_progs            = 0;
-		$this->execution_start         = microtime( true );
-		$this->operations              = 0;
-		$this->call_depth              = 0;
-		$this->user_id                 = null;
-		$this->site_id                 = null;
+		$this->messages                 = array();
+		$this->system_messages          = array();
+		$this->visualizations           = array();
+		$this->silenced_visualizations  = array();
+		$this->active_progs             = 0;
+		$this->execution_start          = microtime( true );
+		$this->operations               = 0;
+		$this->call_depth               = 0;
+		$this->accumulated_binary_bytes = 0;
+		$this->user_id                  = null;
+		$this->site_id                  = null;
 		if ( $this->are_hooks_enabled() ) {
 			$this->extensions      = null;
 			$this->service_classes = null;
@@ -810,6 +842,48 @@ class LanguageEngine {
 	 */
 	public function get_silenced_visualizations() {
 		return $this->silenced_visualizations;
+	}
+
+	/**
+	 * Checks if the requested binary byte count can be accommodated within the embedded binary budget.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param int $bytes Number of raw binary bytes.
+	 * @return bool True if within budget, false if budget would be exceeded.
+	 */
+	public function can_allocate_binary( int $bytes ): bool {
+		return ( $this->accumulated_binary_bytes + $bytes ) <= self::MAX_EMBEDDED_BINARY_BYTES;
+	}
+
+	/**
+	 * Allocates binary bytes against the embedded binary budget.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param int $bytes Number of raw binary bytes.
+	 * @return bool True if allocated successfully, false if budget exceeded.
+	 */
+	public function allocate_binary( int $bytes ): bool {
+		if ( ! $this->can_allocate_binary( $bytes ) ) {
+			return false;
+		}
+		$this->accumulated_binary_bytes += $bytes;
+		return true;
+	}
+
+	/**
+	 * Retrieves the total accumulated binary bytes in the current evaluation.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @return int Total accumulated binary bytes.
+	 */
+	public function get_accumulated_binary_bytes(): int {
+		return $this->accumulated_binary_bytes;
 	}
 
 	/**
@@ -1337,7 +1411,8 @@ class LanguageEngine {
 			throw new \InvalidArgumentException( 'Expression length exceeds the maximum allowed size.' );
 		}
 
-		$this->execution_start = microtime( true );
+		$this->execution_start          = microtime( true );
+		$this->accumulated_binary_bytes = 0;
 
 		$language = new \ExpressionLab\Core\ExpressionLanguage();
 		$context  = $this->get_context( $language );

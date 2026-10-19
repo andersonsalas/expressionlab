@@ -1,0 +1,255 @@
+// stylelint-disable selector-class-pattern
+
+.image-visualization {
+	display: flex;
+	flex-direction: column;
+	border: 1px solid #d4d4d4;
+	border-radius: 0;
+	overflow: hidden;
+	background: #fff;
+	margin: 6px 0 0;
+	box-shadow: 0 1px 3px rgb(0 0 0 / 5%);
+
+	.image-viewport {
+		height: var(--image-viewport-height, 480px);
+		min-height: 220px;
+		max-height: 520px;
+		overflow: hidden;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 24px;
+		background-color: #f1f1f1;
+		position: relative;
+		user-select: none;
+
+		&.is-pannable {
+			cursor: grab;
+
+			&.is-dragging {
+				cursor: grabbing;
+			}
+		}
+
+		.image-wrapper {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			position: relative;
+			flex-shrink: 0;
+			will-change: transform;
+			background-image:
+				linear-gradient(45deg, #d6d6d6 25%, transparent 25%),
+				linear-gradient(-45deg, #d6d6d6 25%, transparent 25%),
+				linear-gradient(45deg, transparent 75%, #d6d6d6 75%),
+				linear-gradient(-45deg, transparent 75%, #d6d6d6 75%);
+			background-size: 20px 20px;
+			background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+
+			.rendered-image {
+				max-width: none;
+				height: auto;
+				display: block;
+				border: solid 1px black;
+				image-rendering: auto;
+				pointer-events: none;
+				user-select: none;
+			}
+		}
+
+		.image-minimap {
+			position: absolute;
+			right: 12px;
+			bottom: 12px;
+			background: rgb(20 20 20 / 65%);
+			overflow: hidden;
+			cursor: crosshair;
+			z-index: 10;
+			user-select: none;
+			transition: opacity 0.2s ease;
+
+			.minimap-thumb {
+				width: 100%;
+				height: 100%;
+				display: block;
+				object-fit: contain;
+				opacity: 0.45;
+				pointer-events: none;
+				filter: contrast(1.1);
+				user-select: none;
+			}
+
+			.minimap-lens {
+				position: absolute;
+				top: 0;
+				left: 0;
+				border: 1.5px solid rgb(255 255 255 / 90%);
+				background: rgb(255 255 255 / 25%);
+				box-shadow: 0 0 0 1px rgb(0 0 0 / 30%), inset 0 0 0 1px rgb(0 0 0 / 20%);
+				cursor: grab;
+				box-sizing: border-box;
+
+				&:hover {
+					background: rgb(255 255 255 / 35%);
+					border-color: #fff;
+				}
+
+				&.is-dragging {
+					cursor: grabbing;
+					background: rgb(255 255 255 / 40%);
+				}
+			}
+		}
+
+		.image-error-state,
+		.image-empty-state {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 8px;
+			color: #646970;
+			font-size: 13px;
+
+			.error-icon {
+				font-size: 28px;
+				color: #d63638;
+			}
+
+			.info-icon {
+				font-size: 28px;
+				color: $wordpress-primary;
+			}
+		}
+	}
+
+	.image-footer {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 3px;
+		background: #fcfcfc;
+		border-top: 1px solid $border-color;
+		user-select: none;
+		font-family: $font-family-sans;
+		flex-shrink: 0;
+		gap: 8px;
+
+		.image-info-segments {
+			display: flex;
+			align-items: center;
+			gap: 4px;
+
+			.footer-segment {
+				height: 28px;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				padding: 0 3px;
+				font-size: 12px;
+				color: #555;
+				border-right: 1px solid $border-color;
+				white-space: nowrap;
+				user-select: none;
+				font-family: $font-family-sans;
+				box-sizing: border-box;
+				min-width: 100px;
+			}
+		}
+
+		.image-controls-group {
+			display: flex;
+			align-items: center;
+			gap: 4px;
+
+			.codicon {
+				font-size: 14px;
+			}
+
+			.zoom-controls {
+				display: inline-flex;
+				align-items: center;
+				background: #fff;
+				border: 1px solid $border-color;
+				border-radius: 0;
+				overflow: hidden;
+				height: 28px;
+				box-sizing: border-box;
+
+				.zoom-btn {
+					background: transparent;
+					border: none;
+					padding: 0 6px;
+					height: 100%;
+					display: inline-flex;
+					align-items: center;
+					justify-content: center;
+					cursor: pointer;
+					color: #555;
+
+					&:disabled {
+						opacity: 0.4;
+						cursor: not-allowed;
+					}
+
+					&:hover {
+						background: #ededed;
+						color: black;
+					}
+				}
+
+				.zoom-level {
+					font-size: 14px;
+					padding: 0 8px;
+					border-left: 1px solid $border-color;
+					border-right: 1px solid $border-color;
+					cursor: pointer;
+					user-select: none;
+					color: #555;
+					line-height: 26px;
+					min-width: 60px;
+					text-align: center;
+
+					&:hover {
+						background: #ededed;
+						color: black;
+					}
+				}
+			}
+
+			.footer-btn {
+				background: #fff;
+				border: 1px solid $border-color;
+				border-radius: 0;
+				height: 28px;
+				width: 28px;
+				padding: 0;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				cursor: pointer;
+				color: #555;
+				box-sizing: border-box;
+				transition: all 0.15s ease;
+
+				&:disabled {
+					opacity: 0.4;
+					cursor: not-allowed;
+				}
+
+				&:hover:not(:disabled,.active) {
+					background: #ededed;
+					color: black;
+				}
+
+				&.active {
+					color: $wordpress-primary;
+					border-color: $wordpress-primary;
+
+					.codicon {
+						color: $wordpress-primary;
+					}
+				}
+			}
+		}
+	}
+}

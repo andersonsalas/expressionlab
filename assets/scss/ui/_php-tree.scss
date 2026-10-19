@@ -160,10 +160,10 @@
 .php-class-name,
 .php-class-badge {
 	background: #e0f2fe;
-	color: #0369a1;
+	color: $wordpress-primary;
 	padding: 0 5px;
 	border-radius: 3px;
-	border: solid 1px #0369a1;
+	border: solid 1px $wordpress-primary;
 	font-size: 12px;
 	line-height: 1.4;
 }
@@ -266,12 +266,10 @@
 			pointer-events: none;
 
 			&.has-matches {
-				background: #e0f2fe;
-				color: #0369a1;
+				color: $wordpress-primary;
 			}
 
 			&.no-matches {
-				background: #fee2e2;
 				color: #b91c1c;
 			}
 		}

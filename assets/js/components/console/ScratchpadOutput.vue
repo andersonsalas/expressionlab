@@ -140,6 +140,7 @@ watch(
   () => props.result,
   (newRes) => {
     if (!newRes) return;
+    wordWrap.value = false;
     if (newRes.type === 'error') {
       activeTab.value = 'raw';
     } else if (visualizations.value.length > 0) {

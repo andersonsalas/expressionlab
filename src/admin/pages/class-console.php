@@ -900,6 +900,22 @@ class Console extends AdminPage {
 			'visualizations'  => LanguageEngine::get()->get_visualizations(),
 		);
 
+		$encoded = wp_json_encode(
+			array(
+				'success' => true,
+				'data'    => $response,
+			)
+		);
+		if ( false === $encoded ) {
+			$response['visualizations'] = array();
+			LanguageEngine::get()->add_message( 'warning', 'Response visualizations omitted: payload could not be JSON-encoded.' );
+			$response['messages'] = LanguageEngine::get()->get_messages();
+		} elseif ( strlen( $encoded ) > LanguageEngine::MAX_PAYLOAD_BYTES ) {
+			$response['visualizations'] = array();
+			LanguageEngine::get()->add_message( 'warning', 'Response visualizations omitted: total JSON payload exceeded the 5 MB limit.' );
+			$response['messages'] = LanguageEngine::get()->get_messages();
+		}
+
 		wp_send_json_success( $response );
 	}
 

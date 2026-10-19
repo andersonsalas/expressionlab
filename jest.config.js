@@ -17,13 +17,14 @@ module.exports = {
     '\\.(css|scss|less)$': '<rootDir>/assets/js/tests/__mocks__/styleMock.js',
     '\\.svg\\?raw$': '<rootDir>/assets/js/tests/__mocks__/svgRawMock.js',
     '^@codemirror/autocomplete$': '<rootDir>/assets/js/tests/__mocks__/codemirrorMock.js',
+    '^@codemirror/lang-php$': '<rootDir>/assets/js/tests/__mocks__/codemirrorLangMock.js',
     '^marked$': '<rootDir>/node_modules/marked/lib/marked.umd.js',
     '^vega-embed$': '<rootDir>/node_modules/vega-embed/build/embed.js',
     '^vega-interpreter$': '<rootDir>/node_modules/vega-interpreter/build/vega-interpreter.js',
   },
 
   transformIgnorePatterns: [
-    '/node_modules/(?!.*(@iconoir/vue|unicode-emoji-json|@noble|@codemirror|@marijn|marked|vega-embed|vega-interpreter)/)',
+    '/node_modules/(?!.*(@iconoir/vue|unicode-emoji-json|@noble|@codemirror|@lezer|@marijn|marked|vega-embed|vega-interpreter)/)',
   ],
 
   collectCoverageFrom: [
