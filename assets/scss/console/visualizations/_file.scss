@@ -70,13 +70,28 @@
 			}
 
 			.cm-searchMatch {
-				background-color: rgb(255 230 0 / 40%);
-				border: 1px solid rgb(255 200 0 / 60%);
+				background-color: #ff9632 !important;
+				border-color: #ff9632 !important;
+				color: white !important;
+				border-radius: 0 !important;
+				outline-color: #ff9632 !important;
+
+				&:not(.cm-searchMatch-selected) * {
+					color: white !important;
+				}
+
+				&.cm-searchMatch-selected {
+					background-color: #ffe600 !important;
+					color: #000 !important;
+				}
 			}
 
 			.cm-searchMatch-selected {
-				background-color: #ff9632 !important;
+				background-color: #ffe600 !important;
+				border-color: #ffe600 !important;
+				outline-color: #ffe600 !important;
 				color: #000 !important;
+				padding: 0 !important;
 			}
 		}
 	}

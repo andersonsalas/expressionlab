@@ -1,4 +1,5 @@
 import { mount } from '@vue/test-utils';
+import { nextTick } from 'vue';
 import { createTestingPinia } from '@pinia/testing';
 import FileVisualization from '../../../../components/console/visualizations/FileVisualization.vue';
 
@@ -124,5 +125,56 @@ describe('FileVisualization.vue', () => {
     await clearBtn.trigger('click');
     expect(w.find('.file-search-input').element.value).toBe('');
     expect(w.find('.search-match-badge').exists()).toBe(false);
+  });
+
+  it('renders Vue component files with HTML/Vue mixed grammar', async () => {
+    const w = mountComponent({
+      data: {
+        type: 'file',
+        title: 'File: App.vue',
+        filename: 'App.vue',
+        path: 'App.vue',
+        content: '<template><div class="app">Hello</div></template>\n<script setup>\nconst x = 1;\n</script>',
+        bytes: 85,
+        ext: 'vue',
+        line_count: 4,
+      },
+    });
+    await nextTick();
+
+    expect(w.find('.editor-viewport').exists()).toBe(true);
+    expect(w.find('.editor-viewport').find('.cm-editor').exists()).toBe(true);
+  });
+
+  it('renders log files with specialized log grammar', async () => {
+    const w = mountComponent({
+      data: {
+        type: 'file',
+        title: 'File: debug.log',
+        filename: 'debug.log',
+        path: 'debug.log',
+        content: '[05-Oct-2026 04:58:57 UTC] PHP Deprecated: test in /var/www/file.php:1\n[05-Oct-2026 04:58:57 UTC] PHP Stack trace:',
+        bytes: 120,
+        ext: 'log',
+        line_count: 2,
+      },
+    });
+    await nextTick();
+
+    expect(w.find('.editor-viewport').exists()).toBe(true);
+    expect(w.find('.editor-viewport').find('.cm-editor').exists()).toBe(true);
+  });
+
+  it('highlights search matches in CodeMirror DOM', async () => {
+    const w = mountComponent();
+
+    const searchInput = w.find('.file-search-input');
+    await searchInput.setValue('define');
+    await searchInput.trigger('input');
+
+    const matches = w.findAll('.cm-searchMatch');
+    expect(matches.length).toBeGreaterThan(0);
+    const activeMatch = w.find('.cm-searchMatch-selected');
+    expect(activeMatch.exists()).toBe(true);
   });
 });

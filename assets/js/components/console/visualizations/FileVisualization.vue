@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
-import { EditorState, Compartment } from '@codemirror/state';
-import { EditorView, lineNumbers, highlightActiveLine, highlightActiveLineGutter } from '@codemirror/view';
+import { EditorState, Compartment, StateEffect, StateField, RangeSetBuilder } from '@codemirror/state';
+import { EditorView, lineNumbers, highlightActiveLine, highlightActiveLineGutter, Decoration } from '@codemirror/view';
 import { bracketMatching, syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
 import { search, SearchQuery, setSearchQuery, findNext, findPrevious } from '@codemirror/search';
 import { vsCodeLight } from '@fsegurai/codemirror-theme-bundle';
@@ -13,7 +13,60 @@ import { css } from '@codemirror/lang-css';
 import { sql } from '@codemirror/lang-sql';
 import { markdown } from '@codemirror/lang-markdown';
 import { elscript } from '../../../lib/codemirror/elscript.js';
+import { logLanguage } from '../../../lib/codemirror/log.js';
 import { __, sprintf } from '../../../lib/helpers.js';
+
+const setSearchHighlightEffect = StateEffect.define();
+
+const matchMark = Decoration.mark({ class: 'cm-searchMatch' });
+const activeMatchMark = Decoration.mark({ class: 'cm-searchMatch cm-searchMatch-selected' });
+
+const searchHighlightField = StateField.define({
+  create() {
+    return { query: '', activeIndex: 0, decorations: Decoration.none };
+  },
+  update(value, tr) {
+    for (const effect of tr.effects) {
+      if (effect.is(setSearchHighlightEffect)) {
+        const { query, activeIndex } = effect.value;
+        const trimmed = (query || '').trim();
+        if (!trimmed) {
+          return { query: '', activeIndex: 0, decorations: Decoration.none };
+        }
+        const docText = tr.state.doc.toString();
+        const lowerDoc = docText.toLowerCase();
+        const lowerQ = trimmed.toLowerCase();
+        const builder = new RangeSetBuilder();
+        let pos = 0;
+        let matchIdx = 1;
+        while ((pos = lowerDoc.indexOf(lowerQ, pos)) !== -1) {
+          const to = pos + lowerQ.length;
+          builder.add(pos, to, matchIdx === activeIndex ? activeMatchMark : matchMark);
+          matchIdx++;
+          pos = to;
+        }
+        return { query: trimmed, activeIndex, decorations: builder.finish() };
+      }
+    }
+    if (tr.docChanged && value.query) {
+      const docText = tr.state.doc.toString();
+      const lowerDoc = docText.toLowerCase();
+      const lowerQ = value.query.toLowerCase();
+      const builder = new RangeSetBuilder();
+      let pos = 0;
+      let matchIdx = 1;
+      while ((pos = lowerDoc.indexOf(lowerQ, pos)) !== -1) {
+        const to = pos + lowerQ.length;
+        builder.add(pos, to, matchIdx === value.activeIndex ? activeMatchMark : matchMark);
+        matchIdx++;
+        pos = to;
+      }
+      return { ...value, decorations: builder.finish() };
+    }
+    return value;
+  },
+  provide: (f) => EditorView.decorations.from(f, (v) => v.decorations),
+});
 
 const props = defineProps({
   data: {
@@ -58,26 +111,38 @@ const resolveLanguageExtension = (ext, mime) => {
   const cleanExt = String(ext || '').toLowerCase().replace(/^\./, '');
   const cleanMime = String(mime || '').toLowerCase();
 
-  if (['php', 'phtml'].includes(cleanExt) || cleanMime.includes('php')) {
+  if (['php', 'phtml', 'php4', 'php5', 'php7', 'php8', 'phps'].includes(cleanExt) || cleanMime.includes('php')) {
     return php();
   }
-  if (['js', 'mjs', 'cjs', 'jsx', 'ts', 'tsx'].includes(cleanExt) || cleanMime.includes('javascript')) {
-    return javascript();
+  if (['js', 'mjs', 'cjs', 'jsx'].includes(cleanExt) || cleanMime.includes('javascript')) {
+    return javascript({ jsx: true });
   }
-  if (['json'].includes(cleanExt) || cleanMime.includes('json')) {
+  if (['ts', 'tsx'].includes(cleanExt) || cleanMime.includes('typescript')) {
+    return javascript({ typescript: true, jsx: true });
+  }
+  if (['json', 'jsonld', 'map'].includes(cleanExt) || cleanMime.includes('json')) {
     return json();
   }
-  if (['html', 'htm'].includes(cleanExt) || cleanMime.includes('html')) {
+  if (
+    ['html', 'htm', 'vue', 'svelte', 'xml', 'svg', 'rss', 'atom', 'xhtml'].includes(cleanExt) ||
+    cleanMime.includes('html') || cleanMime.includes('xml') || cleanMime.includes('svg')
+  ) {
     return html();
   }
-  if (['css', 'scss', 'less'].includes(cleanExt) || cleanMime.includes('css')) {
+  if (['css', 'scss', 'less', 'sass'].includes(cleanExt) || cleanMime.includes('css')) {
     return css();
   }
   if (['sql'].includes(cleanExt) || cleanMime.includes('sql')) {
     return sql();
   }
-  if (['md', 'markdown'].includes(cleanExt) || cleanMime.includes('markdown')) {
+  if (['md', 'markdown', 'mdown', 'mkdn'].includes(cleanExt) || cleanMime.includes('markdown')) {
     return markdown();
+  }
+  if (['log', 'txt'].includes(cleanExt) || cleanMime.includes('log')) {
+    return logLanguage();
+  }
+  if (['env', 'ini', 'conf', 'htaccess', 'properties'].includes(cleanExt)) {
+    return logLanguage();
   }
   if (['elscript', 'expressionlab'].includes(cleanExt)) {
     return elscript();
@@ -147,6 +212,16 @@ const updateCurrentMatchIndex = () => {
   }
 };
 
+const dispatchSearchHighlight = () => {
+  if (!editorView) return;
+  editorView.dispatch({
+    effects: setSearchHighlightEffect.of({
+      query: searchText.value,
+      activeIndex: currentMatchIndex.value,
+    }),
+  });
+};
+
 const updateSearchQuery = (autoNavigate = true) => {
   if (!editorView) return;
   const query = new SearchQuery({
@@ -163,6 +238,7 @@ const updateSearchQuery = (autoNavigate = true) => {
   } else if (matchOffsets.value.length === 0) {
     currentMatchIndex.value = 0;
   }
+  dispatchSearchHighlight();
 };
 
 const onSearchInput = () => {
@@ -181,12 +257,14 @@ const goToNextMatch = () => {
   if (!editorView || matchCount.value === 0) return;
   findNext(editorView);
   updateCurrentMatchIndex();
+  dispatchSearchHighlight();
 };
 
 const goToPreviousMatch = () => {
   if (!editorView || matchCount.value === 0) return;
   findPrevious(editorView);
   updateCurrentMatchIndex();
+  dispatchSearchHighlight();
 };
 
 const clearSearch = () => {
@@ -194,7 +272,10 @@ const clearSearch = () => {
   currentMatchIndex.value = 0;
   if (editorView) {
     editorView.dispatch({
-      effects: setSearchQuery.of(new SearchQuery({ search: '' })),
+      effects: [
+        setSearchQuery.of(new SearchQuery({ search: '' })),
+        setSearchHighlightEffect.of({ query: '', activeIndex: 0 }),
+      ],
     });
   }
 };
@@ -228,6 +309,7 @@ const initEditor = () => {
     EditorView.editable.of(false),
     wrapCompartment.of(isWordWrap.value ? EditorView.lineWrapping : []),
     search({ top: false }),
+    searchHighlightField,
     EditorView.theme({
       '&': {
         height: '100%',
@@ -330,6 +412,7 @@ watch(
           v-model="searchText"
           type="text"
           class="file-search-input"
+          spellcheck="false"
           :placeholder="__('Search in file...')"
           @input="onSearchInput"
           @keydown.enter.prevent="onSearchEnter"
