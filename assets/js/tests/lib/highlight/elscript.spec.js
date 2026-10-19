@@ -22,6 +22,36 @@ describe('elscript highlight.js grammar', () => {
     expect(res.value).toContain('<span class="hljs-keyword">reduce</span>');
   });
 
+  it('highlights show as keyword only when followed by brackets, not as a method or function call', () => {
+    const specialCode = 'show[] show[1] show[ var[\'x\'] ]';
+    const specialRes = hljs.highlight(specialCode, { language: 'elscript' });
+    expect(specialRes.value).toMatch(/<span class="hljs-keyword">show<\/span><span class="hljs-punctuation">\[/);
+
+    const methodCode = 'Media.get(7).show()';
+    const methodRes = hljs.highlight(methodCode, { language: 'elscript' });
+    expect(methodRes.value).not.toContain('<span class="hljs-keyword">show</span>');
+    expect(methodRes.value).toContain('.show<span class="hljs-punctuation">(</span>');
+
+    const fnCode = 'show()';
+    const fnRes = hljs.highlight(fnCode, { language: 'elscript' });
+    expect(fnRes.value).not.toContain('<span class="hljs-keyword">show</span>');
+  });
+
+  it('highlights set as keyword only when followed by brackets, not as a method or function call', () => {
+    const specialCode = 'set[\'key\', 1] set[\'a\', \'b\']';
+    const specialRes = hljs.highlight(specialCode, { language: 'elscript' });
+    expect(specialRes.value).toMatch(/<span class="hljs-keyword">set<\/span><span class="hljs-punctuation">\[/);
+
+    const methodCode = 'Cache.set(\'key\', \'val\')';
+    const methodRes = hljs.highlight(methodCode, { language: 'elscript' });
+    expect(methodRes.value).not.toContain('<span class="hljs-keyword">set</span>');
+    expect(methodRes.value).toContain('.set<span class="hljs-punctuation">(</span>');
+
+    const fnCode = 'set(\'key\', \'val\')';
+    const fnRes = hljs.highlight(fnCode, { language: 'elscript' });
+    expect(fnRes.value).not.toContain('<span class="hljs-keyword">set</span>');
+  });
+
   it('highlights built-in root objects', () => {
     const code = 'Posts.all(), Users.find(1), Database.query(), Options.get(), NetworkOptions.get(), Media.upload(), Files.read(), Http.get(), Console.log(), NetworkSites.all()';
     const res = hljs.highlight(code, { language: 'elscript' });

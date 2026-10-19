@@ -20,13 +20,11 @@ import { parser } from './grammar/parser.js';
 
 const KEYWORDS = new Set([
   'prog',
-  'set',
   'var',
   'fn',
   'args',
   'map',
   'filter',
-  'show',
   'isset',
   'unset',
   'reduce',
@@ -155,6 +153,12 @@ export const elscriptMode = {
     // 9. Identifiers, keywords, built-ins, and literals
     if (stream.match(/^[a-zA-Z_$][a-zA-Z0-9_$]*/)) {
       const word = stream.current();
+      if (word === 'show' || word === 'set') {
+        if (stream.match(/^\s*\[/, false)) {
+          return 'keyword';
+        }
+        return 'variableName';
+      }
       if (KEYWORDS.has(word)) {
         return 'keyword';
       }

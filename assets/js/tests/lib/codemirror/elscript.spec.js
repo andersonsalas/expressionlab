@@ -146,4 +146,114 @@ describe('elscript CodeMirror 6 language support', () => {
     expect(result).toBeNull();
     expect(advanced).toBe(true);
   });
+
+  it('correctly parses show as special form when followed by brackets and as identifier/method when called as method or function', () => {
+    const { highlightTree } = require('@lezer/highlight');
+
+    // Special form: show[1] and show[]
+    const specialDoc = 'show[1]';
+    const specialTree = elscriptLanguage.parser.parse(specialDoc);
+    expect(specialTree.toString()).toContain('ShowExpression(ShowKeyword');
+
+    const specialTokens = [];
+    highlightTree(specialTree, elscriptHighlightStyle, (from, to, classes) => {
+      specialTokens.push({ text: specialDoc.slice(from, to), classes });
+    });
+    const showKeywordToken = specialTokens.find(t => t.text === 'show');
+    expect(showKeywordToken).toBeDefined();
+
+    // Method call: Media.get(7).show()
+    const methodDoc = 'Media.get(7).show()';
+    const methodTree = elscriptLanguage.parser.parse(methodDoc);
+    expect(methodTree.toString()).not.toContain('ShowExpression');
+    expect(methodTree.toString()).not.toContain('ShowKeyword');
+
+    const methodTokens = [];
+    highlightTree(methodTree, elscriptHighlightStyle, (from, to, classes) => {
+      methodTokens.push({ text: methodDoc.slice(from, to), classes });
+    });
+    const getMethodToken = methodTokens.find(t => t.text === 'get');
+    const showMethodToken = methodTokens.find(t => t.text === 'show');
+    expect(showMethodToken.classes).toBe(getMethodToken.classes);
+
+    // Generic function call: show()
+    const fnDoc = 'show()';
+    const fnTree = elscriptLanguage.parser.parse(fnDoc);
+    expect(fnTree.toString()).not.toContain('ShowExpression');
+    expect(fnTree.toString()).not.toContain('ShowKeyword');
+
+    const fnTokens = [];
+    highlightTree(fnTree, elscriptHighlightStyle, (from, to, classes) => {
+      fnTokens.push({ text: fnDoc.slice(from, to), classes });
+    });
+    const fnShowToken = fnTokens.find(t => t.text === 'show');
+    expect(fnShowToken.classes).toBe(getMethodToken.classes);
+  });
+
+  it('elscriptMode stream parser distinguishes show[] from show()', () => {
+    const { StringStream } = require('@codemirror/language');
+
+    // show[]
+    const state1 = elscriptMode.startState();
+    const stream1 = new StringStream('show[]', 4);
+    const token1 = elscriptMode.token(stream1, state1);
+    expect(token1).toBe('keyword');
+
+    // show()
+    const state2 = elscriptMode.startState();
+    const stream2 = new StringStream('show()', 4);
+    const token2 = elscriptMode.token(stream2, state2);
+    expect(token2).toBe('variableName');
+  });
+
+  it('correctly parses set as special form when followed by brackets and as identifier/method when called as method or function', () => {
+    const { highlightTree } = require('@lezer/highlight');
+
+    // Special form: set['x', 1]
+    const specialDoc = 'set[\'x\', 1]';
+    const specialTree = elscriptLanguage.parser.parse(specialDoc);
+    expect(specialTree.toString()).toContain('SetExpression(SetKeyword');
+
+    const specialTokens = [];
+    highlightTree(specialTree, elscriptHighlightStyle, (from, to, classes) => {
+      specialTokens.push({ text: specialDoc.slice(from, to), classes });
+    });
+    const setKeywordToken = specialTokens.find(t => t.text === 'set');
+    expect(setKeywordToken).toBeDefined();
+
+    // Method call: Cache.set('x', 1)
+    const methodDoc = 'Cache.set(\'x\', 1)';
+    const methodTree = elscriptLanguage.parser.parse(methodDoc);
+    expect(methodTree.toString()).not.toContain('SetExpression');
+    expect(methodTree.toString()).not.toContain('SetKeyword');
+
+    const methodTokens = [];
+    highlightTree(methodTree, elscriptHighlightStyle, (from, to, classes) => {
+      methodTokens.push({ text: methodDoc.slice(from, to), classes });
+    });
+    const setMethodToken = methodTokens.find(t => t.text === 'set');
+    expect(setMethodToken).toBeDefined();
+
+    // Generic function call: set('x', 1)
+    const fnDoc = 'set(\'x\', 1)';
+    const fnTree = elscriptLanguage.parser.parse(fnDoc);
+    expect(fnTree.toString()).not.toContain('SetExpression');
+    expect(fnTree.toString()).not.toContain('SetKeyword');
+  });
+
+  it('elscriptMode stream parser distinguishes set[] from set()', () => {
+    const { StringStream } = require('@codemirror/language');
+
+    // set[]
+    const state1 = elscriptMode.startState();
+    const stream1 = new StringStream('set[]', 3);
+    const token1 = elscriptMode.token(stream1, state1);
+    expect(token1).toBe('keyword');
+
+    // set()
+    const state2 = elscriptMode.startState();
+    const stream2 = new StringStream('set()', 3);
+    const token2 = elscriptMode.token(stream2, state2);
+    expect(token2).toBe('variableName');
+  });
 });

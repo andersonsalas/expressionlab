@@ -24,13 +24,11 @@ export default function elscript(hljs) {
     keywords: {
       keyword: [
         'prog',
-        'set',
         'var',
         'fn',
         'args',
         'map',
         'filter',
-        'show',
         'isset',
         'unset',
         'reduce',
@@ -58,6 +56,10 @@ export default function elscript(hljs) {
       hljs.APOS_STRING_MODE,
       hljs.QUOTE_STRING_MODE,
       NUMBER_MODE,
+      {
+        className: 'keyword',
+        match: /\b(?:show|set)(?=\s*\[)/,
+      },
       {
         className: 'operator',
         match: /~|==|!=|<=|>=|<|>|&&|\|\||[+\-*%!=]|\//,

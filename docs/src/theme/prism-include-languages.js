@@ -28,8 +28,11 @@ export default function prismIncludeLanguages(PrismObject) {
       pattern: /(["'])(?:\\(?:\r\n|[\s\S])|(?!\1)[\s\S])*?\1/,
       greedy: true,
     },
-    keyword: /\b(?:prog|set|var|fn|args|map|filter|show|isset|unset|reduce)\b/,
-    'class-name': /\b(?:Posts|Users|Database|Options|NetworkOptions|Media|Files|Http|IPLookup|Graph|Console|NetworkSites)\b/,
+    keyword: [
+      /\b(?:prog|var|fn|args|map|filter|isset|unset|reduce)\b/,
+      /\b(?:show|set)(?=\s*\[)/,
+    ],
+    'class-name': /\b(?:Posts|Users|Database|Options|NetworkOptions|Media|Files|Http|IPLookup|Graph|Console|NetworkSites|Cache)\b/,
     boolean: /\b(?:true|false)\b/,
     null: {
       pattern: /\bnull\b/,
