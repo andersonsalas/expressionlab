@@ -2,6 +2,7 @@
 
 // phpcs:ignoreFile
 
+use ExpressionLab\Core\LanguageEngine;
 use ExpressionLab\Core\Services\Database;
 use ExpressionLab\Core\Services\Media;
 use ExpressionLab\Core\Models\Attachment;
@@ -163,4 +164,126 @@ class MediaTest extends WP_UnitTestCase {
 		$count = $this->media->where( 'ID', '>', 0 )->count();
 		$this->assertEquals( count( $ids ), $count );
 	}
+
+	public function test_attachment_show_generates_image_visualization() {
+		$attachment_id = $this->factory->attachment->create_upload_object( DIR_TESTDATA . '/images/test-image.png' );
+		$attachment    = $this->media->get( $attachment_id );
+
+		$this->assertInstanceOf( Attachment::class, $attachment );
+
+		LanguageEngine::get()->reset();
+		$returned = $attachment->show();
+
+		$this->assertSame( $attachment, $returned );
+
+		$visualizations = LanguageEngine::get()->get_visualizations();
+		$this->assertNotEmpty( $visualizations );
+		$last_viz = end( $visualizations );
+
+		$this->assertEquals( 'image', $last_viz['type'] );
+		$this->assertEquals( 'image/png', $last_viz['mime'] );
+		$this->assertEquals( $attachment_id, $last_viz['attachment_id'] );
+		$this->assertNotEmpty( $last_viz['base64'] );
+	}
+
+	public function test_media_show_method() {
+		$attachment_id = $this->factory->attachment->create_upload_object( DIR_TESTDATA . '/images/test-image.png' );
+
+		LanguageEngine::get()->reset();
+		$attachment = $this->media->show( $attachment_id );
+
+		$this->assertInstanceOf( Attachment::class, $attachment );
+
+		$visualizations = LanguageEngine::get()->get_visualizations();
+		$this->assertNotEmpty( $visualizations );
+		$last_viz = end( $visualizations );
+
+		$this->assertEquals( 'image', $last_viz['type'] );
+		$this->assertEquals( $attachment_id, $last_viz['attachment_id'] );
+	}
+
+	public function test_media_show_invalid_returns_null() {
+		$result = $this->media->show( 999999999 );
+		$this->assertNull( $result );
+	}
+
+	public function test_media_get_automatically_attaches_visualization() {
+		$attachment_id = $this->factory->attachment->create_upload_object( DIR_TESTDATA . '/images/test-image.png' );
+
+		LanguageEngine::get()->reset();
+		$attachment = $this->media->get( $attachment_id );
+
+		$this->assertInstanceOf( Attachment::class, $attachment );
+
+		$visualizations = LanguageEngine::get()->get_visualizations();
+		$this->assertNotEmpty( $visualizations );
+		$last_viz = end( $visualizations );
+
+		$this->assertEquals( 'image', $last_viz['type'] );
+		$this->assertEquals( 'image/png', $last_viz['mime'] );
+		$this->assertEquals( $attachment_id, $last_viz['attachment_id'] );
+		$this->assertNotEmpty( $last_viz['base64'] );
+	}
+
+	public function test_attachment_get_value_includes_sizes() {
+		$attachment_id = $this->factory->attachment->create_upload_object( DIR_TESTDATA . '/images/test-image.png' );
+
+		$attachment = $this->media->get( $attachment_id, false );
+		$value      = $attachment->get_value();
+
+		$this->assertIsArray( $value );
+		$this->assertArrayHasKey( 'sizes', $value );
+		$this->assertIsArray( $value['sizes'] );
+	}
+
+	public function test_attachment_show_exceeding_budget_throws() {
+		$attachment_id = $this->factory->attachment->create_upload_object( DIR_TESTDATA . '/images/test-image.png' );
+		$attachment    = $this->media->get( $attachment_id, false );
+
+		LanguageEngine::get()->reset();
+		// Pre-allocate the entire budget
+		LanguageEngine::get()->allocate_binary( LanguageEngine::MAX_EMBEDDED_BINARY_BYTES );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'budget' );
+		$attachment->show();
+	}
+
+	public function test_attachment_show_blocks_stream_wrappers() {
+		$attachment_id = $this->factory->attachment->create_upload_object( DIR_TESTDATA . '/images/test-image.png' );
+		update_post_meta( $attachment_id, '_wp_attached_file', 'phar://malicious.phar/image.png' );
+
+		$attachment = $this->media->get( $attachment_id, false );
+		$this->assertEquals( 0, $attachment->filesize );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'outside allowed boundary' );
+		$attachment->show();
+	}
+
+	public function test_attachment_show_blocks_directory_traversal() {
+		$attachment_id = $this->factory->attachment->create_upload_object( DIR_TESTDATA . '/images/test-image.png' );
+		update_post_meta( $attachment_id, '_wp_attached_file', '../../../../etc/passwd' );
+
+		$attachment = $this->media->get( $attachment_id, false );
+		$this->assertEquals( 0, $attachment->filesize );
+
+		$this->expectException( \RuntimeException::class );
+		$attachment->show();
+	}
+
+	public function test_attachment_orphan_file_handles_zero_filesize_cleanly() {
+		$attachment_id = $this->factory->attachment->create_upload_object( DIR_TESTDATA . '/images/test-image.png' );
+		update_post_meta( $attachment_id, '_wp_attached_file', '2026/08/non_existent_orphan.png' );
+
+		$attachment = $this->media->get( $attachment_id, false );
+		$this->assertInstanceOf( Attachment::class, $attachment );
+		$this->assertEquals( 0, $attachment->filesize );
+		$this->assertEquals( '0 B', $attachment->filesize_human );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'physical file not found or unreadable' );
+		$attachment->show();
+	}
 }
+

@@ -128,9 +128,10 @@ final class Media {
 	 * @see https://expressionlab.io/docs/api-reference/media#mediaget
 	 *
 	 * @param int|string|null $identifier Optional. Attachment ID, slug, title, URL/path, or `null` to execute query builder. Default `null`.
+	 * @param bool            $auto_show  Optional. Whether to automatically generate an image visualization for single attachment. Default true.
 	 * @return Attachment|array|null An `Attachment` model instance if resolved, an array of row objects if executing query builder, or `null` if not found.
 	 */
-	public function get( $identifier = null ) {
+	public function get( $identifier = null, bool $auto_show = true ) {
 		LanguageEngine::get()->tick();
 
 		if ( null === $identifier ) {
@@ -195,7 +196,54 @@ final class Media {
 			return null;
 		}
 
-		return new Attachment( $wp_post, $this->database );
+		$attachment = new Attachment( $wp_post, $this->database );
+
+		if ( $auto_show ) {
+			try {
+				$attachment->show();
+			} catch ( \Throwable $e ) {
+				LanguageEngine::get()->add_message( 'warning', $e->getMessage() );
+			}
+		}
+
+		return $attachment;
+	}
+
+	/**
+	 * Resolves an attachment and generates an interactive image visualization in the console.
+	 *
+	 * Resolves the attachment through `Media.get()`, retrieves the specified sub-size
+	 * (default `'medium'`), verifies MIME magic bytes, and registers an `'image'` visualization.
+	 *
+	 * Examples:
+	 *
+	 * ```elscript
+	 * Media.show(42)
+	 * ```
+	 *
+	 * ```elscript
+	 * Media.show(42, 'thumbnail')
+	 * ```
+	 *
+	 * ```elscript
+	 * Media.show('https://example.com/wp-content/uploads/2026/08/hero-banner.jpg')
+	 * ```
+	 *
+	 * @see https://expressionlab.io/docs/api-reference/media#mediashow
+	 *
+	 * @param int|string $identifier Attachment ID, slug, title, or URL.
+	 * @param string     $size       Optional. Image size name ('medium', 'thumbnail', 'large', 'full'). Default `'medium'`.
+	 * @return Attachment|null The resolved Attachment model, or `null` if not found.
+	 */
+	public function show( $identifier, string $size = 'medium' ): ?Attachment {
+		LanguageEngine::get()->tick();
+
+		$attachment = $this->get( $identifier, false );
+		if ( ! ( $attachment instanceof Attachment ) ) {
+			return null;
+		}
+
+		return $attachment->show( $size );
 	}
 
 	/**

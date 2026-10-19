@@ -5,6 +5,8 @@ import { __, sprintf } from '../../lib/helpers.js';
 import { handleClipboardCopy } from '../../lib/api/client.js';
 import { detectDataType } from '../../lib/data-detector.js';
 import DataTree from '../ui/DataTree.vue';
+import ImageVisualization from '../console/visualizations/ImageVisualization.vue';
+import FileVisualization from '../console/visualizations/FileVisualization.vue';
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js/lib/core';
 import elscriptLang from '../../lib/highlight/elscript.js';
@@ -71,6 +73,48 @@ const rawContent = computed(() => {
   return modalData.value.content !== undefined ? modalData.value.content : modalData.value.value;
 });
 
+const rawVisualizations = computed(() => {
+  const data = modalData.value;
+  if (!data) return [];
+  if (Array.isArray(data.visualizations)) {
+    return data.visualizations;
+  }
+  if (data.item && Array.isArray(data.item.visualizations)) {
+    return data.item.visualizations;
+  }
+  if (data.content && typeof data.content === 'object' && Array.isArray(data.content.visualizations)) {
+    return data.content.visualizations;
+  }
+  if (data.type === 'image' || data.type === 'file') {
+    return [data];
+  }
+  if (data.content && typeof data.content === 'object' && (data.content.type === 'image' || data.content.type === 'file')) {
+    return [data.content];
+  }
+  return [];
+});
+
+const supportedVisualizations = computed(() => {
+  return rawVisualizations.value.filter((v) => v && (v.type === 'image' || v.type === 'file'));
+});
+
+const activeVisualization = computed(() => {
+  if (typeof viewMode.value === 'number') {
+    return supportedVisualizations.value[viewMode.value] || null;
+  }
+  return null;
+});
+
+const isWordWrapAvailable = computed(() => {
+  if (viewMode.value === 'raw') {
+    return true;
+  }
+  if (activeVisualization.value?.type === 'file') {
+    return true;
+  }
+  return false;
+});
+
 const detectedType = computed(() => {
   return detectDataType(rawContent.value);
 });
@@ -95,8 +139,11 @@ const canPreview = computed(() => {
 const initViewMode = () => {
   if (!isOpen.value) return;
   isCopied.value = false;
+  wordWrap.value = false;
   const detected = detectedType.value;
-  if (detected.format === 'json' || detected.format === 'php-serialized') {
+  if (supportedVisualizations.value.length > 0) {
+    viewMode.value = 0;
+  } else if (canPreview.value) {
     viewMode.value = 'preview';
   } else {
     viewMode.value = 'raw';
@@ -118,6 +165,18 @@ watch(isOpen, (opened) => {
 
 watch(modalData, () => {
   initViewMode();
+});
+
+watch(canPreview, (can) => {
+  if (!can && viewMode.value === 'preview') {
+    viewMode.value = supportedVisualizations.value.length > 0 ? 0 : 'raw';
+  }
+});
+
+watch(supportedVisualizations, (vizList) => {
+  if (typeof viewMode.value === 'number' && !vizList[viewMode.value]) {
+    viewMode.value = vizList.length > 0 ? 0 : (canPreview.value ? 'preview' : 'raw');
+  }
 });
 
 const escapeHtml = (str) => {
@@ -169,6 +228,27 @@ const highlightedCode = computed(() => {
 let copiedTimer = null;
 
 const copyRaw = async () => {
+  if (activeVisualization.value) {
+    if (activeVisualization.value.type === 'file') {
+      await handleClipboardCopy(String(activeVisualization.value.content || ''));
+      isCopied.value = true;
+      clearTimeout(copiedTimer);
+      copiedTimer = setTimeout(() => {
+        isCopied.value = false;
+      }, 2000);
+      return;
+    }
+    if (activeVisualization.value.type === 'image' && activeVisualization.value.base64) {
+      const mime = activeVisualization.value.mime || 'image/png';
+      await handleClipboardCopy(`data:${mime};base64,${activeVisualization.value.base64}`);
+      isCopied.value = true;
+      clearTimeout(copiedTimer);
+      copiedTimer = setTimeout(() => {
+        isCopied.value = false;
+      }, 2000);
+      return;
+    }
+  }
   await handleClipboardCopy(rawString.value);
   isCopied.value = true;
   clearTimeout(copiedTimer);
@@ -237,12 +317,24 @@ onUnmounted(() => {
           </button>
 
           <button
+            v-if="canPreview"
             type="button"
             class="scratchpad-tab-btn"
             :class="{ active: viewMode === 'preview' }"
             @click="viewMode = 'preview'"
           >
             <span>{{ __('Preview') }}</span>
+          </button>
+
+          <button
+            v-for="(viz, idx) in supportedVisualizations"
+            :key="idx"
+            type="button"
+            class="scratchpad-tab-btn"
+            :class="{ active: viewMode === idx }"
+            @click="viewMode = idx"
+          >
+            <span>{{ __(viz.title || (viz.type === 'image' ? 'Image' : 'File')) }}</span>
           </button>
         </div>
 
@@ -309,7 +401,7 @@ onUnmounted(() => {
             type="button"
             class="toolbar-button btn-word-wrap"
             :class="{ active: wordWrap }"
-            :disabled="viewMode !== 'raw'"
+            :disabled="!isWordWrapAvailable"
             :title="__('Word Wrap')"
             @click="wordWrap = !wordWrap"
           >
@@ -382,6 +474,24 @@ onUnmounted(() => {
             <div class="codicon codicon-info" />
             <span>{{ __('No preview available') }}</span>
           </div>
+        </div>
+
+        <!-- Visualization Mode (Image & File) -->
+        <div
+          v-else-if="typeof viewMode === 'number' && supportedVisualizations[viewMode]"
+          class="viewer-preview-area data-viewer-viz-area"
+          :class="[ 'visualization-type-' + supportedVisualizations[viewMode].type ]"
+        >
+          <ImageVisualization
+            v-if="supportedVisualizations[viewMode].type === 'image'"
+            :data="supportedVisualizations[viewMode]"
+          />
+          <FileVisualization
+            v-else-if="supportedVisualizations[viewMode].type === 'file'"
+            :data="supportedVisualizations[viewMode]"
+            :word-wrap="wordWrap"
+            :hide-word-wrap="true"
+          />
         </div>
       </div>
 

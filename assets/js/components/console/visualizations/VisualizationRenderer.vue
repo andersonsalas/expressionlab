@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import DataTree from '../../ui/DataTree.vue';
 import { visualizationHandlers } from './registry';
 import SafeFormattedText from '../SafeFormattedText.vue';
@@ -173,6 +173,65 @@ watch(() => parsed.value.hasViz, (hasViz) => {
 const getComponent = (type) => {
   return visualizationHandlers.value[type] || null;
 };
+
+const rawPreRef = ref(null);
+const rawWrapperRef = ref(null);
+const isRawExpanded = ref(false);
+const isRawOverflowing = ref(false);
+
+const checkRawOverflow = () => {
+  if (rawPreRef.value) {
+    isRawOverflowing.value = rawPreRef.value.scrollHeight > 400;
+  } else {
+    nextTick(() => {
+      if (rawPreRef.value) {
+        isRawOverflowing.value = rawPreRef.value.scrollHeight > 400;
+      }
+    });
+  }
+};
+
+const toggleRawExpanded = () => {
+  const willCollapse = isRawExpanded.value;
+  isRawExpanded.value = !isRawExpanded.value;
+  if (willCollapse && rawWrapperRef.value) {
+    rawWrapperRef.value.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+};
+
+const onWindowResize = () => {
+  if (activeTab.value === 'raw') {
+    checkRawOverflow();
+  }
+};
+
+onMounted(() => {
+  window.addEventListener('resize', onWindowResize);
+  if (activeTab.value === 'raw') {
+    checkRawOverflow();
+  }
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', onWindowResize);
+});
+
+watch(
+  [() => activeTab.value, () => highlightedRaw.value],
+  ([tab]) => {
+    if (tab === 'raw') {
+      checkRawOverflow();
+    }
+  },
+  { immediate: true, flush: 'post' }
+);
+
+watch(
+  () => props.item,
+  () => {
+    isRawExpanded.value = false;
+  }
+);
 </script>
 
 <template>
@@ -205,13 +264,43 @@ const getComponent = (type) => {
 
       <div class="visualization-content">
         <!-- Raw Result Tab -->
-        <div v-if="activeTab === 'raw'">
-          <!-- eslint-disable vue/no-v-html -->
-          <pre
-            class="hljs"
-            v-html="highlightedRaw"
-          />
-          <!-- eslint-enable vue/no-v-html -->
+        <div
+          v-if="activeTab === 'raw'"
+          class="raw-result-container"
+        >
+          <div
+            ref="rawWrapperRef"
+            class="raw-code-wrapper"
+            :class="{ 'is-collapsed': isRawOverflowing && !isRawExpanded }"
+          >
+            <!-- eslint-disable vue/no-v-html -->
+            <pre
+              ref="rawPreRef"
+              class="hljs"
+              v-html="highlightedRaw"
+            />
+            <!-- eslint-enable vue/no-v-html -->
+            <div
+              v-if="isRawOverflowing && !isRawExpanded"
+              class="raw-fade-overlay"
+            />
+          </div>
+
+          <div
+            v-if="isRawOverflowing"
+            class="raw-controls-bar"
+            :class="{ 'is-collapsed': isRawOverflowing && !isRawExpanded }"
+          >
+            <button
+              type="button"
+              class="php-root-btn raw-expand-btn"
+              :title="isRawExpanded ? __('Collapse') : __('Expand all')"
+              @click="toggleRawExpanded"
+            >
+              <span :class="['codicon', isRawExpanded ? 'codicon-remove' : 'codicon-add']" />
+              <span>{{ isRawExpanded ? __('Collapse') : __('Expand all') }}</span>
+            </button>
+          </div>
         </div>
 
         <!-- Preview Tab -->

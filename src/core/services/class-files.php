@@ -275,18 +275,121 @@ final class Files {
 	 *
 	 * @param string $path      File path relative to ABSPATH or absolute within ABSPATH.
 	 * @param int    $max_bytes Optional. Maximum number of bytes to read (clamped between `1` and `262144`). Default `Files.MAX_READ_BYTES` (`262144`).
-	 * @return string File content up to the requested byte limit.
-	 * @throws \InvalidArgumentException|\RuntimeException If the path does not exist or resolves outside ABSPATH, or if the target path is a directory or content cannot be read.
+	 * @return string|false File content or Data URI on success, or `false` if binary file cannot be read as text or image exceeds budget.
+	 * @throws \InvalidArgumentException|\RuntimeException If the path does not exist or resolves outside ABSPATH, or if the target path is a directory.
 	 */
-	public function read( string $path, int $max_bytes = self::MAX_READ_BYTES ): string {
+	public function read( string $path, int $max_bytes = self::MAX_READ_BYTES ) {
 		$safe_path = $this->resolve_safe_path( $path, true );
 
 		if ( is_dir( $safe_path ) ) {
 			throw new \RuntimeException( 'Cannot read a directory as a file.' );
 		}
 
-		$max_bytes = min( max( 1, $max_bytes ), self::MAX_READ_BYTES );
 		LanguageEngine::get()->tick();
+
+		$mime = 'application/octet-stream';
+		if ( class_exists( '\finfo' ) ) {
+			$finfo = new \finfo( FILEINFO_MIME_TYPE );
+			$res   = $finfo->file( $safe_path );
+			if ( false !== $res ) {
+				$mime = (string) $res;
+			}
+		}
+
+		$filename    = basename( $safe_path );
+		$image_mimes = array(
+			'image/jpeg',
+			'image/png',
+			'image/gif',
+			'image/webp',
+			'image/avif',
+			'image/svg+xml',
+		);
+
+		// Handle images: read if within budget and return Data URI.
+		if ( in_array( $mime, $image_mimes, true ) ) {
+			$size = (int) filesize( $safe_path );
+			if ( $size > LanguageEngine::MAX_EMBEDDED_BINARY_BYTES || ! LanguageEngine::get()->can_allocate_binary( $size ) ) {
+				LanguageEngine::get()->add_message(
+					'warning',
+					sprintf( 'Image file exceeds maximum preview budget of %s (%s).', $this->format_bytes( LanguageEngine::MAX_EMBEDDED_BINARY_BYTES ), $this->format_bytes( $size ) )
+				);
+				return false;
+			}
+
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+			$raw_bytes = file_get_contents( $safe_path );
+			if ( false === $raw_bytes ) {
+				throw new \RuntimeException( 'Failed to read image file contents.' );
+			}
+
+			$dimensions = array(
+				'width'  => 0,
+				'height' => 0,
+			);
+
+			if ( 'image/svg+xml' !== $mime && function_exists( 'getimagesize' ) ) {
+				// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+				$img_info = @getimagesize( $safe_path );
+				if ( is_array( $img_info ) ) {
+					$dimensions = array(
+						'width'  => (int) $img_info[0],
+						'height' => (int) $img_info[1],
+					);
+				}
+			}
+
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+			$base64 = base64_encode( $raw_bytes );
+			LanguageEngine::get()->allocate_binary( $size );
+
+			LanguageEngine::get()->begin_visualization_group()->add_visualization(
+				array(
+					'type'       => 'image',
+					'title'      => "Image: {$filename}",
+					'filename'   => $filename,
+					'path'       => $path,
+					'mime'       => $mime,
+					'base64'     => $base64,
+					'dimensions' => $dimensions,
+					'bytes'      => $size,
+					'size_human' => $this->format_bytes( $size ),
+				)
+			);
+
+			return "data:{$mime};base64,{$base64}";
+		}
+
+		// Check for non-image binary file.
+		$is_text_mime = str_starts_with( $mime, 'text/' ) || in_array(
+			$mime,
+			array(
+				'application/json',
+				'application/xml',
+				'application/javascript',
+				'application/x-javascript',
+				'application/x-php',
+				'application/x-httpd-php',
+				'application/sql',
+				'application/x-sh',
+				'application/xhtml+xml',
+			),
+			true
+		);
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		$sample         = file_get_contents( $safe_path, false, null, 0, 512 );
+		$has_null_bytes = false !== $sample && str_contains( $sample, "\0" );
+
+		if ( ! $is_text_mime || $has_null_bytes ) {
+			LanguageEngine::get()->add_message(
+				'warning',
+				sprintf( 'Binary file detected: %s cannot be read as plain text.', $filename )
+			);
+			return false;
+		}
+
+		$max_bytes = min( max( 1, $max_bytes ), self::MAX_READ_BYTES );
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 		$content = file_get_contents( $safe_path, false, null, 0, $max_bytes );
@@ -294,6 +397,20 @@ final class Files {
 		if ( false === $content ) {
 			throw new \RuntimeException( 'Failed to read file contents.' );
 		}
+
+		LanguageEngine::get()->begin_visualization_group()->add_visualization(
+			array(
+				'type'       => 'file',
+				'title'      => 'File: ' . $filename,
+				'filename'   => $filename,
+				'path'       => $path,
+				'content'    => $content,
+				'bytes'      => strlen( $content ),
+				'size_human' => $this->format_bytes( strlen( $content ) ),
+				'ext'        => strtolower( pathinfo( $safe_path, PATHINFO_EXTENSION ) ),
+				'line_count' => substr_count( $content, "\n" ) + 1,
+			)
+		);
 
 		return $content;
 	}
@@ -376,7 +493,182 @@ final class Files {
 			fclose( $file );
 		}
 
-		return array_slice( $output, -$lines );
+		$lines_slice = array_slice( $output, -$lines );
+		$joined      = implode( "\n", $lines_slice );
+
+		if ( str_contains( $joined, "\0" ) ) {
+			LanguageEngine::get()->add_message(
+				'warning',
+				sprintf( 'Binary file detected: %s cannot be visualized as plain text.', basename( $safe_path ) )
+			);
+			return $lines_slice;
+		}
+
+		LanguageEngine::get()->begin_visualization_group()->add_visualization(
+			array(
+				'type'       => 'file',
+				'title'      => 'File: ' . basename( $safe_path ) . " (tail {$lines})",
+				'filename'   => basename( $safe_path ),
+				'path'       => $path,
+				'content'    => $joined,
+				'bytes'      => strlen( $joined ),
+				'size_human' => $this->format_bytes( strlen( $joined ) ),
+				'ext'        => strtolower( pathinfo( $safe_path, PATHINFO_EXTENSION ) ),
+				'line_count' => count( $lines_slice ),
+			)
+		);
+
+		return $lines_slice;
+	}
+
+	/**
+	 * Inspect and generate an interactive visualization for a file or image within ABSPATH.
+	 *
+	 * Detects the MIME type of the target file via magic bytes. If the target is an image
+	 * (`image/jpeg`, `image/png`, `image/gif`, `image/webp`, `image/avif`, `image/svg+xml`),
+	 * verifies dimensions and size (up to 2 MB) and registers an `'image'` visualization.
+	 * If the file is code or text, reads content up to `$max_bytes` and registers a `'file'` visualization.
+	 *
+	 * Examples:
+	 *
+	 * ```elscript
+	 * Files.show('wp-config.php')
+	 * ```
+	 *
+	 * ```elscript
+	 * Files.show('wp-content/themes/twentytwentyfour/screenshot.png')
+	 * ```
+	 *
+	 * @see https://expressionlab.io/docs/api-reference/files#filesshow
+	 *
+	 * @param string $path      File path relative to ABSPATH or absolute within ABSPATH.
+	 * @param int    $max_bytes Optional. Maximum number of bytes to read for text files. Default `Files.MAX_READ_BYTES`.
+	 * @return array Diagnostic file metadata summary.
+	 * @throws \InvalidArgumentException|\RuntimeException If the path does not exist, resolves outside ABSPATH, or target is a directory.
+	 */
+	public function show( string $path, int $max_bytes = self::MAX_READ_BYTES ): array {
+		$safe_path = $this->resolve_safe_path( $path, true );
+
+		if ( is_dir( $safe_path ) ) {
+			throw new \RuntimeException( 'Cannot show a directory as a file.' );
+		}
+
+		LanguageEngine::get()->tick();
+
+		$mime = 'application/octet-stream';
+		if ( class_exists( '\finfo' ) ) {
+			$finfo = new \finfo( FILEINFO_MIME_TYPE );
+			$res   = $finfo->file( $safe_path );
+			if ( false !== $res ) {
+				$mime = (string) $res;
+			}
+		}
+
+		$filename = basename( $safe_path );
+		$ext      = strtolower( pathinfo( $safe_path, PATHINFO_EXTENSION ) );
+		$size     = (int) filesize( $safe_path );
+
+		$image_mimes = array(
+			'image/jpeg',
+			'image/png',
+			'image/gif',
+			'image/webp',
+			'image/avif',
+			'image/svg+xml',
+		);
+
+		if ( in_array( $mime, $image_mimes, true ) ) {
+			if ( $size > LanguageEngine::MAX_EMBEDDED_BINARY_BYTES || ! LanguageEngine::get()->can_allocate_binary( $size ) ) {
+				throw new \RuntimeException( esc_html( "Image file exceeds maximum preview budget of {$this->format_bytes( LanguageEngine::MAX_EMBEDDED_BINARY_BYTES )} ({$this->format_bytes( $size )})." ) );
+			}
+
+			$dimensions = array(
+				'width'  => 0,
+				'height' => 0,
+			);
+
+			if ( 'image/svg+xml' !== $mime && function_exists( 'getimagesize' ) ) {
+				// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+				$img_info = @getimagesize( $safe_path );
+				if ( is_array( $img_info ) ) {
+					$dimensions = array(
+						'width'  => (int) $img_info[0],
+						'height' => (int) $img_info[1],
+					);
+				}
+			}
+
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+			$raw_bytes = file_get_contents( $safe_path );
+			if ( false === $raw_bytes ) {
+				throw new \RuntimeException( 'Failed to read image file contents.' );
+			}
+
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+			$base64 = base64_encode( $raw_bytes );
+			LanguageEngine::get()->allocate_binary( $size );
+
+			LanguageEngine::get()->begin_visualization_group()->add_visualization(
+				array(
+					'type'       => 'image',
+					'title'      => "Image: {$filename}",
+					'filename'   => $filename,
+					'path'       => $path,
+					'mime'       => $mime,
+					'base64'     => $base64,
+					'dimensions' => $dimensions,
+					'bytes'      => $size,
+					'size_human' => $this->format_bytes( $size ),
+				)
+			);
+
+			return array(
+				'path'       => $path,
+				'name'       => $filename,
+				'type'       => 'image',
+				'mime'       => $mime,
+				'bytes'      => $size,
+				'size'       => $this->format_bytes( $size ),
+				'dimensions' => $dimensions,
+			);
+		}
+
+		// Text/code file.
+		$max_bytes = min( max( 1, $max_bytes ), self::MAX_READ_BYTES );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		$content = file_get_contents( $safe_path, false, null, 0, $max_bytes );
+		if ( false === $content ) {
+			throw new \RuntimeException( 'Failed to read file contents.' );
+		}
+
+		if ( str_contains( substr( $content, 0, 512 ), "\0" ) ) {
+			throw new \RuntimeException( esc_html( "Binary file detected: {$filename} cannot be shown as plain text." ) );
+		}
+
+		LanguageEngine::get()->begin_visualization_group()->add_visualization(
+			array(
+				'type'       => 'file',
+				'title'      => "File: {$filename}",
+				'filename'   => $filename,
+				'path'       => $path,
+				'content'    => $content,
+				'bytes'      => strlen( $content ),
+				'size_human' => $this->format_bytes( strlen( $content ) ),
+				'mime'       => $mime,
+				'ext'        => $ext,
+				'line_count' => substr_count( $content, "\n" ) + 1,
+			)
+		);
+
+		return array(
+			'path'       => $path,
+			'name'       => $filename,
+			'type'       => 'file',
+			'mime'       => $mime,
+			'bytes'      => strlen( $content ),
+			'size'       => $this->format_bytes( strlen( $content ) ),
+			'line_count' => substr_count( $content, "\n" ) + 1,
+		);
 	}
 
 	/**

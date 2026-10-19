@@ -12,6 +12,8 @@
 namespace ExpressionLab\Core\Models;
 
 use WP_Post;
+use ExpressionLab\Core\Helper;
+use ExpressionLab\Core\LanguageEngine;
 use ExpressionLab\Core\Services\Database;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -212,11 +214,17 @@ final class Attachment extends Model {
 			$this->url       = (string) wp_get_attachment_url( $post->ID );
 			$this->file_path = (string) get_attached_file( $post->ID );
 
-			// Compute file size.
-			if ( ! empty( $this->file_path ) && file_exists( $this->file_path ) ) {
-				// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-				$this->filesize       = (int) @filesize( $this->file_path );
-				$this->filesize_human = $this->format_bytes( $this->filesize );
+			// Compute file size safely.
+			if ( ! empty( $this->file_path ) ) {
+				try {
+					$safe_file_path = $this->resolve_safe_path( $this->file_path, true );
+					// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+					$this->filesize       = (int) @filesize( $safe_file_path );
+					$this->filesize_human = $this->format_bytes( $this->filesize );
+				} catch ( \Exception $e ) {
+					$this->filesize       = 0;
+					$this->filesize_human = $this->format_bytes( 0 );
+				}
 			}
 
 			// Load attachment metadata (dimensions and sub-sizes).
@@ -240,15 +248,29 @@ final class Attachment extends Model {
 					$sub_path      = ( '.' === $sub_dir || empty( $sub_dir ) ) ? '' : trailingslashit( $sub_dir );
 
 					foreach ( $metadata['sizes'] as $size_name => $size_info ) {
-						$file_name                 = $size_info['file'] ?? '';
+						$file_name     = $size_info['file'] ?? '';
+						$sub_path_file = $base_dir . $sub_path . $file_name;
+						$fsize         = (int) ( $size_info['filesize'] ?? 0 );
+
+						if ( 0 === $fsize && ! empty( $sub_path_file ) ) {
+							try {
+								$safe_sub_path = $this->resolve_safe_path( $sub_path_file, true );
+								// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+								$fsize = (int) @filesize( $safe_sub_path );
+							} catch ( \Exception $e ) {
+								$fsize = 0;
+							}
+						}
 						$this->sizes[ $size_name ] = array(
-							'file'      => $file_name,
-							'width'     => (int) ( $size_info['width'] ?? 0 ),
-							'height'    => (int) ( $size_info['height'] ?? 0 ),
-							'mime_type' => (string) ( $size_info['mime-type'] ?? '' ),
-							'url'       => $base_url . $sub_path . $file_name,
-							'path'      => $base_dir . $sub_path . $file_name,
-							'filesize'  => (int) ( $size_info['filesize'] ?? 0 ),
+							'file'           => $file_name,
+							'width'          => (int) ( $size_info['width'] ?? 0 ),
+							'height'         => (int) ( $size_info['height'] ?? 0 ),
+							'mime_type'      => (string) ( $size_info['mime-type'] ?? '' ),
+							'filesize'       => $fsize,
+							'filesize_human' => $this->format_bytes( $fsize ),
+							'url'            => $base_url . $sub_path . $file_name,
+							'path'           => $sub_path_file,
+							'file_path'      => $sub_path_file,
 						);
 					}
 				}
@@ -296,6 +318,10 @@ final class Attachment extends Model {
 
 		if ( 'full' === $size || empty( $size ) ) {
 			return $this->file_path;
+		}
+
+		if ( isset( $this->sizes[ $size ]['file_path'] ) ) {
+			return $this->sizes[ $size ]['file_path'];
 		}
 
 		return isset( $this->sizes[ $size ]['path'] ) ? $this->sizes[ $size ]['path'] : $this->file_path;
@@ -371,6 +397,227 @@ final class Attachment extends Model {
 	}
 
 	/**
+	 * Resolves an attachment file path safely, ensuring it is confined to allowed boundaries
+	 * and free from stream wrappers, null bytes, or directory traversal.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param string $path       The filesystem path to validate.
+	 * @param bool   $must_exist Whether the file must exist on disk. Default true.
+	 * @return string The canonicalized absolute path.
+	 * @throws \InvalidArgumentException If the path resolves outside allowed boundaries, contains stream wrappers or null bytes.
+	 */
+	private function resolve_safe_path( string $path, bool $must_exist = true ): string {
+		$path = trim( $path );
+		if ( '' === $path ) {
+			throw new \InvalidArgumentException( 'Access denied: Path cannot be empty.' );
+		}
+
+		// Reject stream wrappers (e.g. phar://, php://, file://, compress.zlib://).
+		if ( preg_match( '/(?:^|[\\\\\/])[a-z0-9][a-z0-9.+\-]*:\/\//i', $path ) ) {
+			throw new \InvalidArgumentException( 'Access denied: Stream wrappers are not permitted.' );
+		}
+
+		// Reject null byte injection or invalid control characters.
+		if ( str_contains( $path, "\0" ) ) {
+			throw new \InvalidArgumentException( 'Access denied: Path contains invalid characters.' );
+		}
+
+		$upload_dir = wp_upload_dir();
+		$basedir    = ( empty( $upload_dir['error'] ) && ! empty( $upload_dir['basedir'] ) )
+			? (string) $upload_dir['basedir']
+			: ( defined( 'WP_CONTENT_DIR' ) ? WP_CONTENT_DIR : ABSPATH );
+
+		try {
+			return Helper::resolve_safe_path( $path, $basedir, $must_exist );
+		} catch ( \InvalidArgumentException $e ) {
+			if ( $must_exist && str_contains( $e->getMessage(), 'does not exist' ) ) {
+				throw $e;
+			}
+
+			// If not in uploads basedir, check WP_CONTENT_DIR if distinct from basedir.
+			if ( defined( 'WP_CONTENT_DIR' ) && WP_CONTENT_DIR !== $basedir ) {
+				return Helper::resolve_safe_path( $path, WP_CONTENT_DIR, $must_exist );
+			}
+
+			throw $e;
+		}
+	}
+
+	/**
+	 * Generates an interactive image visualization for this attachment in the console.
+	 *
+	 * Resolves the physical path for the requested sub-size (default `'medium'`), verifies
+	 * MIME magic bytes via finfo, guards against oversized files, encodes image bytes
+	 * in Base64, and registers an `'image'` visualization payload.
+	 *
+	 * Examples:
+	 *
+	 * ```elscript
+	 * Media.get(42).show()
+	 * ```
+	 *
+	 * ```elscript
+	 * Media.get(42).show('large')
+	 * ```
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param string $size Optional. Image size name (`'medium'`, `'thumbnail'`, `'large'`, `'full'`). Default `'medium'`.
+	 * @return self This attachment instance for method chaining.
+	 * @throws \RuntimeException If physical file does not exist, is unreadable, exceeds size limit, or is not an allowed image format.
+	 */
+	public function show( string $size = 'medium' ): self {
+		LanguageEngine::get()->tick();
+
+		$path          = $this->get_path( $size );
+		$resolved_size = $size;
+
+		$is_valid_file = function ( ?string $candidate ): bool {
+			if ( empty( $candidate ) ) {
+				return false;
+			}
+			try {
+				$this->resolve_safe_path( $candidate, true );
+				return true;
+			} catch ( \Exception $e ) {
+				return false;
+			}
+		};
+
+		// Fallback for 'medium' or requested size when not found.
+		if ( ! $is_valid_file( $path ) ) {
+			if ( 'medium' === $size && ! empty( $this->sizes ) ) {
+				$thumb_path = $this->sizes['thumbnail']['file_path'] ?? ( $this->sizes['thumbnail']['path'] ?? null );
+				if ( $is_valid_file( $thumb_path ) ) {
+					$path          = $thumb_path;
+					$resolved_size = 'thumbnail';
+				} else {
+					// Find the smallest variant available.
+					$smallest_size  = null;
+					$smallest_bytes = PHP_INT_MAX;
+					foreach ( $this->sizes as $s_name => $s_info ) {
+						$s_path = $s_info['file_path'] ?? ( $s_info['path'] ?? '' );
+						if ( $is_valid_file( $s_path ) ) {
+							try {
+								$safe_s_path = $this->resolve_safe_path( $s_path, true );
+								// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+								$raw_fsize = @filesize( $safe_s_path );
+								$s_bytes   = (int) ( $s_info['filesize'] ?? ( false !== $raw_fsize ? $raw_fsize : 0 ) );
+								if ( $s_bytes < $smallest_bytes ) {
+									$smallest_bytes = $s_bytes;
+									$smallest_size  = $s_name;
+									$path           = $s_path;
+								}
+							// phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+							} catch ( \Exception $e ) {
+								// Ignore invalid candidate.
+							}
+						}
+					}
+					if ( null !== $smallest_size ) {
+						$resolved_size = $smallest_size;
+					}
+				}
+			}
+
+			// Fall back to original file if size was not found.
+			if ( ! $is_valid_file( $path ) ) {
+				$path          = $this->file_path;
+				$resolved_size = 'full';
+			}
+		}
+
+		if ( empty( $path ) ) {
+			throw new \RuntimeException( esc_html( "Attachment #{$this->ID} physical file not found or unreadable." ) );
+		}
+
+		try {
+			$path = $this->resolve_safe_path( $path, true );
+		} catch ( \InvalidArgumentException $e ) {
+			if ( str_contains( $e->getMessage(), 'does not exist' ) ) {
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+				throw new \RuntimeException( esc_html( "Attachment #{$this->ID} physical file not found or unreadable." ), 0, $e );
+			}
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			throw new \RuntimeException( esc_html( "Attachment #{$this->ID} physical file path is invalid or outside allowed boundary." ), 0, $e );
+		}
+
+		if ( ! is_readable( $path ) ) {
+			throw new \RuntimeException( esc_html( "Attachment #{$this->ID} physical file not found or unreadable." ) );
+		}
+
+		// Validate magic bytes.
+		$mime = $this->mime_type;
+		if ( class_exists( '\finfo' ) ) {
+			$finfo = new \finfo( FILEINFO_MIME_TYPE );
+			$res   = $finfo->file( $path );
+			if ( false !== $res ) {
+				$mime = (string) $res;
+			}
+		}
+
+		$allowed_mimes = array(
+			'image/jpeg',
+			'image/png',
+			'image/gif',
+			'image/webp',
+			'image/avif',
+			'image/svg+xml',
+		);
+
+		if ( ! in_array( $mime, $allowed_mimes, true ) ) {
+			throw new \RuntimeException( esc_html( "Attachment #{$this->ID} file is not a supported image format ({$mime})." ) );
+		}
+
+		$bytes = (int) filesize( $path );
+		if ( $bytes > LanguageEngine::MAX_EMBEDDED_BINARY_BYTES || ! LanguageEngine::get()->can_allocate_binary( $bytes ) ) {
+			throw new \RuntimeException( esc_html( "Attachment image file exceeds maximum preview budget of {$this->format_bytes( LanguageEngine::MAX_EMBEDDED_BINARY_BYTES )} ({$this->format_bytes( $bytes )})." ) );
+		}
+
+		$dimensions = $this->get_dimensions( $resolved_size );
+		if ( empty( $dimensions['width'] ) && 'image/svg+xml' !== $mime && function_exists( 'getimagesize' ) ) {
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			$img_info = @getimagesize( $path );
+			if ( is_array( $img_info ) ) {
+				$dimensions = array(
+					'width'  => (int) $img_info[0],
+					'height' => (int) $img_info[1],
+				);
+			}
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		$raw_data = file_get_contents( $path );
+		if ( false === $raw_data ) {
+			throw new \RuntimeException( esc_html( "Failed to read attachment file: {$path}" ) );
+		}
+
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+		$base64 = base64_encode( $raw_data );
+		LanguageEngine::get()->allocate_binary( $bytes );
+
+		LanguageEngine::get()->begin_visualization_group()->add_visualization(
+			array(
+				'type'          => 'image',
+				'title'         => 'Image: ' . ( ! empty( $this->title ) ? $this->title : basename( $path ) ),
+				'filename'      => basename( $path ),
+				'path'          => $path,
+				'mime'          => $mime,
+				'base64'        => $base64,
+				'dimensions'    => $dimensions,
+				'bytes'         => $bytes,
+				'size_human'    => $this->format_bytes( $bytes ),
+				'size_name'     => $resolved_size,
+				'attachment_id' => $this->ID,
+			)
+		);
+
+		return $this;
+	}
+
+	/**
 	 * Retrieves an associative array representation of the attachment.
 	 *
 	 * @since 0.0.1
@@ -398,6 +645,7 @@ final class Attachment extends Model {
 			'modified'       => $this->modified,
 			'author_id'      => $this->author_id,
 			'parent_id'      => $this->parent_id,
+			'sizes'          => $this->sizes,
 		);
 	}
 }

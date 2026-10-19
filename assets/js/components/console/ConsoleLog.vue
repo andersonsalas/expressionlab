@@ -150,9 +150,14 @@ const getEntryOutputPayload = (item) => {
 const openDataViewer = (item) => {
   const store = getUiStore();
   if (store) {
-    store.openModal('data-viewer', {
+    const payload = {
       content: getEntryOutputPayload(item),
-    });
+    };
+    const viz = item.visualizations || (item.output && item.output.visualizations);
+    if (viz && viz.length > 0) {
+      payload.visualizations = viz;
+    }
+    store.openModal('data-viewer', payload);
   }
 };
 </script>

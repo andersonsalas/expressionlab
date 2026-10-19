@@ -447,8 +447,41 @@ const adjustOutputForVisualization = (force = false, retryCount = 0) => {
       const tableEl = outputSectionEl.querySelector('.fp-table');
       const tableControlsEl = outputSectionEl.querySelector('.table-controls');
       const tableScrollWrapper = outputSectionEl.querySelector('.table-scroll-wrapper');
+      const isFileViz = Boolean(outputSectionEl.querySelector('.file-visualization'));
+      const imageVisualizationEl = outputSectionEl.querySelector('.image-visualization');
 
-      if (tableEl) {
+      if (isFileViz) {
+        if (force) {
+          isAutoAdjusting.value = true;
+          tabsStore.updateTabScratchpad(props.tabId, {
+            scratchpadEditorRatio: 50,
+          });
+          setTimeout(() => {
+            isAutoAdjusting.value = false;
+          }, 260);
+        }
+        return;
+      }
+
+      if (imageVisualizationEl) {
+        const imgEl = imageVisualizationEl.querySelector('img.rendered-image');
+        const naturalW = imgEl?.naturalWidth || 0;
+        const naturalH = imgEl?.naturalHeight || 0;
+
+        if ((naturalW <= 0 || naturalH <= 0) && retryCount < 15) {
+          requestAnimationFrame(() => adjustOutputForVisualization(force, retryCount + 1));
+          return;
+        }
+
+        const footerEl = imageVisualizationEl.querySelector('.image-footer');
+        const footerH = footerEl ? footerEl.getBoundingClientRect().height : 32;
+        const availW = Math.max(50, outputSectionEl.clientWidth - 48);
+        const scale = naturalW > 0 ? Math.min(1, availW / naturalW) : 1;
+        const fittedH = Math.ceil(naturalH * scale);
+
+        // Viewport padding in _image.scss is 24px top + 24px bottom = 48px
+        vizContentHeight = fittedH > 0 ? fittedH + footerH + 48 : 0;
+      } else if (tableEl) {
         const controlsHeight = tableControlsEl ? tableControlsEl.getBoundingClientRect().height + 8 : 0;
         const tableHeight = tableEl.getBoundingClientRect().height;
         const hasHScroll = tableScrollWrapper && tableScrollWrapper.scrollWidth > tableScrollWrapper.clientWidth;
@@ -470,7 +503,7 @@ const adjustOutputForVisualization = (force = false, retryCount = 0) => {
               maxBottom = r.bottom;
             }
           });
-          vizContentHeight = maxBottom > vizRect.top ? maxBottom - vizRect.top + 8 : 0;
+          vizContentHeight = maxBottom > vizRect.top ? maxBottom - vizRect.top : 0;
         }
       }
 
@@ -481,7 +514,7 @@ const adjustOutputForVisualization = (force = false, retryCount = 0) => {
 
       if (vizContentHeight <= 0) return;
 
-      const neededOutputHeight = Math.ceil(headerHeight + bodyPadding + vizContentHeight + 24);
+      const neededOutputHeight = Math.ceil(headerHeight + bodyPadding + vizContentHeight + 16);
       const currentOutputHeight = outputSectionEl.getBoundingClientRect().height;
 
       if (Math.abs(neededOutputHeight - currentOutputHeight) < 4) return;

@@ -530,7 +530,7 @@ watch(displayedData, () => {
   width: 100%;
   box-sizing: border-box;
   padding: 4px;
-  font-size: 0.9em;
+  font-size: 13px;
   border: 1px solid #ccc;
   border-radius: 0;
   font-family: $font-family-sans;

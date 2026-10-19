@@ -109,5 +109,244 @@ class FilesTest extends WP_UnitTestCase {
 		$this->assertIsString( $result );
 		$this->assertTrue( str_starts_with( $result, wp_normalize_path( realpath( ABSPATH ) ) ) );
 	}
+
+	public function test_read_attaches_file_visualization() {
+		LanguageEngine::get()->reset();
+		$this->files->read( 'wp-load.php', 200 );
+
+		$visualizations = LanguageEngine::get()->get_visualizations();
+		$this->assertNotEmpty( $visualizations );
+		$last_viz = end( $visualizations );
+
+		$this->assertEquals( 'file', $last_viz['type'] );
+		$this->assertEquals( 'wp-load.php', $last_viz['filename'] );
+		$this->assertNotEmpty( $last_viz['content'] );
+		$this->assertEquals( 'php', $last_viz['ext'] );
+	}
+
+	public function test_tail_attaches_file_visualization() {
+		LanguageEngine::get()->reset();
+		$this->files->tail( 'wp-load.php', 10 );
+
+		$visualizations = LanguageEngine::get()->get_visualizations();
+		$this->assertNotEmpty( $visualizations );
+		$last_viz = end( $visualizations );
+
+		$this->assertEquals( 'file', $last_viz['type'] );
+		$this->assertStringContainsString( 'tail 10', $last_viz['title'] );
+		$this->assertNotEmpty( $last_viz['content'] );
+	}
+
+	public function test_show_code_file_generates_file_visualization() {
+		LanguageEngine::get()->reset();
+		$result = $this->files->show( 'wp-load.php' );
+
+		$this->assertIsArray( $result );
+		$this->assertEquals( 'file', $result['type'] );
+		$this->assertEquals( 'wp-load.php', $result['name'] );
+
+		$visualizations = LanguageEngine::get()->get_visualizations();
+		$this->assertNotEmpty( $visualizations );
+		$last_viz = end( $visualizations );
+
+		$this->assertEquals( 'file', $last_viz['type'] );
+		$this->assertEquals( 'wp-load.php', $last_viz['filename'] );
+	}
+
+	public function test_show_image_file_generates_image_visualization() {
+		// Copy test image into WordPress uploads inside ABSPATH
+		$image_source = DIR_TESTDATA . '/images/test-image.png';
+		if ( ! file_exists( $image_source ) ) {
+			$this->markTestSkipped( 'Test image not available.' );
+		}
+
+		$upload_dir = wp_upload_dir();
+		$dest_dir   = $upload_dir['basedir'] . '/expressionlab-tests';
+		if ( ! file_exists( $dest_dir ) ) {
+			wp_mkdir_p( $dest_dir );
+		}
+		$dest_file = $dest_dir . '/test-image.png';
+		copy( $image_source, $dest_file );
+
+		try {
+			$relative_path = ltrim( str_replace( ABSPATH, '', $dest_file ), '/' );
+
+			LanguageEngine::get()->reset();
+			$result = $this->files->show( $relative_path );
+
+			$this->assertIsArray( $result );
+			$this->assertEquals( 'image', $result['type'] );
+			$this->assertEquals( 'image/png', $result['mime'] );
+			$this->assertGreaterThan( 0, $result['bytes'] );
+
+			$visualizations = LanguageEngine::get()->get_visualizations();
+			$this->assertNotEmpty( $visualizations );
+			$last_viz = end( $visualizations );
+
+			$this->assertEquals( 'image', $last_viz['type'] );
+			$this->assertEquals( 'image/png', $last_viz['mime'] );
+			$this->assertNotEmpty( $last_viz['base64'] );
+		} finally {
+			if ( file_exists( $dest_file ) ) {
+				unlink( $dest_file );
+			}
+		}
+	}
+
+	public function test_show_directory_throws() {
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'Cannot show a directory' );
+		$this->files->show( 'wp-content' );
+	}
+
+	private function make_binary_fixture(): array {
+		$upload_dir = wp_upload_dir();
+		$dest_dir   = $upload_dir['basedir'] . '/expressionlab-tests';
+		wp_mkdir_p( $dest_dir );
+		$dest_file = $dest_dir . '/test-binary-show.bin';
+		file_put_contents( $dest_file, "BINARY\0\x01\x02\xFFDATA" );
+		return array( $dest_file, ltrim( str_replace( ABSPATH, '', $dest_file ), '/' ) );
+	}
+
+	public function test_show_binary_file_throws() {
+		list( $file, $relative ) = $this->make_binary_fixture();
+		try {
+			LanguageEngine::get()->reset();
+			$this->expectException( \RuntimeException::class );
+			$this->expectExceptionMessage( 'Binary file detected' );
+			$this->files->show( $relative );
+		} finally {
+			unlink( $file );
+		}
+	}
+
+	public function test_tail_binary_file_skips_visualization() {
+		list( $file, $relative ) = $this->make_binary_fixture();
+		try {
+			LanguageEngine::get()->reset();
+			$this->files->tail( $relative );
+			$this->assertEmpty( LanguageEngine::get()->get_visualizations() );
+			$this->assertNotEmpty( LanguageEngine::get()->get_messages() );
+		} finally {
+			unlink( $file );
+		}
+	}
+
+	public function test_stream_wrappers_are_rejected() {
+		$this->assertFalse( $this->files->exists( 'phar://wp-config.php' ) );
+		$this->assertFalse( $this->files->exists( 'php://filter/resource=wp-config.php' ) );
+		$this->expectException( \InvalidArgumentException::class );
+		$this->files->read( 'compress.zlib://wp-config.php' );
+	}
+
+	public function test_read_null_byte_path_is_rejected() {
+		$this->expectException( \InvalidArgumentException::class );
+		$this->files->read( "wp-config.php\0.txt" );
+	}
+
+	public function test_read_binary_file_returns_false_and_warns() {
+		$upload_dir = wp_upload_dir();
+		$dest_dir   = $upload_dir['basedir'] . '/expressionlab-tests';
+		if ( ! file_exists( $dest_dir ) ) {
+			wp_mkdir_p( $dest_dir );
+		}
+		$dest_file = $dest_dir . '/test-binary.bin';
+		// Create a binary file with null bytes.
+		file_put_contents( $dest_file, "BINARY\0\x01\x02\xFFDATA" );
+
+		try {
+			$relative_path = ltrim( str_replace( ABSPATH, '', $dest_file ), '/' );
+
+			LanguageEngine::get()->reset();
+			$result = $this->files->read( $relative_path );
+
+			$this->assertFalse( $result );
+			$this->assertEmpty( LanguageEngine::get()->get_visualizations() );
+
+			$messages = LanguageEngine::get()->get_messages();
+			$this->assertNotEmpty( $messages );
+			$this->assertEquals( 'warning', $messages[0]['type'] );
+			$this->assertStringContainsString( 'Binary file detected', $messages[0]['text'] );
+		} finally {
+			if ( file_exists( $dest_file ) ) {
+				unlink( $dest_file );
+			}
+		}
+	}
+
+	public function test_read_image_file_returns_data_uri_and_attaches_image_visualization() {
+		$image_source = DIR_TESTDATA . '/images/test-image.png';
+		if ( ! file_exists( $image_source ) ) {
+			$this->markTestSkipped( 'Test image not available.' );
+		}
+
+		$upload_dir = wp_upload_dir();
+		$dest_dir   = $upload_dir['basedir'] . '/expressionlab-tests';
+		if ( ! file_exists( $dest_dir ) ) {
+			wp_mkdir_p( $dest_dir );
+		}
+		$dest_file = $dest_dir . '/test-read-image.png';
+		copy( $image_source, $dest_file );
+
+		try {
+			$relative_path = ltrim( str_replace( ABSPATH, '', $dest_file ), '/' );
+
+			LanguageEngine::get()->reset();
+			$result = $this->files->read( $relative_path );
+
+			$this->assertIsString( $result );
+			$this->assertTrue( str_starts_with( $result, 'data:image/png;base64,' ) );
+
+			$visualizations = LanguageEngine::get()->get_visualizations();
+			$this->assertNotEmpty( $visualizations );
+			$last_viz = end( $visualizations );
+
+			$this->assertEquals( 'image', $last_viz['type'] );
+			$this->assertEquals( 'image/png', $last_viz['mime'] );
+			$this->assertNotEmpty( $last_viz['base64'] );
+		} finally {
+			if ( file_exists( $dest_file ) ) {
+				unlink( $dest_file );
+			}
+		}
+	}
+
+	public function test_read_image_exceeding_budget_returns_false_and_warns() {
+		$image_source = DIR_TESTDATA . '/images/test-image.png';
+		if ( ! file_exists( $image_source ) ) {
+			$this->markTestSkipped( 'Test image not available.' );
+		}
+
+		$upload_dir = wp_upload_dir();
+		$dest_dir   = $upload_dir['basedir'] . '/expressionlab-tests';
+		if ( ! file_exists( $dest_dir ) ) {
+			wp_mkdir_p( $dest_dir );
+		}
+		$dest_file = $dest_dir . '/test-read-budget.png';
+		copy( $image_source, $dest_file );
+
+		try {
+			$relative_path = ltrim( str_replace( ABSPATH, '', $dest_file ), '/' );
+
+			LanguageEngine::get()->reset();
+			// Pre-allocate full binary budget so image read exceeds budget
+			LanguageEngine::get()->allocate_binary( LanguageEngine::MAX_EMBEDDED_BINARY_BYTES );
+
+			$result = $this->files->read( $relative_path );
+
+			$this->assertFalse( $result );
+			$this->assertEmpty( LanguageEngine::get()->get_visualizations() );
+
+			$messages = LanguageEngine::get()->get_messages();
+			$this->assertNotEmpty( $messages );
+			$this->assertEquals( 'warning', $messages[0]['type'] );
+			$this->assertStringContainsString( 'budget', $messages[0]['text'] );
+		} finally {
+			if ( file_exists( $dest_file ) ) {
+				unlink( $dest_file );
+			}
+		}
+	}
 }
+
 

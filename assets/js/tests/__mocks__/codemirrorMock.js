@@ -5,5 +5,7 @@ module.exports = {
   }),
   autocompletion: () => ({}),
   snippet: (template) => template,
+  completeFromList: () => () => null,
+  ifNotIn: () => () => null,
+  closeCompletion: () => {},
 };
-

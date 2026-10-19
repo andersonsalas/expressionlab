@@ -213,6 +213,31 @@
 		overflow: hidden;
 		display: flex;
 		flex-direction: column;
+
+		.file-visualization,
+		.image-visualization {
+			flex: 1;
+			height: 100%;
+			margin: 0;
+			border: none;
+			box-shadow: none;
+
+			.editor-viewport {
+				flex: 1;
+				max-height: none;
+				height: 100%;
+
+				.cm-editor {
+					max-height: none !important;
+				}
+			}
+
+			.image-viewport {
+				flex: 1;
+				max-height: none;
+				height: 100%;
+			}
+		}
 	}
 
 	.data-viewer-empty-state {

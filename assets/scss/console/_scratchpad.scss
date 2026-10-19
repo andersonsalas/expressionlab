@@ -12,12 +12,14 @@
 	background: #fff;
 	position: relative;
 
+	/*
 	&.auto-adjusting {
 		.scratchpad-editor-section,
 		.scratchpad-output-section {
 			transition: height 0.25s cubic-bezier(0.2, 0, 0, 1);
 		}
 	}
+	*/
 
 	.scratchpad-editor-section {
 		.entry.in {
@@ -404,7 +406,35 @@
 			padding: 12px;
 
 			&.visualization-type-table {
-				padding: 6px 8px !important
+				padding: 6px 8px !important;
+			}
+
+			&.visualization-type-file,
+			&.visualization-type-image {
+				padding: 0 !important;
+				overflow: hidden;
+
+				.file-visualization,
+				.image-visualization {
+					border: none !important;
+					border-radius: 0 !important;
+					margin: 0 !important;
+					box-shadow: none !important;
+					height: 100%;
+					flex: 1;
+
+					.file-footer,
+					.image-footer {
+						border-radius: 0;
+					}
+
+					.editor-viewport,
+					.image-viewport {
+						max-height: none;
+						flex: 1;
+						height: 100% !important;
+					}
+				}
 			}
 		}
 
