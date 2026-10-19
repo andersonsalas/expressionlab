@@ -250,6 +250,10 @@ const initEditor = () => {
       '.cm-activeLineGutter': {
         backgroundColor: '#eaeaea',
       },
+      '&, & *': {
+        fontWeight: 'normal !important',
+        fontStyle: 'normal !important',
+      },
     }),
   ];
 
