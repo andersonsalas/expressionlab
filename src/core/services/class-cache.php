@@ -91,6 +91,20 @@ final class Cache implements ServiceInterface {
 	}
 
 	/**
+	 * Validates that a value argument was provided when setting a scalar cache key.
+	 *
+	 * @internal
+	 *
+	 * @param int $arg_count The number of arguments passed to the caller.
+	 * @throws \InvalidArgumentException If the value argument was omitted.
+	 */
+	private function validate_value_presence( int $arg_count ): void {
+		if ( $arg_count < 2 ) {
+			throw new \InvalidArgumentException( esc_html( 'Cache::set() requires a value when setting a scalar key.' ) );
+		}
+	}
+
+	/**
 	 * Reads the first available property from the active object cache backend.
 	 *
 	 * Drop-ins expose diagnostics under different property names (e.g. `non_persistent_groups`,
@@ -477,10 +491,19 @@ final class Cache implements ServiceInterface {
 	/**
 	 * Sets the value of one or multiple cache keys.
 	 *
-	 * Supports both single-key and batch associative array signatures:
+	 * Supports both single-key and batch associative array signatures.
 	 *
-	 * - Single key: `Cache.set('key', $value, 'group', 3600)`
-	 * - Batch keys: `Cache.set(['k1' => 'v1', 'k2' => 'v2'], 'group', 3600)`
+	 * Single key:
+	 *
+	 * ```elscript
+	 * Cache.set('key', value, 'group', 3600)
+	 * ```
+	 *
+	 * Batch keys:
+	 *
+	 * ```elscript
+	 * Cache.set({ 'k1': 'v1', 'k2': 'v2' }, 'group', 3600)
+	 * ```
 	 *
 	 * Examples:
 	 *
@@ -497,12 +520,12 @@ final class Cache implements ServiceInterface {
 	 * @see https://expressionlab.io/docs/api-reference/cache#cacheset
 	 *
 	 * @param string|int|array $key    The cache key (string/int) or associative array pairs.
-	 * @param mixed            $data   Optional. The cache data when `key` is scalar, or the group name (string) when `key` is an array.
+	 * @param mixed            $data   Optional. The cache data when `key` is scalar (required if `key` is scalar), or the group name (string) when `key` is an array.
 	 * @param string|int       $group  Optional. The cache group (string) when `key` is scalar, or expiration (int) when `key` is an array.
 	 * @param int              $expire Optional. Non-negative expiration time in seconds. Default 0 (no expiration).
 	 * @return bool True on success, false on failure.
 	 * @throws \Exception If write protection is active (`EXPRESSION_LAB_DATABASE_READONLY` is true).
-	 * @throws \InvalidArgumentException If a key, group, or expiration is invalid.
+	 * @throws \InvalidArgumentException If a key, group, or expiration is invalid, or if the value is missing for a scalar key.
 	 */
 	public function set( $key, $data = null, $group = '', int $expire = 0 ): bool {
 		$this->validate_write_permission();
@@ -546,6 +569,7 @@ final class Cache implements ServiceInterface {
 			}
 
 			LanguageEngine::get()->tick();
+			$this->validate_value_presence( func_num_args() );
 			$this->validate_key( $key );
 			$this->validate_group( $group );
 			$this->validate_expire( $expire );

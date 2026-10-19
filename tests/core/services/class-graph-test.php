@@ -913,6 +913,8 @@ class GraphTest extends WP_UnitTestCase {
 		$this->assertEquals( 'date', $viz['data']['encoding']['x']['field'] );
 		$this->assertEquals( -45, $viz['data']['encoding']['x']['axis']['labelAngle'] );
 		$this->assertEquals( 'bandwidth', $viz['data']['encoding']['y']['field'] );
+		$this->assertTrue( $viz['data']['mark']['tooltip'] );
+		$this->assertArrayNotHasKey( 'tooltip', $viz['data']['encoding'] );
 	}
 
 	public function test_area_streamgraph_and_normalized() {
@@ -968,6 +970,8 @@ class GraphTest extends WP_UnitTestCase {
 		$this->assertEquals( 'task', $viz['data']['encoding']['y']['field'] );
 		$this->assertEquals( 'start', $viz['data']['encoding']['x']['field'] );
 		$this->assertEquals( 'end', $viz['data']['encoding']['x2']['field'] );
+		$this->assertTrue( $viz['data']['mark']['tooltip'] );
+		$this->assertArrayNotHasKey( 'tooltip', $viz['data']['encoding'] );
 	}
 
 	public function test_magic_getter_rejects_invalid_names() {

@@ -2700,6 +2700,7 @@ final class Graph implements ServiceInterface {
 			'line'        => true,
 			'interpolate' => $curve,
 			'opacity'     => $opacity,
+			'tooltip'     => true,
 		);
 
 		$y_encoding = array(
@@ -2721,7 +2722,7 @@ final class Graph implements ServiceInterface {
 		}
 
 		$encoding = array(
-			'x'       => array(
+			'x' => array(
 				'field' => $fields['x_field'],
 				'type'  => $fields['x_type'],
 				'axis'  => array(
@@ -2729,8 +2730,7 @@ final class Graph implements ServiceInterface {
 					'labelAngle' => isset( $options['label_angle'] ) ? (int) $options['label_angle'] : -45,
 				),
 			),
-			'y'       => $y_encoding,
-			'tooltip' => true,
+			'y' => $y_encoding,
 		);
 
 		if ( ! empty( $options['color'] ) ) {
@@ -2879,15 +2879,16 @@ final class Graph implements ServiceInterface {
 			'type'         => 'bar',
 			'cornerRadius' => 4,
 			'height'       => 18,
+			'tooltip'      => true,
 		);
 
 		$encoding = array(
-			'y'       => array(
+			'y'  => array(
 				'field' => $task_field,
 				'type'  => 'nominal',
 				'axis'  => array( 'title' => ucwords( str_replace( '_', ' ', $task_field ) ) ),
 			),
-			'x'       => array(
+			'x'  => array(
 				'field' => $start_field,
 				'type'  => $x_type,
 				'axis'  => array(
@@ -2895,10 +2896,9 @@ final class Graph implements ServiceInterface {
 					'labelAngle' => isset( $options['label_angle'] ) ? (int) $options['label_angle'] : -45,
 				),
 			),
-			'x2'      => array(
+			'x2' => array(
 				'field' => $end_field,
 			),
-			'tooltip' => true,
 		);
 
 		if ( ! empty( $options['color'] ) ) {

@@ -1,4 +1,4 @@
-import { parseExpressionPath, searchTreeAst } from '../../lib/data-tree-filter.js';
+import { parseExpressionPath, searchTreeAst, countAstNodesExceeds } from '../../lib/data-tree-filter.js';
 import { convertToTreeAst } from '../../lib/data-tree-adapter.js';
 import { parsePhpSerialized } from '../../lib/php-serializer/parser.js';
 
@@ -227,6 +227,37 @@ describe('data-tree-filter.js', () => {
       const phpAst = parsePhpSerialized('O:7:"WP_User":2:{s:2:"ID";i:1;s:5:"login";s:5:"admin";}');
       const result = searchTreeAst(phpAst, 'wp_user', 'text');
       expect(result.filteredAst.properties).toHaveLength(2);
+    });
+  });
+
+  describe('countAstNodesExceeds', () => {
+    it('returns false for small trees below the threshold', () => {
+      const ast = convertToTreeAst({ a: 1, b: 2 });
+      expect(countAstNodesExceeds(ast, 20)).toBe(false);
+    });
+
+    it('returns true when total nodes exceed the threshold', () => {
+      const items = Array.from({ length: 25 }, (_, i) => ({ id: i, value: `val_${i}` }));
+      const ast = convertToTreeAst(items);
+      expect(countAstNodesExceeds(ast, 20)).toBe(true);
+    });
+
+    it('handles nested structures and aborts early', () => {
+      const nested = {
+        level1: {
+          level2: {
+            items: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+          },
+        },
+      };
+      const ast = convertToTreeAst(nested);
+      expect(countAstNodesExceeds(ast, 5)).toBe(true);
+    });
+
+    it('returns false for null or non-object values', () => {
+      expect(countAstNodesExceeds(null, 20)).toBe(false);
+      expect(countAstNodesExceeds(undefined, 20)).toBe(false);
+      expect(countAstNodesExceeds('string', 20)).toBe(false);
     });
   });
 });

@@ -67,39 +67,37 @@ SpecialForm {
 }
 
 ProgKeyword { @specialize<Identifier, "prog"> }
-SetKeyword { @specialize<Identifier, "set"> }
+SetKeyword { @extend<Identifier, "set"> }
 UnsetKeyword { @specialize<Identifier, "unset"> }
 IssetKeyword { @specialize<Identifier, "isset"> }
 VarKeyword { @specialize<Identifier, "var"> }
 ArgsKeyword { @specialize<Identifier, "args"> }
 FnKeyword { @specialize<Identifier, "fn"> }
-ShowKeyword { @specialize<Identifier, "show"> }
+ShowKeyword { @extend<Identifier, "show"> }
 MapKeyword { @specialize<Identifier, "map"> }
 FilterKeyword { @specialize<Identifier, "filter"> }
 ReduceKeyword { @specialize<Identifier, "reduce"> }
 
 SpecialFormKeyword {
   ProgKeyword |
-  SetKeyword |
   UnsetKeyword |
   IssetKeyword |
   VarKeyword |
   ArgsKeyword |
   FnKeyword |
-  ShowKeyword |
   MapKeyword |
   FilterKeyword |
   ReduceKeyword
 }
 
 ProgExpression { ProgKeyword BracketList }
-SetExpression { SetKeyword BracketList }
+SetExpression[@dynamicPrecedence=1] { SetKeyword BracketList }
 UnsetExpression { UnsetKeyword BracketList }
 IssetExpression { IssetKeyword BracketList }
 VarExpression { VarKeyword BracketList }
 ArgsExpression { ArgsKeyword BracketList }
 FnExpression { FnKeyword BracketList }
-ShowExpression { ShowKeyword BracketList }
+ShowExpression[@dynamicPrecedence=1] { ShowKeyword BracketList }
 MapExpression { MapKeyword BracketList }
 FilterExpression { FilterKeyword BracketList }
 ReduceExpression { ReduceKeyword BracketList }

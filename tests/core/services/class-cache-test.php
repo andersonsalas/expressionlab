@@ -328,6 +328,25 @@ class CacheTest extends WP_UnitTestCase {
 		$this->assertFalse( $this->cache->has( 'valid_key' ) );
 	}
 
+	public function test_set_scalar_without_value_throws_exception() {
+		$this->assert_invalid_argument( fn() => $this->cache->set( 'missing_val_key' ) );
+
+		$engine = LanguageEngine::get();
+		$engine->reset();
+
+		$this->expectException( \InvalidArgumentException::class );
+		$engine->evaluate( "Cache.set('a')" );
+	}
+
+	public function test_set_scalar_with_explicit_null_is_allowed() {
+		$key   = 'explicit_null_' . wp_rand();
+		$group = 'unit_test_null';
+
+		$this->assertTrue( $this->cache->set( $key, null, $group ) );
+		$this->assertTrue( $this->cache->has( $key, $group ) );
+		$this->assertNull( $this->cache->get( $key, $group ) );
+	}
+
 	private function assert_invalid_argument( callable $callback ) {
 		try {
 			$callback();
