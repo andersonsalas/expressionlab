@@ -1,8 +1,8 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import PhpSerializedTreeNode from './PhpSerializedTreeNode.vue';
 import { convertToTreeAst } from '../../lib/data-tree-adapter.js';
-import { searchTreeAst } from '../../lib/data-tree-filter.js';
+import { searchTreeAst, countAstNodesExceeds } from '../../lib/data-tree-filter.js';
 import { __, sprintf } from '../../lib/helpers.js';
 
 const props = defineProps({
@@ -26,12 +26,23 @@ const props = defineProps({
     type: Number,
     default: 1,
   },
+  debounceThreshold: {
+    type: Number,
+    default: 20,
+  },
+  debounceDelay: {
+    type: Number,
+    default: 250,
+  },
 });
 
 const treeKey = ref(0);
 const currentExpandedDepth = ref(props.defaultExpandedDepth);
 const searchQuery = ref('');
+const appliedQuery = ref('');
 const searchMode = ref('text'); // 'text' | 'path'
+const isDebouncing = ref(false);
+let debounceTimeout = null;
 
 const rootAst = computed(() => {
   if (props.ast) {
@@ -40,10 +51,14 @@ const rootAst = computed(() => {
   return convertToTreeAst(props.data);
 });
 
-const isSearchActive = computed(() => Boolean(searchQuery.value.trim()));
+const isLargeDataset = computed(() => {
+  return countAstNodesExceeds(rootAst.value, props.debounceThreshold);
+});
+
+const isSearchActive = computed(() => Boolean(appliedQuery.value.trim()));
 
 const searchResult = computed(() => {
-  return searchTreeAst(rootAst.value, searchQuery.value, searchMode.value);
+  return searchTreeAst(rootAst.value, appliedQuery.value, searchMode.value);
 });
 
 const displayedAst = computed(() => searchResult.value.filteredAst);
@@ -56,8 +71,46 @@ const activeExpandedDepth = computed(() => {
   return currentExpandedDepth.value;
 });
 
+const clearDebounce = () => {
+  if (debounceTimeout) {
+    clearTimeout(debounceTimeout);
+    debounceTimeout = null;
+  }
+  isDebouncing.value = false;
+};
+
+watch(searchQuery, (newVal) => {
+  clearDebounce();
+
+  const trimmed = (newVal || '').trim();
+
+  // If query is cleared or dataset is small, update immediately
+  if (!trimmed || !isLargeDataset.value) {
+    appliedQuery.value = newVal;
+    return;
+  }
+
+  isDebouncing.value = true;
+  debounceTimeout = setTimeout(() => {
+    appliedQuery.value = newVal;
+    isDebouncing.value = false;
+    debounceTimeout = null;
+  }, props.debounceDelay);
+});
+
+watch(searchMode, () => {
+  clearDebounce();
+  appliedQuery.value = searchQuery.value;
+});
+
+onBeforeUnmount(() => {
+  clearDebounce();
+});
+
 const clearSearch = () => {
+  clearDebounce();
   searchQuery.value = '';
+  appliedQuery.value = '';
 };
 
 // Clear a non-empty query without letting Escape bubble to window-level handlers
@@ -84,7 +137,10 @@ defineExpose({
   collapseAll,
   clearSearch,
   searchQuery,
+  appliedQuery,
   searchMode,
+  isLargeDataset,
+  isDebouncing,
 });
 </script>
 
@@ -99,7 +155,7 @@ defineExpose({
     >
       <PhpSerializedTreeNode
         v-if="displayedAst"
-        :key="treeKey + (isSearchActive ? `_s_${searchQuery}_${searchMode}` : '')"
+        :key="treeKey + (isSearchActive ? `_s_${appliedQuery}_${searchMode}` : '')"
         :node="displayedAst"
         :current-depth="0"
         :default-expanded-depth="activeExpandedDepth"
@@ -122,7 +178,10 @@ defineExpose({
       class="data-tree-search-bar"
     >
       <div class="search-input-wrapper">
-        <span class="codicon codicon-search search-icon" />
+        <span
+          class="codicon search-icon"
+          :class="isDebouncing ? 'codicon-loading codicon-modifier-spin' : 'codicon-search'"
+        />
         <input
           v-model="searchQuery"
           type="text"
@@ -133,11 +192,18 @@ defineExpose({
 
         <!-- Match status badge (inside input wrapper on the right) -->
         <div
-          v-if="isSearchActive"
+          v-if="isSearchActive || isDebouncing"
           class="search-match-badge"
-          :class="{ 'has-matches': matchCount > 0, 'no-matches': matchCount === 0 }"
+          :class="{
+            'is-searching': isDebouncing,
+            'has-matches': !isDebouncing && matchCount > 0,
+            'no-matches': !isDebouncing && matchCount === 0,
+          }"
         >
-          <template v-if="searchMode === 'path'">
+          <template v-if="isDebouncing">
+            {{ __('Searching...') }}
+          </template>
+          <template v-else-if="searchMode === 'path'">
             {{ matchCount > 0 ? __('Path found') : __('Path not found') }}
           </template>
           <template v-else>
@@ -180,3 +246,4 @@ defineExpose({
     </div>
   </div>
 </template>
+

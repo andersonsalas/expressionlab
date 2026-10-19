@@ -195,4 +195,91 @@ describe('DataTree.vue', () => {
 
     expect(wrapper.find('.data-tree-search-bar').exists()).toBe(false);
   });
+
+  describe('search debounce behavior', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('filters immediately for datasets with node count at or below the threshold', async () => {
+      const wrapper = mount(DataTree, {
+        props: {
+          data: { a: 'foo', b: 'bar' },
+          showSearch: true,
+          debounceThreshold: 20,
+        },
+      });
+
+      expect(wrapper.vm.isLargeDataset).toBe(false);
+
+      const input = wrapper.find('.data-tree-search-input');
+      await input.setValue('foo');
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.vm.isDebouncing).toBe(false);
+      expect(wrapper.vm.appliedQuery).toBe('foo');
+      expect(wrapper.text()).toContain('1 match');
+    });
+
+    it('debounces search on datasets exceeding the threshold', async () => {
+      const largeData = Array.from({ length: 30 }, (_, i) => ({
+        id: i,
+        name: `item_${i}`,
+      }));
+
+      const wrapper = mount(DataTree, {
+        props: {
+          data: largeData,
+          showSearch: true,
+          debounceThreshold: 20,
+          debounceDelay: 250,
+        },
+      });
+
+      expect(wrapper.vm.isLargeDataset).toBe(true);
+
+      const input = wrapper.find('.data-tree-search-input');
+      await input.setValue('item_15');
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.vm.isDebouncing).toBe(true);
+      expect(wrapper.vm.appliedQuery).toBe('');
+      expect(wrapper.find('.search-match-badge').text()).toContain('Searching...');
+
+      jest.advanceTimersByTime(250);
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.vm.isDebouncing).toBe(false);
+      expect(wrapper.vm.appliedQuery).toBe('item_15');
+      expect(wrapper.find('.search-match-badge').text()).toContain('1 match');
+      expect(wrapper.text()).toContain('item_15');
+    });
+
+    it('resets immediately without delay when search query is cleared', async () => {
+      const largeData = Array.from({ length: 30 }, (_, i) => ({ id: i, name: `item_${i}` }));
+
+      const wrapper = mount(DataTree, {
+        props: {
+          data: largeData,
+          showSearch: true,
+          debounceDelay: 250,
+        },
+      });
+
+      const input = wrapper.find('.data-tree-search-input');
+      await input.setValue('item_15');
+      jest.advanceTimersByTime(250);
+      await wrapper.vm.$nextTick();
+      expect(wrapper.vm.appliedQuery).toBe('item_15');
+
+      await input.setValue('');
+      await wrapper.vm.$nextTick();
+      expect(wrapper.vm.isDebouncing).toBe(false);
+      expect(wrapper.vm.appliedQuery).toBe('');
+    });
+  });
 });

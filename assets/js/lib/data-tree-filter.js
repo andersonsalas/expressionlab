@@ -363,3 +363,37 @@ export function searchTreeAst(ast, query, mode = 'text') {
     matchCount: count,
   };
 }
+
+/**
+ * Recursively checks whether an AST contains more than `threshold` nodes,
+ * using short-circuit evaluation to return early on large trees.
+ *
+ * @param {object} node - Root AST node.
+ * @param {number} [threshold=20] - Maximum node count before flagging as large.
+ * @returns {boolean}
+ */
+export function countAstNodesExceeds(node, threshold = 20) {
+  if (!node || typeof node !== 'object') return false;
+
+  let count = 0;
+
+  function walk(n) {
+    if (!n || typeof n !== 'object' || count > threshold) return;
+    count++;
+
+    if (n.type === 'array' && Array.isArray(n.entries)) {
+      for (let i = 0; i < n.entries.length; i++) {
+        walk(n.entries[i]?.value);
+        if (count > threshold) return;
+      }
+    } else if (n.type === 'object' && Array.isArray(n.properties)) {
+      for (let i = 0; i < n.properties.length; i++) {
+        walk(n.properties[i]?.value);
+        if (count > threshold) return;
+      }
+    }
+  }
+
+  walk(node);
+  return count > threshold;
+}

@@ -272,6 +272,10 @@
 			&.no-matches {
 				color: #b91c1c;
 			}
+
+			&.is-searching {
+				color: #64748b;
+			}
 		}
 
 		.search-clear-btn {
