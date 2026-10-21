@@ -48,8 +48,8 @@
 
 .cm-tooltip {
 	padding: 1px;
-	border-radius: 0;
-	box-shadow: none;
+	border-radius: 0 !important;
+	box-shadow: none !important;
 }
 
 .cm-tooltip-autocomplete {
@@ -614,20 +614,31 @@ a.cm-docblock.doc-link {
 	}
 }
 
+.cm-tooltip:has(> .cm-tooltip-lint),
 .cm-tooltip-hover:has(> .cm-tooltip-lint) {
+	background: #fff !important;
+	border: 1px solid #000 !important;
 	border-color: #000 !important;
+	border-radius: 0 !important;
+	box-shadow: none !important;
+	padding: 0 !important;
 }
 
 .cm-tooltip-lint {
 	background: #fff !important;
 	color: #cc1818 !important;
-	border-color: #000 !important;
+	border: 1px solid #000 !important;
+	border-color: #000;
 	border-radius: 0 !important;
 	box-shadow: none !important;
 	font-family: vars.$font-family-sans !important;
 	font-size: vars.$font-default-size !important;
 	padding: 4px 8px !important;
 	max-width: 480px !important;
+
+	.cm-tooltip.cm-tooltip > & {
+		border: none !important;
+	}
 
 	.cm-diagnostic {
 		padding: 3px 0 !important;

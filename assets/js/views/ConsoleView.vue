@@ -133,7 +133,52 @@ const handleSidebarItemClick = (item) => {
   }
 };
 
+const isToolsDropdownOpen = ref(false);
+const toolsDropdownBtnRef = ref(null);
+const toolsDropdownMenuRef = ref(null);
+const toolsDropdownStyle = ref({});
+
+const updateToolsDropdownPosition = () => {
+  if (!toolsDropdownBtnRef.value) return;
+  const rect = toolsDropdownBtnRef.value.getBoundingClientRect();
+  toolsDropdownStyle.value = {
+    position: 'fixed',
+    top: `${rect.bottom + 2}px`,
+    left: `${rect.left}px`,
+    zIndex: 100000,
+  };
+};
+
+const toggleToolsDropdown = () => {
+  isToolsDropdownOpen.value = !isToolsDropdownOpen.value;
+  if (isToolsDropdownOpen.value) {
+    nextTick(updateToolsDropdownPosition);
+  }
+};
+
+const handleOpenHttpRequestBuilder = () => {
+  isToolsDropdownOpen.value = false;
+  uiStore.openModal('http-builder');
+};
+
+const handleWindowClick = (event) => {
+  if (
+    isToolsDropdownOpen.value &&
+    toolsDropdownMenuRef.value &&
+    !toolsDropdownMenuRef.value.contains(event.target) &&
+    toolsDropdownBtnRef.value &&
+    !toolsDropdownBtnRef.value.contains(event.target)
+  ) {
+    isToolsDropdownOpen.value = false;
+  }
+};
+
 const handleGlobalKeydown = (e) => {
+  if (e.key === 'Escape' && isToolsDropdownOpen.value) {
+    isToolsDropdownOpen.value = false;
+    return;
+  }
+
   if (!e.altKey || e.ctrlKey || e.metaKey) return;
 
   if (e.key === 't' || e.key === 'T' || e.key === 'n' || e.key === 'N') {
@@ -182,6 +227,8 @@ onMounted(() => {
 
   if (typeof window !== 'undefined') {
     window.addEventListener('keydown', handleGlobalKeydown);
+    window.addEventListener('click', handleWindowClick);
+    window.addEventListener('resize', updateToolsDropdownPosition);
   }
 
   nextTick(() => {
@@ -193,6 +240,8 @@ onUnmounted(() => {
   if (signatureInterval) clearInterval(signatureInterval);
   if (typeof window !== 'undefined') {
     window.removeEventListener('keydown', handleGlobalKeydown);
+    window.removeEventListener('click', handleWindowClick);
+    window.removeEventListener('resize', updateToolsDropdownPosition);
   }
 });
 </script>
@@ -202,28 +251,17 @@ onUnmounted(() => {
     <div class="console-main">
       <!-- 1. Top Action Toolbar -->
       <div class="console-toolbar">
-        <div class="console-toolbar-group group-new-tabs">
+        <div class="console-toolbar-group group-tools">
           <div
-            class="console-toolbar-button menu btn-tab-creator"
-            :class="{ disabled: !tabsStore.canAddTab }"
-            :title="__('New Console tab')"
-            @click="tabsStore.canAddTab && handleCreateConsoleTab()"
+            ref="toolsDropdownBtnRef"
+            class="console-toolbar-button menu-dropdown-btn"
+            :class="{ active: isToolsDropdownOpen }"
+            :title="__('Open tools')"
+            @click.stop="toggleToolsDropdown"
           >
-            <div class="btn-badge">
-              <div class="codicon codicon-add" />
-            </div>
-            <div class="codicon codicon-console" />
-          </div>
-          <div
-            class="console-toolbar-button menu btn-tab-creator"
-            :class="{ disabled: !tabsStore.canAddTab }"
-            :title="__('New Scratchpad tab')"
-            @click="tabsStore.canAddTab && handleCreateScratchpadTab()"
-          >
-            <div class="btn-badge">
-              <div class="codicon codicon-add" />
-            </div>
-            <div class="codicon codicon-notebook" />
+            <div class="codicon codicon-tools" />
+            <span>{{ __('Tools') }}</span>
+            <div class="codicon codicon-chevron-down tools-chevron" />
           </div>
         </div>
 
@@ -516,4 +554,22 @@ onUnmounted(() => {
       </div>
     </div>
   </div>
+
+  <!-- Tools Dropdown Menu (Teleported to avoid clipping) -->
+  <Teleport to="body">
+    <div
+      v-if="isToolsDropdownOpen"
+      ref="toolsDropdownMenuRef"
+      class="console-tab-context-menu console-tools-dropdown-menu"
+      :style="toolsDropdownStyle"
+    >
+      <div
+        class="tab-menu-item"
+        @click="handleOpenHttpRequestBuilder"
+      >
+        <span class="codicon codicon-globe" />
+        <span>{{ __('HTTP Request Builder') }}</span>
+      </div>
+    </div>
+  </Teleport>
 </template>

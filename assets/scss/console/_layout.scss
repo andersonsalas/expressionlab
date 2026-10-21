@@ -192,6 +192,20 @@
 			}
 		}
 
+		&.group-tools {
+			.console-toolbar-button {
+				display: inline-flex;
+				align-items: center;
+				gap: 4px;
+
+				.tools-chevron {
+					font-size: 14px;
+					margin-left: 2px;
+					margin-right: 0;
+				}
+			}
+		}
+
 		&.pull-right {
 			margin-left: auto;
 			border-right: none;
@@ -244,4 +258,8 @@
 			}
 		}
 	}
+}
+
+.console-tools-dropdown-menu {
+	min-width: 195px;
 }
