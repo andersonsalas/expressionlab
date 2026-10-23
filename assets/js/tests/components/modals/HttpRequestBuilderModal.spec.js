@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils';
+import { mount, flushPromises } from '@vue/test-utils';
 import { createTestingPinia } from '@pinia/testing';
 import HttpRequestBuilderModal from '../../../components/modals/HttpRequestBuilderModal.vue';
 import { useUiStore } from '../../../stores/ui';
@@ -27,8 +27,8 @@ describe('HttpRequestBuilderModal.vue', () => {
     });
 
     expect(wrapper.find('#http-request-builder-modal').exists()).toBe(true);
-    expect(wrapper.find('.modal-header h2').text()).toBe('HTTP Request Builder');
-    expect(wrapper.find('.request-url-input').element.value).toBe('https://example.com');
+    expect(wrapper.find('.request-url-input').element.value).toBe('');
+    expect(wrapper.find('.request-url-input').attributes('placeholder')).toBe('https://example.com');
     expect(wrapper.find('.request-method-trigger').text()).toContain('GET');
 
     const tabs = wrapper.findAll('.builder-tab-btn');
@@ -87,8 +87,8 @@ describe('HttpRequestBuilderModal.vue', () => {
 
     await tabs[5].trigger('click'); // Preview
     expect(wrapper.find('.tab-preview').exists()).toBe(true);
-    expect(wrapper.find('.tab-preview .code-preview-cm-editor').exists()).toBe(true);
-    expect(wrapper.find('.tab-preview .table-actions-bar button').text()).toContain('Copy Code');
+    expect(wrapper.find('.tab-preview .builder-notice.notice-info').exists()).toBe(true);
+    expect(wrapper.find('.tab-preview .code-preview-cm-editor').exists()).toBe(false);
   });
 
   it('adds and removes parameter rows and scrolls to bottom', async () => {
@@ -318,7 +318,7 @@ describe('HttpRequestBuilderModal.vue', () => {
     expect(wrapper.find('.request-method-trigger').text()).toContain('HEAD');
   });
 
-  it('triggers snippet insertion on Insert click', async () => {
+  it('disables Insert and Copy Code when empty and triggers insertion when URL is provided', async () => {
     const pinia = createTestingPinia({
       initialState: {
         ui: { activeModal: 'http-builder' }
@@ -336,9 +336,34 @@ describe('HttpRequestBuilderModal.vue', () => {
 
     const uiStore = useUiStore();
     const insertBtn = wrapper.find('.http-builder-footer .btn-primary');
-    await insertBtn.trigger('click');
 
-    expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith('Http.get(\'https://example.com\')');
+    // 1. When empty, Insert button is disabled
+    expect(insertBtn.attributes('disabled')).toBeDefined();
+    await insertBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).not.toHaveBeenCalled();
+
+    // 2. In preview tab, notice is shown and CodeMirror editor + Copy Code button are hidden
+    const tabs = wrapper.findAll('.builder-tab-btn');
+    await tabs[5].trigger('click'); // Code Preview
+    expect(wrapper.find('.tab-preview .builder-notice.notice-info').exists()).toBe(true);
+    expect(wrapper.find('.tab-preview .code-preview-cm-editor').exists()).toBe(false);
+    expect(wrapper.find('.tab-preview .table-actions-bar').exists()).toBe(false);
+
+    // 3. When URL is provided, notice disappears, editor and Copy Code button appear, and Insert is enabled
+    const addressInput = wrapper.find('.request-url-input');
+    await addressInput.setValue('https://api.example.com/data');
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find('.tab-preview .builder-notice.notice-info').exists()).toBe(false);
+    expect(wrapper.find('.tab-preview .code-preview-cm-editor').exists()).toBe(true);
+    expect(wrapper.find('.tab-preview .table-actions-bar button').exists()).toBe(true);
+    expect(insertBtn.attributes('disabled')).toBeUndefined();
+
+    await insertBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith({
+      code: 'Http.get(\'https://api.example.com/data\')',
+      mode: 'insert'
+    });
     expect(uiStore.closeModal).toHaveBeenCalled();
   });
 
@@ -359,14 +384,14 @@ describe('HttpRequestBuilderModal.vue', () => {
     });
 
     const uiStore = useUiStore();
-    const cancelBtn = wrapper.find('.http-builder-footer .btn-default');
+    const cancelBtn = wrapper.find('.http-builder-footer .footer-actions-right .btn-default');
     await cancelBtn.trigger('click');
 
     expect(uiStore.showDialog).not.toHaveBeenCalled();
     expect(uiStore.closeModal).toHaveBeenCalled();
   });
 
-  it('prompts confirm dialog on cancel when modified', async () => {
+  it('preserves draft and closes without prompt on cancel even when modified', async () => {
     const pinia = createTestingPinia({
       initialState: {
         ui: { activeModal: 'http-builder' }
@@ -383,17 +408,97 @@ describe('HttpRequestBuilderModal.vue', () => {
     });
 
     const uiStore = useUiStore();
-    uiStore.showDialog.mockResolvedValue(true);
 
     // Modify URL
     const urlInput = wrapper.find('.request-url-input');
     await urlInput.setValue('https://api.github.com/users');
 
-    const cancelBtn = wrapper.find('.http-builder-footer .btn-default');
+    const cancelBtn = wrapper.find('.http-builder-footer .footer-actions-right .btn-default');
     await cancelBtn.trigger('click');
 
-    expect(uiStore.showDialog).toHaveBeenCalled();
+    expect(uiStore.showDialog).not.toHaveBeenCalled();
     expect(uiStore.closeModal).toHaveBeenCalled();
+  });
+
+  it('disables reset button when clean and prompts confirmation when dirty', async () => {
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'http-builder' }
+      }
+    });
+
+    const wrapper = mount(HttpRequestBuilderModal, {
+      global: {
+        plugins: [pinia],
+        mocks: {
+          __: (str) => str
+        }
+      }
+    });
+
+    const uiStore = useUiStore();
+    const resetBtn = wrapper.find('.http-builder-footer .btn-reset');
+    expect(resetBtn.attributes('disabled')).toBeDefined();
+
+    // Modify URL to make dirty
+    const urlInput = wrapper.find('.request-url-input');
+    await urlInput.setValue('https://api.github.com/users');
+    expect(resetBtn.attributes('disabled')).toBeUndefined();
+
+    // Case 1: User cancels reset
+    uiStore.showDialog.mockResolvedValueOnce(false);
+    await resetBtn.trigger('click');
+    await flushPromises();
+    expect(uiStore.showDialog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'confirm',
+        confirmText: 'Reset',
+        cancelText: 'Cancel'
+      })
+    );
+    expect(wrapper.find('.request-url-input').element.value).toBe('https://api.github.com/users');
+
+    // Case 2: User confirms reset
+    uiStore.showDialog.mockResolvedValueOnce(true);
+    await resetBtn.trigger('click');
+    await flushPromises();
+    expect(wrapper.find('.request-url-input').element.value).toBe('');
+  });
+
+  it('displays Replace button and passes mode replace when in scratchpad mode', async () => {
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'http-builder' },
+        tabs: {
+          tabs: [{ id: 'tab1', mode: 'scratchpad' }],
+          activeTabId: 'tab1'
+        }
+      }
+    });
+
+    const wrapper = mount(HttpRequestBuilderModal, {
+      global: {
+        plugins: [pinia],
+        mocks: {
+          __: (str) => str
+        }
+      }
+    });
+
+    const uiStore = useUiStore();
+    const insertBtn = wrapper.find('.http-builder-footer .btn-primary');
+    expect(insertBtn.text()).toBe('Replace');
+
+    const addressInput = wrapper.find('.request-url-input');
+    await addressInput.setValue('https://api.example.com/data');
+    await wrapper.vm.$nextTick();
+
+    await insertBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'replace'
+      })
+    );
   });
 
   it('does not cause recursive loop when configuring API Key in Query Params', async () => {
@@ -437,7 +542,7 @@ describe('HttpRequestBuilderModal.vue', () => {
 
     // Verify URL does not explode recursively
     const urlInput = wrapper.find('.request-url-input');
-    expect(urlInput.element.value).toBe('https://example.com?foo=bar');
+    expect(urlInput.element.value).toBe('?foo=bar');
 
     // Switch back to Params tab
     await tabs[0].trigger('click');
@@ -464,7 +569,8 @@ describe('HttpRequestBuilderModal.vue', () => {
 
     const uiStore = useUiStore();
 
-    // Configure a POST request
+    // Configure a POST request with a URL
+    await wrapper.find('.request-url-input').setValue('https://api.example.com/items');
     await wrapper.find('.request-method-trigger').trigger('click');
     const postOption = wrapper.findAll('.method-option').filter(w => w.text().includes('POST'))[0];
     await postOption.trigger('click');
@@ -491,7 +597,7 @@ describe('HttpRequestBuilderModal.vue', () => {
     const insertBtn = wrapper.find('.http-builder-footer .btn-primary');
     await insertBtn.trigger('click');
     expect(uiStore.triggerSnippetInsert).toHaveBeenCalled();
-    const insertedText = uiStore.triggerSnippetInsert.mock.calls[0][0];
-    expect(insertedText).toContain('Http.post(');
+    const insertedPayload = uiStore.triggerSnippetInsert.mock.calls[0][0];
+    expect(insertedPayload.code).toContain('Http.post(');
   });
 });

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { useUiStore } from '../../stores/ui.js';
+import { useTabsStore } from '../../stores/tabs.js';
 import { __ } from '../../lib/helpers.js';
 import {
   parseUrlAndParams,
@@ -26,6 +27,8 @@ const props = defineProps({
 });
 
 const uiStore = useUiStore();
+const tabsStore = useTabsStore();
+const isScratchpad = computed(() => tabsStore.activeTab?.mode === 'scratchpad');
 const isOpen = computed(() => uiStore.activeModal === 'http-builder');
 
 const HTTP_METHODS = ['GET', 'POST', 'HEAD'];
@@ -34,7 +37,7 @@ const HTTP_METHODS = ['GET', 'POST', 'HEAD'];
 const method = ref('GET');
 const isMethodDropdownOpen = ref(false);
 const methodDropdownRef = ref(null);
-const url = ref('https://example.com');
+const url = ref('');
 const activeTab = ref('params');
 
 const toggleMethodDropdown = () => {
@@ -122,7 +125,7 @@ let isInternalParamsUpdate = false;
 const syncUrlFromState = () => {
   isInternalUrlUpdate = true;
   const { baseUrl } = parseUrlAndParams(url.value);
-  url.value = buildFullUrl(baseUrl || 'https://example.com', params.value, auth.value);
+  url.value = buildFullUrl(baseUrl || '', params.value, auth.value);
   nextTick(() => {
     isInternalUrlUpdate = false;
   });
@@ -536,7 +539,7 @@ watch(
 // Dirty state check
 const isDirty = computed(() => {
   if (method.value !== 'GET') return true;
-  if (url.value !== 'https://example.com') return true;
+  if (url.value !== '') return true;
   if (params.value.some((p) => p.key || p.value)) return true;
   if (headers.value.some((h) => h.key || h.value)) return true;
   if (auth.value.type !== 'none') return true;
@@ -554,7 +557,7 @@ const isDirty = computed(() => {
 const resetState = () => {
   method.value = 'GET';
   isMethodDropdownOpen.value = false;
-  url.value = 'https://example.com';
+  url.value = '';
   activeTab.value = 'params';
   params.value = [{ enabled: true, key: '', value: '' }];
   auth.value = {
@@ -587,30 +590,41 @@ const resetState = () => {
   isCopied.value = false;
 };
 
+// Validation
+const isEmpty = computed(() => {
+  return !url.value.trim();
+});
+
 // Actions
-const handleClose = async () => {
-  if (isDirty.value) {
-    const confirmed = await uiStore.showDialog({
-      type: 'confirm',
-      title: __('Discard changes?'),
-      message: __('You have unsaved changes in the HTTP Request Builder. Are you sure you want to discard them?'),
-      confirmText: __('Discard'),
-      cancelText: __('Cancel')
-    });
-    if (!confirmed) return;
-  }
-  resetState();
+const handleClose = () => {
   uiStore.closeModal();
 };
 
-const handleInsert = () => {
-  const code = generatedCode.value;
-  uiStore.triggerSnippetInsert(code);
+const handleReset = async () => {
+  if (!isDirty.value) return;
+  const confirmed = await uiStore.showDialog({
+    type: 'confirm',
+    title: __('Reset Request Builder?'),
+    message: __('This will clear all configured URL, parameters, headers, and options, restoring the builder to its default state. Are you sure?'),
+    confirmText: __('Reset'),
+    cancelText: __('Cancel')
+  });
+  if (!confirmed) return;
   resetState();
+};
+
+const handleInsert = () => {
+  if (isEmpty.value) return;
+  const code = generatedCode.value;
+  uiStore.triggerSnippetInsert({
+    code,
+    mode: isScratchpad.value ? 'replace' : 'insert'
+  });
   uiStore.closeModal();
 };
 
 const handleCopyCode = async () => {
+  if (isEmpty.value) return;
   try {
     if (navigator?.clipboard?.writeText) {
       await navigator.clipboard.writeText(generatedCode.value);
@@ -819,6 +833,7 @@ const handleOverlayClick = (e) => {
                         type="text"
                         class="kv-input"
                         :placeholder="__('Key')"
+                        spellcheck="false"
                       >
                     </td>
                     <td class="col-val">
@@ -827,6 +842,7 @@ const handleOverlayClick = (e) => {
                         type="text"
                         class="kv-input"
                         :placeholder="__('Value')"
+                        spellcheck="false"
                       >
                     </td>
                     <td class="col-actions">
@@ -1208,6 +1224,7 @@ const handleOverlayClick = (e) => {
                             type="text"
                             class="kv-input"
                             :placeholder="__('Key')"
+                            spellcheck="false"
                           >
                         </td>
                         <td class="col-val">
@@ -1216,6 +1233,7 @@ const handleOverlayClick = (e) => {
                             type="text"
                             class="kv-input"
                             :placeholder="__('Value')"
+                            spellcheck="false"
                           >
                         </td>
                         <td class="col-actions">
@@ -1381,6 +1399,7 @@ const handleOverlayClick = (e) => {
                             type="text"
                             class="kv-input"
                             :placeholder="__('Cookie name')"
+                            spellcheck="false"
                           >
                         </td>
                         <td class="col-val">
@@ -1389,6 +1408,7 @@ const handleOverlayClick = (e) => {
                             type="text"
                             class="kv-input"
                             :placeholder="__('Cookie value')"
+                            spellcheck="false"
                           >
                         </td>
                         <td class="col-actions">
@@ -1422,22 +1442,34 @@ const handleOverlayClick = (e) => {
             class="tab-pane tab-preview"
           >
             <div class="panel-section-header">
-              <h4>{{ __('Generated Elscript Expression') }}</h4>
+              <h4>{{ __('Generated Expression') }}</h4>
             </div>
 
             <div
-              ref="previewEditorContainerRef"
-              class="code-preview-cm-editor"
-            />
-
-            <div class="table-actions-bar">
-              <button
-                class="btn btn-sm btn-default"
-                @click="handleCopyCode"
-              >
-                {{ isCopied ? __('Copied!') : __('Copy Code') }}
-              </button>
+              v-if="isEmpty"
+              class="builder-notice notice-info"
+            >
+              <span class="codicon codicon-info" />
+              <p>
+                {{ __('The request configuration is empty. Enter a request URL to generate a valid HTTP expression.') }}
+              </p>
             </div>
+
+            <template v-else>
+              <div
+                ref="previewEditorContainerRef"
+                class="code-preview-cm-editor"
+              />
+
+              <div class="table-actions-bar">
+                <button
+                  class="btn btn-sm btn-default"
+                  @click="handleCopyCode"
+                >
+                  {{ isCopied ? __('Copied!') : __('Copy Code') }}
+                </button>
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -1445,17 +1477,30 @@ const handleOverlayClick = (e) => {
       <!-- Modal Footer -->
       <div class="modal-footer http-builder-footer">
         <button
-          class="btn btn-default fw-100px"
-          @click="handleClose"
+          type="button"
+          class="btn btn-default btn-reset fw-80px"
+          :disabled="!isDirty"
+          @click="handleReset"
         >
-          {{ __('Cancel') }}
+          {{ __('Reset') }}
         </button>
-        <button
-          class="btn btn-primary fw-100px"
-          @click="handleInsert"
-        >
-          {{ __('Insert') }}
-        </button>
+        <div class="footer-actions-right">
+          <button
+            type="button"
+            class="btn btn-default fw-80px"
+            @click="handleClose"
+          >
+            {{ __('Cancel') }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary fw-80px"
+            :disabled="isEmpty"
+            @click="handleInsert"
+          >
+            {{ isScratchpad ? __('Replace') : __('Insert') }}
+          </button>
+        </div>
       </div>
     </div>
   </div>

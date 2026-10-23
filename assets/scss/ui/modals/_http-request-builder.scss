@@ -264,6 +264,8 @@
 		max-width: 100%;
 	}
 
+	$row-height: 26px;
+
 	.kv-table {
 		width: 100%;
 		border-collapse: collapse;
@@ -282,17 +284,23 @@
 			border-bottom: 1px solid #ddd;
 			vertical-align: middle;
 			font-family: $font-family-monospace;
+			height: $row-height;
+			box-sizing: border-box;
 		}
 
 		th {
 			background: #f7f7f7;
 			font-weight: 600;
 			color: #333;
-			padding: 3px 6px;
+			padding: 0 6px;
+			font-size: 13px;
+			height: $row-height;
+			line-height: $row-height;
 		}
 
 		td {
 			padding: 0;
+			height: $row-height;
 		}
 
 		tr:nth-child(even) {
@@ -316,11 +324,13 @@
 		.col-check {
 			width: 32px;
 			text-align: center;
+			height: $row-height;
 
 			.kv-checkbox {
-				margin-top: -1px;
+				margin: 0;
 				cursor: pointer;
 				vertical-align: middle;
+				display: inline-block;
 			}
 		}
 
@@ -335,17 +345,46 @@
 		.col-actions {
 			width: 36px;
 			text-align: center;
+			height: $row-height;
+
+			.btn-row-action {
+				background: transparent;
+				border: none;
+				cursor: pointer;
+				color: #888;
+				padding: 0;
+				height: $row-height;
+				width: 100%;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+
+				.codicon {
+					font-size: 14px;
+				}
+
+				&:hover {
+					color: #d63638;
+				}
+			}
 		}
 
+		// Base input styling for all table controls
 		.kv-input {
+			display: block;
 			width: 100%;
+			height: $row-height;
+			line-height: 20px;
+			padding: 2px 6px;
 			border: 1px solid transparent;
-			padding: 3px 6px;
+			box-sizing: border-box;
 			font-size: 13px;
 			font-family: $font-family-monospace;
 			color: inherit;
 			background: transparent;
-			box-sizing: border-box;
+			margin: 0;
+			outline: none;
+			border-radius: 0;
 
 			&:focus {
 				background: #fff;
@@ -353,24 +392,69 @@
 				color: black;
 				outline: none;
 			}
+
+			&::placeholder {
+				color: #8f8f8f;
+			}
 		}
 
-		.btn-row-action {
-			background: transparent;
-			border: none;
+		// Dropdown select controls
+		.kv-select {
+			appearance: auto;
 			cursor: pointer;
-			color: #888;
-			padding: 2px 4px;
-			display: inline-flex;
-			align-items: center;
-			justify-content: center;
+			padding: 0 4px;
+			line-height: 24px;
+			min-height: 24px;
+			background-color: transparent;
 
-			.codicon {
-				font-size: 14px;
+			&:focus {
+				background-color: #fff;
+				border-color: $wordpress-primary;
+				outline: none;
+			}
+		}
+
+		// Datetime-local inputs (removes Webkit default padding / height inflation)
+		input[type="datetime-local"].kv-input {
+			padding: 0 4px;
+
+			&::-webkit-datetime-edit {
+				padding: 0;
+				height: 24px;
+				line-height: 24px;
 			}
 
-			&:hover {
-				color: #d63638;
+			&::-webkit-datetime-edit-fields-wrapper {
+				padding: 0;
+			}
+
+			&::-webkit-calendar-picker-indicator {
+				cursor: pointer;
+				padding: 0;
+				margin: 0;
+				height: 14px;
+				width: 14px;
+				opacity: 0.6;
+
+				&:hover {
+					opacity: 1;
+				}
+			}
+		}
+
+		// Input group wrapper for future compound controls
+		.val-input-group {
+			display: flex;
+			align-items: stretch;
+			width: 100%;
+			height: $row-height;
+			box-sizing: border-box;
+			position: relative;
+
+			.val-input {
+				flex: 1;
+				min-width: 0;
+				height: $row-height;
 			}
 		}
 	}
@@ -458,10 +542,14 @@
 			outline: none;
 			box-shadow: none;
 		}
+
+		&::placeholder {
+			color: #8f8f8f;
+		}
 	}
 
 	.form-help {
-		font-size: 11px;
+		font-size: 12px;
 		color: #555;
 		margin-top: 6px;
 		display: block;
@@ -474,19 +562,39 @@
 		}
 	}
 
-	// Body tab
+	// Notices
+	.builder-notice,
 	.body-disabled-notice {
 		display: flex;
 		align-items: center;
 		gap: 10px;
 		padding: 16px;
+		background: #fff;
 		border: 1px solid $border-color;
 		border-radius: 3px;
 		font-size: 13px;
+		margin-bottom: 16px;
 
 		.codicon {
 			font-size: 20px;
 			color: $wordpress-primary;
+			flex-shrink: 0;
+
+			&.codicon-warning {
+				color: #e09010;
+			}
+		}
+
+		&.notice-warning {
+			.codicon {
+				color: #e09010;
+			}
+		}
+
+		&.notice-info {
+			.codicon {
+				color: $wordpress-primary;
+			}
 		}
 
 		p {
@@ -541,15 +649,6 @@
 		display: flex;
 		flex-direction: column;
 		min-height: 0;
-
-		&.has-error {
-			border-color: #cc1818;
-
-			&:hover,
-			&:focus-within {
-				border-color: #cc1818;
-			}
-		}
 
 		.cm-editor {
 			height: 100%;
@@ -678,7 +777,11 @@
 	.http-builder-footer {
 		display: flex;
 		align-items: center;
-		justify-content: flex-end;
-		gap: 8px;
+		justify-content: space-between;
+
+		.footer-actions-right {
+			display: flex;
+			gap: 8px;
+		}
 	}
 }

@@ -178,10 +178,12 @@ export function buildFullUrl(baseUrl, params = [], auth = null) {
   }
 
   if (queryParts.length === 0) {
-    return `${cleanBase || 'https://example.com'}${hash}`;
+    return `${cleanBase}${hash}`;
   }
 
-  return `${cleanBase || 'https://example.com'}?${queryParts.join('&')}${hash}`;
+  return cleanBase
+    ? `${cleanBase}?${queryParts.join('&')}${hash}`
+    : `?${queryParts.join('&')}${hash}`;
 }
 
 /**
@@ -364,7 +366,7 @@ export function resolveBody(bodyConfig) {
  */
 export function generateElscriptHttpRequest(config) {
   const method = (config.method || 'GET').toUpperCase();
-  const fullUrl = buildFullUrl(config.url || 'https://example.com', config.params, config.auth);
+  const fullUrl = buildFullUrl(config.url || '', config.params, config.auth);
   const headers = resolveHeaders(config);
   const options = resolveOptions(config.settings);
 
