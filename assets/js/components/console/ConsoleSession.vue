@@ -101,6 +101,16 @@ const insertSnippet = (code, options = {}) => {
   }
 };
 
+const replaceContent = (code) => {
+  const activeEditor = getActiveEditor();
+  if (activeEditor) {
+    activeEditor.setEditorValue(code);
+    nextTick(() => {
+      activeEditor.moveCursorToEnd();
+    });
+  }
+};
+
 const focus = () => {
   getActiveEditor()?.focus();
 };
@@ -616,6 +626,7 @@ defineExpose({
   clearSession,
   formatCode,
   insertSnippet,
+  replaceContent,
   focus,
   getActiveEditor,
   adjustOutputForVisualization,

@@ -63,11 +63,17 @@ watch(() => uiStore.challengeFetchedAt, updateSignatureTime);
 
 watch(
   () => uiStore.snippetToInsert,
-  (code) => {
-    if (code) {
+  (payload) => {
+    if (payload) {
+      const code = typeof payload === 'object' && payload !== null && payload.code !== undefined ? payload.code : payload;
+      const mode = typeof payload === 'object' && payload !== null && payload.mode ? payload.mode : 'insert';
       const session = getActiveSession();
       if (session) {
-        session.insertSnippet(code, { replaceWord: true });
+        if (mode === 'replace' && typeof session.replaceContent === 'function') {
+          session.replaceContent(code);
+        } else {
+          session.insertSnippet(code, { replaceWord: true });
+        }
         uiStore.triggerSnippetInsert(null);
       }
     }
@@ -159,6 +165,11 @@ const toggleToolsDropdown = () => {
 const handleOpenHttpRequestBuilder = () => {
   isToolsDropdownOpen.value = false;
   uiStore.openModal('http-builder');
+};
+
+const handleOpenDatabaseBuilder = () => {
+  isToolsDropdownOpen.value = false;
+  uiStore.openModal('database-builder');
 };
 
 const handleWindowClick = (event) => {
@@ -569,6 +580,13 @@ onUnmounted(() => {
       >
         <span class="codicon codicon-globe" />
         <span>{{ __('HTTP Request Builder') }}</span>
+      </div>
+      <div
+        class="tab-menu-item"
+        @click="handleOpenDatabaseBuilder"
+      >
+        <span class="codicon codicon-database" />
+        <span>{{ __('Database Query Builder') }}</span>
       </div>
     </div>
   </Teleport>

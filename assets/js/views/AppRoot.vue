@@ -10,6 +10,7 @@ import SettingsModal from '../components/modals/SettingsModal.vue';
 import LibraryModal from '../components/modals/LibraryModal.vue';
 import DataViewerModal from '../components/modals/DataViewerModal.vue';
 import HttpRequestBuilderModal from '../components/modals/HttpRequestBuilderModal.vue';
+import DatabaseBuilderModal from '../components/modals/DatabaseBuilderModal.vue';
 import DialogModal from '../components/modals/DialogModal.vue';
 import ConsolePassword from '../components/console/ConsolePassword.vue';
 
@@ -58,6 +59,9 @@ onUnmounted(() => {
       :close-on-outside-click="false"
     />
     <HttpRequestBuilderModal
+      :close-on-outside-click="false"
+    />
+    <DatabaseBuilderModal
       :close-on-outside-click="false"
     />
     <!-- /Base Modals -->
