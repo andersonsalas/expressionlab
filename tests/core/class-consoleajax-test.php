@@ -20,6 +20,10 @@ class ConsoleAjaxTest extends WP_Ajax_UnitTestCase {
 	public function setUp(): void {
 		parent::setUp();
 
+		remove_action( 'admin_init', '_maybe_update_core' );
+		remove_action( 'admin_init', '_maybe_update_plugins' );
+		remove_action( 'admin_init', '_maybe_update_themes' );
+
 		$admin_user_id = defined( 'EXPRESSION_LAB_ADMIN_USER_ID' ) ? (int) constant( 'EXPRESSION_LAB_ADMIN_USER_ID' ) : 1;
 		$existing_admin = get_user_by( 'id', $admin_user_id );
 		if ( $existing_admin ) {
@@ -42,6 +46,20 @@ class ConsoleAjaxTest extends WP_Ajax_UnitTestCase {
 		$_POST = array();
 		$_GET  = array();
 		parent::tearDown();
+	}
+
+	public static function tear_down_after_class() {
+		if ( ! has_action( 'admin_init', '_maybe_update_core' ) ) {
+			add_action( 'admin_init', '_maybe_update_core' );
+		}
+		if ( ! has_action( 'admin_init', '_maybe_update_plugins' ) ) {
+			add_action( 'admin_init', '_maybe_update_plugins' );
+		}
+		if ( ! has_action( 'admin_init', '_maybe_update_themes' ) ) {
+			add_action( 'admin_init', '_maybe_update_themes' );
+		}
+
+		parent::tear_down_after_class();
 	}
 
 
