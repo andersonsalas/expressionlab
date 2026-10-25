@@ -1472,6 +1472,10 @@ onBeforeUnmount(() => {
               </div>
             </div>
 
+            <div class="panel-section-header margin-top-20 border-top">
+              <h4>{{ __('Prefix') }}</h4>
+            </div>
+
             <div class="form-row">
               <div class="form-group">
                 <label style="display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer;">

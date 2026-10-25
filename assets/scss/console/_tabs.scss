@@ -237,18 +237,53 @@
 		height: 30px;
 		box-sizing: border-box;
 		white-space: nowrap;
+		background: transparent;
+		border: none;
+		width: 100%;
+		text-align: left;
+		font-family: inherit;
 
 		.codicon {
 			font-size: 18px;
 			color: #888;
 		}
 
-		&:hover:not(.disabled) {
+		&:hover:not(.disabled, .empty) {
 			background: $wordpress-primary;
 			color: white;
 
 			.codicon {
 				color: white;
+			}
+		}
+
+		&.active {
+			color: $wordpress-primary;
+
+			&:hover:not(.disabled, .empty) {
+				color: white;
+
+				.active-check {
+					color: white;
+				}
+			}
+		}
+
+		.active-check {
+			margin-left: auto;
+			font-size: 14px;
+			color: #555;
+		}
+
+		&.empty {
+			color: $wp-text-muted;
+			cursor: default;
+			user-select: none;
+			line-height: 30px;
+
+			&:hover {
+				background: transparent !important;
+				color: $wp-text-muted !important;
 			}
 		}
 

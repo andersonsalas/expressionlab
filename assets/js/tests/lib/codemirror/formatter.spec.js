@@ -97,6 +97,78 @@ describe('Expression Lab DSL Formatter', () => {
       expect(formatExpressionLab(input)).toBe('Users.find(1).posts.filter(fn[[\'p\'], p.status == \'publish\'])');
     });
 
+    it('formats chained method calls with first method on same line as target and subsequent calls indented', () => {
+      const singleLineInput = 'Posts.where(\'post_title\', \'like\', \'%hello%\').where(\'post_date\', \'<\', \'2026-10-01 13:11:26\').or_where(\'post_title\', \'like\', \'%sample%\').where(\'post_date\', \'<\', \'2026-10-01 13:11:54\').order_by(\'ID\', \'DESC\').to_sql()';
+      const expected =
+`Posts.where('post_title', 'like', '%hello%')
+    .where('post_date', '<', '2026-10-01 13:11:26')
+    .or_where('post_title', 'like', '%sample%')
+    .where('post_date', '<', '2026-10-01 13:11:54')
+    .order_by('ID', 'DESC')
+    .to_sql()`;
+
+      expect(formatExpressionLab(singleLineInput)).toBe(expected);
+
+      // Reformatting already-multiline code should yield the exact same result
+      const multilineWithOrphanedReceiver =
+`Posts
+    .where('post_title', 'like', '%hello%')
+    .where('post_date', '<', '2026-10-01 13:11:26')
+    .or_where('post_title', 'like', '%sample%')
+    .where('post_date', '<', '2026-10-01 13:11:54')
+    .order_by('ID', 'DESC')
+    .to_sql()`;
+
+      expect(formatExpressionLab(multilineWithOrphanedReceiver)).toBe(expected);
+    });
+
+    it('formats chained method calls inside prog[...] blocks with contextual indentation', () => {
+      const input = 'prog[Posts.where(\'post_status\', \'publish\').where(\'post_type\', \'post\').get()]';
+      const expected =
+`prog[
+    Posts.where('post_status', 'publish')
+        .where('post_type', 'post')
+        .get()
+]`;
+      expect(formatExpressionLab(input)).toBe(expected);
+    });
+
+    it('keeps single method calls on a single line', () => {
+      expect(formatExpressionLab('Posts.get()')).toBe('Posts.get()');
+      expect(formatExpressionLab('Users.count()')).toBe('Users.count()');
+      expect(formatExpressionLab('Database.count(\'posts\')')).toBe('Database.count(\'posts\')');
+    });
+
+    it('applies argument hugging to calls with multiline array arguments avoiding ugly cascading parentheses', () => {
+      const input = `Posts.where('post_author', 'in', [
+    1,
+    2,
+    3
+]).count()`;
+      const expected =
+`Posts.where('post_author', 'in', [
+    1,
+    2,
+    3
+])
+    .count()`;
+      expect(formatExpressionLab(input)).toBe(expected);
+
+      // Reformatting cascading parentheses also collapses to hugged form
+      const cascadingInput =
+`Posts.where(
+    'post_author',
+    'in',
+    [
+        1,
+        2,
+        3
+    ]
+)
+    .count()`;
+      expect(formatExpressionLab(cascadingInput)).toBe(expected);
+    });
+
     it('formats pipelines with map, filter, reduce', () => {
       const input = 'prog[set[\'users\', Users.all()], filter[var[\'users\'], fn[[\'u\'], u.is_active == true]]]';
       const expected =

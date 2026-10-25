@@ -241,6 +241,11 @@
 			align-items: center;
 			margin-bottom: 16px;
 
+			&.border-top {
+				border-top: solid 1px #ddd !important;
+    			padding-top: 20px;
+			}
+
 			h4 {
 				margin: 0;
 				font-size: 13px;
