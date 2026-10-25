@@ -318,7 +318,7 @@ export function parseBracketTree(tokens) {
  */
 export class FormatterPrinter {
   constructor(options = {}) {
-    this.indentStr = options.indent || '    ';
+    this.indentStr = options.indent || (options.indentUnit ? ' '.repeat(options.indentUnit) : '    ');
     this.maxLineLength = options.maxLineLength || 80;
   }
 
@@ -336,6 +336,22 @@ export class FormatterPrinter {
 
   formatTree(root) {
     return this.formatItems(root.items, 0, false).trim();
+  }
+
+  /**
+   * Checks recursively if a node has any multiline child or descendant group.
+   */
+  hasMultilineChild(node, level) {
+    for (const item of node.items) {
+      for (const tok of item) {
+        if (tok.type === 'GROUP') {
+          if (this.isProgGroup(tok) || this.shouldGroupBeMultiLine(tok, level) || this.hasMultilineChild(tok, level + 1)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   /**
@@ -361,11 +377,25 @@ export class FormatterPrinter {
       return false;
     }
 
+    // Argument hugging for function/method call parentheses:
+    // If a call in parentheses contains a complex literal argument (array or object),
+    // the call parentheses hug the argument and do NOT break multiline themselves.
+    if (node.bracket === '(') {
+      const hasComplexArg = node.items.some((item) =>
+        item.some((tok) => tok.type === 'GROUP' && (tok.bracket === '[' || tok.bracket === '{'))
+      );
+      if (hasComplexArg) {
+        return false;
+      }
+    }
+
     // 2. If it contains a nested prog or multiline child, it must be multiline
     for (const item of node.items) {
       for (const tok of item) {
-        if (tok.type === 'GROUP' && (this.isProgGroup(tok) || this.shouldGroupBeMultiLine(tok, level + 1))) {
-          return true;
+        if (tok.type === 'GROUP') {
+          if (this.isProgGroup(tok) || this.shouldGroupBeMultiLine(tok, level + 1) || this.hasMultilineChild(tok, level + 1)) {
+            return true;
+          }
         }
       }
     }
@@ -575,6 +605,37 @@ export class FormatterPrinter {
     return lines.join('\n');
   }
 
+  getMethodChainCalls(item, startIndex) {
+    const calls = [];
+    let idx = startIndex;
+    while (idx < item.length) {
+      let commentBefore = null;
+      if (item[idx]?.type === TT.BLOCK_COMMENT) {
+        commentBefore = item[idx];
+        idx++;
+      }
+
+      const dot = item[idx];
+      if (!dot || dot.type !== TT.DOT) break;
+      const id = item[idx + 1];
+      if (!id || id.type !== TT.IDENTIFIER) break;
+      const grp = item[idx + 2];
+      if (!grp || grp.type !== 'GROUP' || grp.bracket !== '(') break;
+
+      calls.push({
+        commentBefore,
+        dotToken: dot,
+        identToken: id,
+        groupNode: grp,
+        startIndex: idx,
+        endIndex: idx + 2,
+      });
+
+      idx += 3;
+    }
+    return calls;
+  }
+
   formatSingleItemMultiLine(item, level) {
     const parts = [];
     let ternaryDepth = 0;
@@ -627,6 +688,41 @@ export class FormatterPrinter {
           parts.push(': ');
         }
         continue;
+      }
+
+      if (tok.type === TT.DOT) {
+        const calls = this.getMethodChainCalls(item, i);
+        if (calls.length >= 2) {
+          while (parts.length > 0 && parts[parts.length - 1] === ' ') {
+            parts.pop();
+          }
+          if (parts.length > 0 && parts[parts.length - 1].endsWith(' ')) {
+            parts[parts.length - 1] = parts[parts.length - 1].trimEnd();
+          }
+
+          // Format first call inline with receiver
+          if (calls[0].commentBefore) {
+            parts.push(' ' + calls[0].commentBefore.value + ' ');
+          }
+          parts.push(calls[0].dotToken.value);
+          parts.push(calls[0].identToken.value);
+          parts.push(this.formatGroup(calls[0].groupNode, level));
+
+          // Format subsequent calls on indented newlines
+          for (let c = 1; c < calls.length; c++) {
+            const call = calls[c];
+            parts.push('\n' + this.getIndent(level + 1));
+            if (call.commentBefore) {
+              parts.push(call.commentBefore.value + ' ');
+            }
+            parts.push(call.dotToken.value);
+            parts.push(call.identToken.value);
+            parts.push(this.formatGroup(call.groupNode, level + 1));
+          }
+
+          i = calls[calls.length - 1].endIndex;
+          continue;
+        }
       }
 
       this.appendTokenInline(parts, tok, item[i - 1], item[i + 1]);

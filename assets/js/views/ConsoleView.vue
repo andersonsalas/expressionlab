@@ -172,6 +172,11 @@ const handleOpenDatabaseBuilder = () => {
   uiStore.openModal('database-builder');
 };
 
+const handleOpenEntityBuilder = () => {
+  isToolsDropdownOpen.value = false;
+  uiStore.openModal('entity-builder');
+};
+
 const handleWindowClick = (event) => {
   if (
     isToolsDropdownOpen.value &&
@@ -587,6 +592,13 @@ onUnmounted(() => {
       >
         <span class="codicon codicon-database" />
         <span>{{ __('Database Query Builder') }}</span>
+      </div>
+      <div
+        class="tab-menu-item"
+        @click="handleOpenEntityBuilder"
+      >
+        <span class="codicon codicon-layers" />
+        <span>{{ __('Entity Query Builder') }}</span>
       </div>
     </div>
   </Teleport>

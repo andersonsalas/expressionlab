@@ -138,6 +138,16 @@ function inferPrimitiveValue(val, wasQuoted) {
  * @returns {Array<string|number|boolean|null>}
  */
 export function parseListValue(raw) {
+  if (Array.isArray(raw)) {
+    return raw
+      .map((item) => {
+        if (typeof item === 'string') {
+          return inferPrimitiveValue(item.trim(), false);
+        }
+        return item;
+      })
+      .filter((item) => item !== null && item !== undefined && item !== '');
+  }
   if (!raw || typeof raw !== 'string') return [];
 
   const tokens = [];

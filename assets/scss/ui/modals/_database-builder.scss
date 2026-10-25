@@ -257,6 +257,11 @@
 			align-items: center;
 			margin-bottom: 14px;
 
+			&.border-top {
+				border-top: solid 1px #ddd !important;
+    			padding-top: 20px;
+			}
+
 			h4 {
 				margin: 0;
 				font-size: 13px;
@@ -297,8 +302,7 @@
 			.form-control {
 				height: 32px;
 				padding: 4px 8px;
-				font-size: 13px;
-				font-family: $font-family-monospace;
+				font-size: 14px;
 				border: 1px solid #ccc;
 				outline: none;
 				min-height: auto;
@@ -891,6 +895,22 @@
 		&.notice-info {
 			.codicon {
 				color: $wordpress-primary;
+			}
+		}
+
+		&.filter-group-warning {
+			margin-top: 10px;
+			margin-bottom: 0;
+			padding: 8px 12px;
+			font-size: 12px;
+
+			.codicon {
+				font-size: 16px;
+			}
+
+			p {
+				margin: 0;
+				line-height: 1.4;
 			}
 		}
 
