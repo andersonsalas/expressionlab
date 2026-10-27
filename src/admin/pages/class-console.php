@@ -70,6 +70,7 @@ class Console extends AdminPage {
 		add_action( 'wp_ajax_expressionlab_challenge', array( $this, 'challenge' ) );
 		add_action( 'wp_ajax_expressionlab_search_users', array( $this, 'search_users' ) );
 		add_action( 'wp_ajax_expressionlab_search_sites', array( $this, 'search_sites' ) );
+		add_action( 'wp_ajax_expressionlab_get_filesystem', array( $this, 'get_filesystem' ) );
 	}
 
 	/**
@@ -369,6 +370,7 @@ class Console extends AdminPage {
 			'Clear cached WordPress functions, classes, and outline symbols stored in your browser.' => __( 'Clear cached WordPress functions, classes, and outline symbols stored in your browser.', 'expression-lab' ),
 			'Clear cache'                                => __( 'Clear cache', 'expression-lab' ),
 			'Clearing...'                                => __( 'Clearing...', 'expression-lab' ),
+			'Refresh filesystem cache'                   => __( 'Refresh filesystem cache', 'expression-lab' ),
 
 			// About Modal.
 			'About'                                      => __( 'About', 'expression-lab' ),
@@ -669,6 +671,73 @@ class Console extends AdminPage {
 				'data'      => $data,
 				'challenge' => $new_challenge,
 			)
+		);
+	}
+
+	/**
+	 * AJAX endpoint to retrieve bounded filesystem metadata and presets asynchronously.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @return void
+	 */
+	public function get_filesystem() {
+		try {
+			$this->validate_ajax_request();
+		} catch ( SecurityException $e ) {
+			wp_send_json_error( array( 'message' => $e->getMessage() ), $e->get_status_code() );
+		}
+
+		list( $challenge_nonce, $timestamp ) = $this->get_signed_challenge_params();
+
+		$new_challenge = $this->verify_and_rotate_challenge( $challenge_nonce, $timestamp );
+
+		if ( ! $new_challenge ) {
+			wp_send_json_error(
+				array(
+					'code'    => 'challenge_required',
+					'message' => __( 'Invalid or expired challenge.', 'expression-lab' ),
+				),
+				403
+			);
+		}
+
+		$data = array(
+			'presets' => $this->build_filesystem_presets(),
+			'tree'    => $this->build_bounded_filesystem_tree(),
+			'limits'  => array(
+				'max_read_bytes' => \ExpressionLab\Core\Services\Files::MAX_READ_BYTES,
+				'max_tail_bytes' => \ExpressionLab\Core\Services\Files::MAX_TAIL_BYTES,
+			),
+		);
+
+		wp_send_json_success(
+			array(
+				'data'      => $data,
+				'challenge' => $new_challenge,
+			)
+		);
+	}
+
+	/**
+	 * Reads the challenge nonce and timestamp from the signed part of the request.
+	 *
+	 * The signature covers the query string on GET requests and the raw body on
+	 * POST requests, so parameters are read only from the matching superglobal.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @return array{0: string, 1: string} Challenge nonce and timestamp.
+	 */
+	private function get_signed_challenge_params(): array {
+		$method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : 'GET';
+		$source = 'POST' === $method ? $_POST : $_GET; // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended
+
+		return array(
+			isset( $source['challenge_nonce'] ) ? sanitize_text_field( wp_unslash( $source['challenge_nonce'] ) ) : '',
+			isset( $source['timestamp'] ) ? sanitize_text_field( wp_unslash( $source['timestamp'] ) ) : '',
 		);
 	}
 
@@ -1133,5 +1202,798 @@ class Console extends AdminPage {
 				'challenge' => $new_challenge,
 			)
 		);
+	}
+
+	/**
+	 * Resolves and normalizes a full path to be relative to ABSPATH without leading slash.
+	 *
+	 * Enforces boundary containment within ABSPATH using Helper::resolve_safe_path().
+	 * Returns null if the path is invalid or resolves outside ABSPATH.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param string $full_path  Absolute or relative path.
+	 * @param bool   $must_exist Whether the target path must exist on disk. Default false.
+	 * @return string|null Relative normalized path, or null if outside ABSPATH or invalid.
+	 */
+	private function normalize_rel_path( string $full_path, bool $must_exist = false ): ?string {
+		try {
+			$safe_path      = Helper::resolve_safe_path( $full_path, ABSPATH, $must_exist );
+			$real_base      = realpath( ABSPATH );
+			$resolved_base  = false !== $real_base ? $real_base : ABSPATH;
+			$canonical_base = trailingslashit( wp_normalize_path( $resolved_base ) );
+
+			if ( str_starts_with( $safe_path, $canonical_base ) ) {
+				return substr( $safe_path, strlen( $canonical_base ) );
+			}
+
+			if ( rtrim( $canonical_base, '/' ) === $safe_path ) {
+				return '.';
+			}
+		} catch ( \InvalidArgumentException $e ) {
+			return null;
+		}
+
+		return null;
+	}
+
+	/**
+	 * Builds quick-access presets for critical WordPress system files.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 * @return array
+	 */
+	protected function build_filesystem_presets(): array {
+		$presets = array();
+
+		// 1. debug.log
+		$debug_log_path = defined( 'WP_DEBUG_LOG' ) && is_string( WP_DEBUG_LOG ) ? WP_DEBUG_LOG : WP_CONTENT_DIR . '/debug.log';
+		$debug_rel_path = $this->normalize_rel_path( $debug_log_path, false );
+		if ( null !== $debug_rel_path ) {
+			$debug_exists = file_exists( $debug_log_path );
+			$presets[]    = array(
+				'id'          => 'debug_log',
+				'name'        => 'debug.log',
+				'path'        => $debug_rel_path,
+				'exists'      => $debug_exists,
+				'type'        => 'log',
+				'size'        => $debug_exists ? size_format( (int) filesize( $debug_log_path ), 2 ) : null,
+				'description' => __( 'WordPress active runtime debug log file', 'expression-lab' ),
+			);
+		}
+
+		// 2. wp-config.php
+		$wp_config_path = ABSPATH . 'wp-config.php';
+		$wp_config_rel  = $this->normalize_rel_path( $wp_config_path, false );
+		if ( null !== $wp_config_rel ) {
+			$wp_config_exists = file_exists( $wp_config_path );
+			$presets[]        = array(
+				'id'          => 'wp_config',
+				'name'        => 'wp-config.php',
+				'path'        => $wp_config_rel,
+				'exists'      => $wp_config_exists,
+				'type'        => 'config',
+				'size'        => $wp_config_exists ? size_format( (int) filesize( $wp_config_path ), 2 ) : null,
+				'description' => __( 'Core WordPress configuration and database definitions', 'expression-lab' ),
+			);
+		}
+
+		// 3. Active Theme functions.php
+		$theme_functions = get_stylesheet_directory() . '/functions.php';
+		$theme_func_rel  = $this->normalize_rel_path( $theme_functions, false );
+		if ( null !== $theme_func_rel ) {
+			$theme_func_exists = file_exists( $theme_functions );
+			$presets[]         = array(
+				'id'          => 'theme_functions',
+				'name'        => 'functions.php',
+				'path'        => $theme_func_rel,
+				'exists'      => $theme_func_exists,
+				'type'        => 'php',
+				'size'        => $theme_func_exists ? size_format( (int) filesize( $theme_functions ), 2 ) : null,
+				'description' => __( 'Active theme setup, hooks and helper functions', 'expression-lab' ),
+			);
+		}
+
+		// 4. Active Theme style.css
+		$theme_style     = get_stylesheet_directory() . '/style.css';
+		$theme_style_rel = $this->normalize_rel_path( $theme_style, false );
+		if ( null !== $theme_style_rel ) {
+			$theme_style_exists = file_exists( $theme_style );
+			$presets[]          = array(
+				'id'          => 'theme_style',
+				'name'        => 'style.css',
+				'path'        => $theme_style_rel,
+				'exists'      => $theme_style_exists,
+				'type'        => 'css',
+				'size'        => $theme_style_exists ? size_format( (int) filesize( $theme_style ), 2 ) : null,
+				'description' => __( 'Active theme stylesheet header and styles', 'expression-lab' ),
+			);
+		}
+
+		// 5. Active Theme theme.json
+		$theme_json     = get_stylesheet_directory() . '/theme.json';
+		$theme_json_rel = $this->normalize_rel_path( $theme_json, false );
+		if ( null !== $theme_json_rel ) {
+			$theme_json_exists = file_exists( $theme_json );
+			$presets[]         = array(
+				'id'          => 'theme_json',
+				'name'        => 'theme.json',
+				'path'        => $theme_json_rel,
+				'exists'      => $theme_json_exists,
+				'type'        => 'json',
+				'size'        => $theme_json_exists ? size_format( (int) filesize( $theme_json ), 2 ) : null,
+				'description' => __( 'Active theme block styles, typography and theme tokens', 'expression-lab' ),
+			);
+		}
+
+		// 6. .htaccess
+		$htaccess_path = ABSPATH . '.htaccess';
+		$htaccess_rel  = $this->normalize_rel_path( $htaccess_path, false );
+		if ( null !== $htaccess_rel ) {
+			$htaccess_exists = file_exists( $htaccess_path );
+			$presets[]       = array(
+				'id'          => 'htaccess',
+				'name'        => '.htaccess',
+				'path'        => $htaccess_rel,
+				'exists'      => $htaccess_exists,
+				'type'        => 'server',
+				'size'        => $htaccess_exists ? size_format( (int) filesize( $htaccess_path ), 2 ) : null,
+				'description' => __( 'Web server rewrite rules and security directives', 'expression-lab' ),
+			);
+		}
+
+		// 7. robots.txt
+		$robots_path = ABSPATH . 'robots.txt';
+		$robots_rel  = $this->normalize_rel_path( $robots_path, false );
+		if ( null !== $robots_rel ) {
+			$robots_exists = file_exists( $robots_path );
+			$presets[]     = array(
+				'id'          => 'robots_txt',
+				'name'        => 'robots.txt',
+				'path'        => $robots_rel,
+				'exists'      => $robots_exists,
+				'type'        => 'text',
+				'size'        => $robots_exists ? size_format( (int) filesize( $robots_path ), 2 ) : null,
+				'description' => __( 'Search engine crawler directives', 'expression-lab' ),
+			);
+		}
+
+		// 8. Drop-in: db.php
+		$db_dropin_path = WP_CONTENT_DIR . '/db.php';
+		$db_dropin_rel  = $this->normalize_rel_path( $db_dropin_path, false );
+		if ( null !== $db_dropin_rel ) {
+			$db_dropin_exists = file_exists( $db_dropin_path );
+			$presets[]        = array(
+				'id'          => 'dropin_db',
+				'name'        => 'db.php',
+				'path'        => $db_dropin_rel,
+				'exists'      => $db_dropin_exists,
+				'type'        => 'php',
+				'size'        => $db_dropin_exists ? size_format( (int) filesize( $db_dropin_path ), 2 ) : null,
+				'description' => __( 'Custom database class drop-in replacement (wpdb)', 'expression-lab' ),
+			);
+		}
+
+		// 9. Drop-in: advanced-cache.php
+		$adv_cache_path = WP_CONTENT_DIR . '/advanced-cache.php';
+		$adv_cache_rel  = $this->normalize_rel_path( $adv_cache_path, false );
+		if ( null !== $adv_cache_rel ) {
+			$adv_cache_exists = file_exists( $adv_cache_path );
+			$presets[]        = array(
+				'id'          => 'dropin_advanced_cache',
+				'name'        => 'advanced-cache.php',
+				'path'        => $adv_cache_rel,
+				'exists'      => $adv_cache_exists,
+				'type'        => 'php',
+				'size'        => $adv_cache_exists ? size_format( (int) filesize( $adv_cache_path ), 2 ) : null,
+				'description' => __( 'Advanced page caching drop-in', 'expression-lab' ),
+			);
+		}
+
+		// 10. Drop-in: object-cache.php
+		$obj_cache_path = WP_CONTENT_DIR . '/object-cache.php';
+		$obj_cache_rel  = $this->normalize_rel_path( $obj_cache_path, false );
+		if ( null !== $obj_cache_rel ) {
+			$obj_cache_exists = file_exists( $obj_cache_path );
+			$presets[]        = array(
+				'id'          => 'dropin_object_cache',
+				'name'        => 'object-cache.php',
+				'path'        => $obj_cache_rel,
+				'exists'      => $obj_cache_exists,
+				'type'        => 'php',
+				'size'        => $obj_cache_exists ? size_format( (int) filesize( $obj_cache_path ), 2 ) : null,
+				'description' => __( 'External persistent object caching drop-in', 'expression-lab' ),
+			);
+		}
+
+		// 11. Drop-in: maintenance.php
+		$maint_path = WP_CONTENT_DIR . '/maintenance.php';
+		$maint_rel  = $this->normalize_rel_path( $maint_path, false );
+		if ( null !== $maint_rel ) {
+			$maint_exists = file_exists( $maint_path );
+			$presets[]    = array(
+				'id'          => 'dropin_maintenance',
+				'name'        => 'maintenance.php',
+				'path'        => $maint_rel,
+				'exists'      => $maint_exists,
+				'type'        => 'php',
+				'size'        => $maint_exists ? size_format( (int) filesize( $maint_path ), 2 ) : null,
+				'description' => __( 'Custom maintenance page drop-in', 'expression-lab' ),
+			);
+		}
+
+		// 12. Drop-in: fatal-error-handler.php
+		$fatal_err_path = WP_CONTENT_DIR . '/fatal-error-handler.php';
+		$fatal_err_rel  = $this->normalize_rel_path( $fatal_err_path, false );
+		if ( null !== $fatal_err_rel ) {
+			$fatal_err_exists = file_exists( $fatal_err_path );
+			$presets[]        = array(
+				'id'          => 'dropin_fatal_error',
+				'name'        => 'fatal-error-handler.php',
+				'path'        => $fatal_err_rel,
+				'exists'      => $fatal_err_exists,
+				'type'        => 'php',
+				'size'        => $fatal_err_exists ? size_format( (int) filesize( $fatal_err_path ), 2 ) : null,
+				'description' => __( 'Custom fatal error handler drop-in', 'expression-lab' ),
+			);
+		}
+
+		// 13. mu-plugins
+		$mu_plugins_dir = WPMU_PLUGIN_DIR;
+		$mu_plugins_rel = $this->normalize_rel_path( $mu_plugins_dir, false );
+		if ( null !== $mu_plugins_rel ) {
+			$mu_plugins_exists = is_dir( $mu_plugins_dir );
+			$presets[]         = array(
+				'id'          => 'mu_plugins',
+				'name'        => 'mu-plugins',
+				'path'        => $mu_plugins_rel,
+				'exists'      => $mu_plugins_exists,
+				'type'        => 'dir',
+				'size'        => null,
+				'description' => __( 'Must-use plugins directory automatically loaded by WordPress', 'expression-lab' ),
+			);
+		}
+
+		// 14. plugins
+		$plugins_dir = WP_PLUGIN_DIR;
+		$plugins_rel = $this->normalize_rel_path( $plugins_dir, false );
+		if ( null !== $plugins_rel ) {
+			$plugins_exists = is_dir( $plugins_dir );
+			$presets[]      = array(
+				'id'          => 'plugins_dir',
+				'name'        => 'plugins',
+				'path'        => $plugins_rel,
+				'exists'      => $plugins_exists,
+				'type'        => 'dir',
+				'size'        => null,
+				'description' => __( 'WordPress plugins directory', 'expression-lab' ),
+			);
+		}
+
+		return $presets;
+	}
+
+	/**
+	 * Builds a bounded in-memory representation of the WordPress filesystem.
+	 *
+	 * Scans only critical directories (root depth 1, wp-content depth 2, active theme, mu-plugins)
+	 * while strictly excluding uploads. Every emitted node, file or directory, counts toward the
+	 * global cap of 200 items; once reached, scanning stops and the accumulated tree is returned.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @return array Indexed array of tree nodes.
+	 */
+	private function build_bounded_filesystem_tree(): array {
+		$total_scanned = 0;
+		$max_items     = 200;
+
+		try {
+			$safe_root = Helper::resolve_safe_path( ABSPATH, ABSPATH, true );
+		} catch ( \InvalidArgumentException $e ) {
+			return array();
+		}
+
+		if ( ! is_dir( $safe_root ) ) {
+			return array();
+		}
+
+		$wp_content_rel = $this->normalize_rel_path( WP_CONTENT_DIR, true );
+		$tree           = array();
+
+		try {
+			$iter = new \DirectoryIterator( $safe_root );
+			foreach ( $iter as $item ) {
+				if ( $total_scanned >= $max_items ) {
+					break;
+				}
+				if ( $item->isDot() ) {
+					continue;
+				}
+				$filename = $item->getFilename();
+
+				// Exclude hidden files except .htaccess.
+				if ( str_starts_with( $filename, '.' ) && '.htaccess' !== $filename ) {
+					continue;
+				}
+
+				$entry = $this->resolve_tree_entry( $item );
+				if ( null === $entry ) {
+					continue;
+				}
+				list( $safe_item_path, $rel ) = $entry;
+
+				if ( $item->isDir() ) {
+					if ( $rel === $wp_content_rel ) {
+						continue;
+					}
+					$tree[] = $this->build_dir_node( $filename, $rel, $safe_item_path, true );
+					++$total_scanned;
+				} elseif ( $item->isFile() ) {
+					$tree[] = $this->build_file_node( $filename, $rel, $safe_item_path, (int) $item->getSize() );
+					++$total_scanned;
+				}
+			}
+			// phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+		} catch ( \Exception $e ) {
+			// Silently fail if root directory cannot be read.
+		}
+
+		if ( null !== $wp_content_rel && '.' !== $wp_content_rel && $total_scanned < $max_items ) {
+			$safe_content = $safe_root . '/' . $wp_content_rel;
+			++$total_scanned;
+			$tree[] = $this->build_dir_node(
+				basename( $wp_content_rel ),
+				$wp_content_rel,
+				$safe_content,
+				false,
+				$this->build_wp_content_tree( $safe_content, $total_scanned, $max_items )
+			);
+		}
+
+		return $this->sort_tree_nodes( $tree );
+	}
+
+	/**
+	 * Builds the bounded wp-content directory tree.
+	 *
+	 * Only the directories matching `WP_PLUGIN_DIR`, `get_theme_root()` and `WPMU_PLUGIN_DIR`
+	 * are expanded. Every other subdirectory, including uploads, is returned as an opaque node.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param string $safe_content  Resolved absolute path of the wp-content directory.
+	 * @param int    $total_scanned Reference to counter tracking total scanned items.
+	 * @param int    $max_items     Maximum overall items allowed in the tree.
+	 * @return array List of tree nodes inside wp-content.
+	 */
+	private function build_wp_content_tree( string $safe_content, int &$total_scanned, int $max_items ): array {
+		$nodes          = array();
+		$plugins_rel    = $this->normalize_rel_path( WP_PLUGIN_DIR, true );
+		$themes_rel     = $this->normalize_rel_path( get_theme_root(), true );
+		$mu_plugins_rel = $this->normalize_rel_path( WPMU_PLUGIN_DIR, true );
+
+		try {
+			$iter = new \DirectoryIterator( $safe_content );
+			foreach ( $iter as $item ) {
+				if ( $total_scanned >= $max_items ) {
+					break;
+				}
+				if ( $item->isDot() || str_starts_with( $item->getFilename(), '.' ) ) {
+					continue;
+				}
+
+				$entry = $this->resolve_tree_entry( $item );
+				if ( null === $entry ) {
+					continue;
+				}
+				list( $safe_item_path, $rel ) = $entry;
+				$name                         = $item->getFilename();
+
+				if ( $item->isDir() ) {
+					++$total_scanned;
+					$nodes[] = match ( true ) {
+						'uploads' === $name      => $this->build_dir_node( $name, $rel, $safe_item_path, true ),
+						$rel === $plugins_rel    => $this->build_plugins_tree( $name, $rel, $safe_item_path, $total_scanned, $max_items ),
+						$rel === $themes_rel     => $this->build_themes_tree( $name, $rel, $safe_item_path, $total_scanned, $max_items ),
+						$rel === $mu_plugins_rel => $this->build_mu_plugins_tree( $name, $rel, $safe_item_path, $total_scanned, $max_items ),
+						default                  => $this->build_dir_node( $name, $rel, $safe_item_path, true ),
+					};
+				} elseif ( $item->isFile() ) {
+					++$total_scanned;
+					$nodes[] = $this->build_file_node( $name, $rel, $safe_item_path, (int) $item->getSize() );
+				}
+			}
+			// phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+		} catch ( \Exception $e ) {
+			// Silently fail if wp-content cannot be read.
+		}
+
+		return $this->sort_tree_nodes( $nodes );
+	}
+
+	/**
+	 * Builds the plugins list (depth 1 inside plugins directory).
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param string $name          Directory name.
+	 * @param string $rel           Path relative to ABSPATH.
+	 * @param string $safe_dir      Resolved absolute path of the plugins directory.
+	 * @param int    $total_scanned Counter reference.
+	 * @param int    $max_items     Maximum items limit.
+	 * @return array Plugins directory tree node.
+	 */
+	private function build_plugins_tree( string $name, string $rel, string $safe_dir, int &$total_scanned, int $max_items ): array {
+		$children = array();
+
+		try {
+			$iter = new \DirectoryIterator( $safe_dir );
+			foreach ( $iter as $item ) {
+				if ( $total_scanned >= $max_items ) {
+					break;
+				}
+				if ( $item->isDot() || str_starts_with( $item->getFilename(), '.' ) ) {
+					continue;
+				}
+
+				$entry = $this->resolve_tree_entry( $item );
+				if ( null === $entry ) {
+					continue;
+				}
+				list( $safe_item_path, $item_rel ) = $entry;
+				$item_name                         = $item->getFilename();
+
+				if ( $item->isDir() ) {
+					$children[] = $this->build_dir_node( $item_name, $item_rel, $safe_item_path, true );
+					++$total_scanned;
+				} elseif ( $item->isFile() ) {
+					$children[] = $this->build_file_node( $item_name, $item_rel, $safe_item_path, (int) $item->getSize() );
+					++$total_scanned;
+				}
+			}
+			// phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+		} catch ( \Exception $e ) {
+			// Silently fail if plugins directory cannot be read.
+		}
+
+		return $this->build_dir_node( $name, $rel, $safe_dir, false, $this->sort_tree_nodes( $children ) );
+	}
+
+	/**
+	 * Builds themes tree with a bounded scan of the active theme and opaque entries for other themes.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param string $name          Directory name.
+	 * @param string $rel           Path relative to ABSPATH.
+	 * @param string $safe_dir      Resolved absolute path of the theme root.
+	 * @param int    $total_scanned Counter reference.
+	 * @param int    $max_items     Maximum items limit.
+	 * @return array Themes directory tree node.
+	 */
+	private function build_themes_tree( string $name, string $rel, string $safe_dir, int &$total_scanned, int $max_items ): array {
+		$active_slug = get_stylesheet();
+		$children    = array();
+
+		try {
+			$iter = new \DirectoryIterator( $safe_dir );
+			foreach ( $iter as $item ) {
+				if ( $total_scanned >= $max_items ) {
+					break;
+				}
+				if ( $item->isDot() || ! $item->isDir() || str_starts_with( $item->getFilename(), '.' ) ) {
+					continue;
+				}
+
+				$entry = $this->resolve_tree_entry( $item );
+				if ( null === $entry ) {
+					continue;
+				}
+				list( $safe_item_path, $item_rel ) = $entry;
+				$slug                              = $item->getFilename();
+				++$total_scanned;
+
+				if ( $slug === $active_slug ) {
+					$active_children = $this->scan_directory_bounded( $safe_item_path, 3, min( $max_items, $total_scanned + 60 ), $total_scanned );
+					$children[]      = $this->build_dir_node( "{$slug} (active)", $item_rel, $safe_item_path, false, $active_children );
+				} else {
+					$children[] = $this->build_dir_node( $slug, $item_rel, $safe_item_path, true );
+				}
+			}
+			// phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+		} catch ( \Exception $e ) {
+			// Silently fail if themes directory cannot be read.
+		}
+
+		usort(
+			$children,
+			function ( $a, $b ) {
+				if ( str_contains( $a['name'], '(active)' ) ) {
+					return -1;
+				}
+				if ( str_contains( $b['name'], '(active)' ) ) {
+					return 1;
+				}
+				return strcasecmp( $a['name'], $b['name'] );
+			}
+		);
+
+		return $this->build_dir_node( $name, $rel, $safe_dir, false, $children );
+	}
+
+	/**
+	 * Builds the mu-plugins tree.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param string $name          Directory name.
+	 * @param string $rel           Path relative to ABSPATH.
+	 * @param string $safe_dir      Resolved absolute path of the mu-plugins directory.
+	 * @param int    $total_scanned Counter reference.
+	 * @param int    $max_items     Maximum items limit.
+	 * @return array mu-plugins directory tree node.
+	 */
+	private function build_mu_plugins_tree( string $name, string $rel, string $safe_dir, int &$total_scanned, int $max_items ): array {
+		$children = $this->scan_directory_bounded( $safe_dir, 3, min( $max_items, $total_scanned + 40 ), $total_scanned );
+
+		return $this->build_dir_node( $name, $rel, $safe_dir, false, $children );
+	}
+
+	/**
+	 * Recursively scans a directory with strict depth and item caps.
+	 *
+	 * `$ceiling` is an absolute upper bound for `$total_scanned`, shared by the whole branch, so a
+	 * caller limits a subtree to N items by passing `min( $max_items, $total_scanned + N )`.
+	 * Entries of a level are collected before descending, so shallow items take precedence.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param string $dir           Absolute directory path to scan.
+	 * @param int    $max_depth     Maximum recursion depth.
+	 * @param int    $ceiling       Value of `$total_scanned` at which the branch stops.
+	 * @param int    $total_scanned Counter reference across the entire tree.
+	 * @param int    $current_depth Current recursion depth.
+	 * @return array List of tree nodes.
+	 */
+	private function scan_directory_bounded( string $dir, int $max_depth, int $ceiling, int &$total_scanned, int $current_depth = 1 ): array {
+		if ( $current_depth > $max_depth || $total_scanned >= $ceiling ) {
+			return array();
+		}
+
+		try {
+			$safe_dir = Helper::resolve_safe_path( $dir, ABSPATH, true );
+		} catch ( \InvalidArgumentException $e ) {
+			return array();
+		}
+
+		if ( ! is_dir( $safe_dir ) ) {
+			return array();
+		}
+
+		$ignored_dirs = array( 'node_modules', 'vendor', 'images', 'assets/images', 'assets/fonts' );
+		$parent_name  = strtolower( basename( $safe_dir ) );
+		$nodes        = array();
+		$subdirs      = array();
+
+		try {
+			$iter = new \DirectoryIterator( $safe_dir );
+			foreach ( $iter as $item ) {
+				if ( $total_scanned + count( $nodes ) + count( $subdirs ) >= $ceiling ) {
+					break;
+				}
+				if ( $item->isDot() || str_starts_with( $item->getFilename(), '.' ) ) {
+					continue;
+				}
+
+				$name  = $item->getFilename();
+				$lower = strtolower( $name );
+
+				if ( $item->isDir() && ( in_array( $lower, $ignored_dirs, true ) || in_array( "{$parent_name}/{$lower}", $ignored_dirs, true ) ) ) {
+					continue;
+				}
+
+				$entry = $this->resolve_tree_entry( $item );
+				if ( null === $entry ) {
+					continue;
+				}
+				list( $safe_item_path, $rel ) = $entry;
+
+				if ( $item->isDir() ) {
+					$subdirs[] = array( $name, $rel, $safe_item_path );
+				} elseif ( $item->isFile() ) {
+					$nodes[] = $this->build_file_node( $name, $rel, $safe_item_path, (int) $item->getSize() );
+				}
+			}
+			// phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+		} catch ( \Exception $e ) {
+			// Silently fail if directory branch cannot be read.
+		}
+
+		$total_scanned += count( $nodes ) + count( $subdirs );
+
+		foreach ( $subdirs as list( $name, $rel, $safe_item_path ) ) {
+			$opaque   = $current_depth >= $max_depth || $total_scanned >= $ceiling;
+			$children = $opaque ? array() : $this->scan_directory_bounded( $safe_item_path, $max_depth, $ceiling, $total_scanned, $current_depth + 1 );
+			$nodes[]  = $this->build_dir_node( $name, $rel, $safe_item_path, $opaque, $children );
+		}
+
+		return $this->sort_tree_nodes( $nodes );
+	}
+
+	/**
+	 * Resolves a directory entry for the tree.
+	 *
+	 * Entries resolving outside ABSPATH, dangling symlinks and symlinked directories
+	 * (loop and escape prevention) are skipped.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param \SplFileInfo $item Directory entry.
+	 * @return array{0: string, 1: string}|null Resolved absolute path and ABSPATH-relative path, or null to skip.
+	 */
+	private function resolve_tree_entry( \SplFileInfo $item ): ?array {
+		try {
+			$safe_path = Helper::resolve_safe_path( $item->getPathname(), ABSPATH, true );
+		} catch ( \InvalidArgumentException $e ) {
+			return null;
+		}
+
+		if ( $item->isLink() && is_dir( $safe_path ) ) {
+			return null;
+		}
+
+		$rel = $this->normalize_rel_path( $safe_path, true );
+
+		return null === $rel ? null : array( $safe_path, $rel );
+	}
+
+	/**
+	 * Builds a directory tree node.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param string $name     Display name.
+	 * @param string $rel      Path relative to ABSPATH.
+	 * @param string $path     Resolved absolute path.
+	 * @param bool   $opaque   Whether the directory contents were not scanned.
+	 * @param array  $children Child nodes.
+	 * @return array
+	 */
+	private function build_dir_node( string $name, string $rel, string $path, bool $opaque, array $children = array() ): array {
+		return array(
+			'name'     => $name,
+			'path'     => $rel,
+			'type'     => 'dir',
+			'perms'    => $this->resolve_octal_perms( $path ),
+			'owner'    => $this->resolve_owner( $path ),
+			'group'    => $this->resolve_group( $path ),
+			'opaque'   => $opaque,
+			'children' => $children,
+		);
+	}
+
+	/**
+	 * Builds a file tree node.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param string $name  File name.
+	 * @param string $rel   Path relative to ABSPATH.
+	 * @param string $path  Resolved absolute path.
+	 * @param int    $bytes File size in bytes.
+	 * @return array
+	 */
+	private function build_file_node( string $name, string $rel, string $path, int $bytes ): array {
+		return array(
+			'name'   => $name,
+			'path'   => $rel,
+			'type'   => 'file',
+			'size'   => size_format( $bytes, 2 ),
+			'ext'    => strtolower( pathinfo( $name, PATHINFO_EXTENSION ) ),
+			'perms'  => $this->resolve_octal_perms( $path ),
+			'owner'  => $this->resolve_owner( $path ),
+			'group'  => $this->resolve_group( $path ),
+			'opaque' => false,
+		);
+	}
+
+	/**
+	 * Sorts tree nodes with directories first, then by case-insensitive name.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param array $nodes Tree nodes.
+	 * @return array Sorted nodes.
+	 */
+	private function sort_tree_nodes( array $nodes ): array {
+		usort(
+			$nodes,
+			function ( $a, $b ) {
+				if ( $a['type'] !== $b['type'] ) {
+					return 'dir' === $a['type'] ? -1 : 1;
+				}
+				return strcasecmp( $a['name'], $b['name'] );
+			}
+		);
+
+		return $nodes;
+	}
+
+	/**
+	 * Formats octal permission string (e.g. '0755', '0644') for a given path.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param string $path Target filesystem path.
+	 * @return string|null Octal string or null on failure.
+	 */
+	private function resolve_octal_perms( string $path ): ?string {
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		$perms = @fileperms( $path );
+		return false !== $perms ? substr( sprintf( '%o', $perms ), -4 ) : null;
+	}
+
+	/**
+	 * Resolves Unix owner name or returns numeric UID.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param string $path Target filesystem path.
+	 * @return string
+	 */
+	private function resolve_owner( string $path ): string {
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		$uid = @fileowner( $path );
+		if ( false === $uid ) {
+			return 'unknown';
+		}
+		if ( function_exists( 'posix_getpwuid' ) ) {
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			$user = @posix_getpwuid( $uid );
+			if ( is_array( $user ) && isset( $user['name'] ) ) {
+				return (string) $user['name'];
+			}
+		}
+		return (string) $uid;
+	}
+
+	/**
+	 * Resolves Unix group name or returns numeric GID.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param string $path Target filesystem path.
+	 * @return string
+	 */
+	private function resolve_group( string $path ): string {
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		$gid = @filegroup( $path );
+		if ( false === $gid ) {
+			return 'unknown';
+		}
+		if ( function_exists( 'posix_getgrgid' ) ) {
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			$group = @posix_getgrgid( $gid );
+			if ( is_array( $group ) && isset( $group['name'] ) ) {
+				return (string) $group['name'];
+			}
+		}
+		return (string) $gid;
 	}
 }

@@ -49,7 +49,7 @@ const PRIMARY_ENTITIES = [
 ];
 const PRIMARY_ENTITY_IDS = PRIMARY_ENTITIES.map((e) => e.id);
 
-const selectedEntity = ref('Posts');
+const selectedEntity = ref('Users');
 const isMoreDropdownOpen = ref(false);
 
 const overflowEntities = computed(() => {
@@ -105,17 +105,17 @@ const createDefaultEntityDraft = () => ({
 
 // Drafts cache by entity
 const entityDrafts = ref({
-  Posts: createDefaultEntityDraft(),
   Users: createDefaultEntityDraft(),
+  Posts: createDefaultEntityDraft(),
   Media: createDefaultEntityDraft()
 });
 
 const currentDraft = computed(() => {
-  return entityDrafts.value[selectedEntity.value] || entityDrafts.value.Posts;
+  return entityDrafts.value[selectedEntity.value] || entityDrafts.value.Users;
 });
 
 const availableColumns = computed(() => {
-  const table = ENTITY_CONFIGS[selectedEntity.value]?.table || 'posts';
+  const table = ENTITY_CONFIGS[selectedEntity.value]?.table || 'users';
   return WP_TABLE_COLUMNS[table] || [];
 });
 
@@ -1292,7 +1292,7 @@ onBeforeUnmount(() => {
                     <button
                       v-if="currentDraft.filters.length > 1"
                       type="button"
-                      class="btn btn-sm btn-default btn-remove-group"
+                      class="btn btn-default btn-remove-group"
                       :title="__('Remove condition group')"
                       @click="removeOrGroup(gIdx)"
                     >
@@ -1301,7 +1301,7 @@ onBeforeUnmount(() => {
                     </button>
                     <button
                       type="button"
-                      class="btn btn-sm btn-default btn-add-filter"
+                      class="btn btn-default btn-add-filter"
                       @click="addFilterRow(gIdx)"
                     >
                       {{ __('Add Filter') }}
@@ -1319,7 +1319,7 @@ onBeforeUnmount(() => {
               <div class="or-groups-bottom-actions">
                 <button
                   type="button"
-                  class="btn btn-sm btn-default add-or-group-btn"
+                  class="btn btn-default add-or-group-btn"
                   @click="addOrGroup"
                 >
                   <span>{{ __('Add OR Group') }}</span>
@@ -1409,7 +1409,7 @@ onBeforeUnmount(() => {
             <div class="table-actions-bar group-actions-bar">
               <button
                 type="button"
-                class="btn btn-sm btn-default btn-add-sorting"
+                class="btn btn-default btn-add-sorting"
                 @click="addOrderBy"
               >
                 {{ __('Add Sorting Clause') }}
@@ -1468,7 +1468,7 @@ onBeforeUnmount(() => {
                 >
                 <span>
                   <strong>{{ selectedEntity }}.get()</strong>
-                  <small>{{ __('Retrieve records array (mirrors to SQLite & flushes)') }}</small>
+                  <small>{{ __('Retrieve records array.') }}</small>
                 </span>
               </label>
 
@@ -1483,7 +1483,7 @@ onBeforeUnmount(() => {
                 >
                 <span>
                   <strong>{{ selectedEntity }}.count()</strong>
-                  <small>{{ __('Count matching records directly in MySQL') }}</small>
+                  <small>{{ __('Count matching records.') }}</small>
                 </span>
               </label>
 
@@ -1498,7 +1498,7 @@ onBeforeUnmount(() => {
                 >
                 <span>
                   <strong>{{ selectedEntity }}.to_sql()</strong>
-                  <small>{{ __('Compile parameterized SQL string without executing') }}</small>
+                  <small>{{ __('Compile parameterized SQL.') }}</small>
                 </span>
               </label>
 
@@ -1513,7 +1513,7 @@ onBeforeUnmount(() => {
                 >
                 <span>
                   <strong>{{ selectedEntity }}.query(SQL)</strong>
-                  <small>{{ __('Execute custom SQLite query against mirrored table') }}</small>
+                  <small>{{ __('Execute custom SQL query.') }}</small>
                 </span>
               </label>
             </div>
@@ -1565,7 +1565,7 @@ onBeforeUnmount(() => {
                 </div>
                 <button
                   type="button"
-                  class="btn btn-sm btn-default format-sql-btn"
+                  class="btn btn-default format-sql-btn"
                   @click="formatSqlQuery"
                 >
                   {{ __('Format SQL') }}
@@ -1600,7 +1600,7 @@ onBeforeUnmount(() => {
               <div class="table-actions-bar">
                 <button
                   type="button"
-                  class="btn btn-sm btn-default"
+                  class="btn btn-default"
                   @click="copyCode"
                 >
                   {{ isCopied ? __('Copied!') : __('Copy Code') }}

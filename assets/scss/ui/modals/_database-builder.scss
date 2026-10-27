@@ -309,6 +309,10 @@
 				box-shadow: none !important;
 				max-width: 100%;
 
+				&:hover {
+					border-color: black;
+				}
+
 				&:focus {
 					border-color: $wordpress-primary;
 				}
@@ -965,6 +969,7 @@
 
 			strong {
 				display: block;
+				color: black;
 			}
 
 			small {

@@ -1895,7 +1895,7 @@ onBeforeUnmount(() => {
                     <button
                       v-if="activeFilterGroups.length > 1"
                       type="button"
-                      class="btn btn-sm btn-default btn-remove-group"
+                      class="btn btn-default btn-remove-group"
                       :title="__('Remove condition group')"
                       @click="removeOrGroup(gIdx)"
                     >
@@ -1904,7 +1904,7 @@ onBeforeUnmount(() => {
                     </button>
                     <button
                       type="button"
-                      class="btn btn-sm btn-default"
+                      class="btn btn-default"
                       @click="addFilterRow(gIdx)"
                     >
                       {{ __('Add Filter') }}
@@ -1921,7 +1921,7 @@ onBeforeUnmount(() => {
               <div class="or-groups-bottom-actions">
                 <button
                   type="button"
-                  class="btn btn-sm btn-default add-or-group-btn"
+                  class="btn btn-default add-or-group-btn"
                   @click="addOrGroup"
                 >
                   <span>{{ __('Add OR Group') }}</span>
@@ -2179,7 +2179,7 @@ onBeforeUnmount(() => {
                 </div>
                 <button
                   type="button"
-                  class="btn btn-sm btn-default format-sql-btn"
+                  class="btn btn-default format-sql-btn"
                   @click="formatSqlQuery"
                 >
                   {{ __('Format SQL') }}
@@ -2214,7 +2214,7 @@ onBeforeUnmount(() => {
               <div class="table-actions-bar">
                 <button
                   type="button"
-                  class="btn btn-sm btn-default"
+                  class="btn btn-default"
                   @click="copyCode"
                 >
                   {{ isCopied ? __('Copied!') : __('Copy Code') }}

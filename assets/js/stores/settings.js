@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia';
 import { handleLocalStorage, isSandboxEnabled } from '../lib/api/client.js';
 import { debugLog } from '../lib/helpers.js';
+import { FILESYSTEM_CACHE_KEY, useFilesystemStore } from './filesystem.js';
 
 export const USER_SETTINGS_STORAGE_KEY = 'el_user_settings';
 export const OUTLINE_CACHE_KEY = 'el_outline_cache';
+export { FILESYSTEM_CACHE_KEY };
 
 /**
  * Safely accesses window.localStorage without throwing SecurityError in sandboxed iframes.
@@ -107,12 +109,13 @@ export const useSettingsStore = defineStore('settings', {
     },
 
     /**
-     * Checks if outline cache exists in localStorage.
+     * Checks if outline or filesystem cache exists in localStorage.
      */
     async checkOutlineCache() {
       try {
-        const cached = await handleLocalStorage('getItem', OUTLINE_CACHE_KEY);
-        this.hasOutlineCache = Boolean(cached);
+        const outlineCached = await handleLocalStorage('getItem', OUTLINE_CACHE_KEY);
+        const filesystemCached = await handleLocalStorage('getItem', FILESYSTEM_CACHE_KEY);
+        this.hasOutlineCache = Boolean(outlineCached || filesystemCached);
       } catch {
         this.hasOutlineCache = false;
       }
@@ -190,13 +193,22 @@ export const useSettingsStore = defineStore('settings', {
     },
 
     /**
-     * Clears outline cache from storage.
+     * Clears outline and filesystem cache from storage.
      */
     async clearOutlineCache() {
       this.isClearingCache = true;
       try {
         await handleLocalStorage('removeItem', OUTLINE_CACHE_KEY);
+        await handleLocalStorage('removeItem', FILESYSTEM_CACHE_KEY);
         this.hasOutlineCache = false;
+
+        try {
+          const filesystemStore = useFilesystemStore();
+          filesystemStore.resetStore();
+        } catch {
+          // Store might not be active or Pinia not mounted
+        }
+
         return true;
       } catch (err) {
         debugLog('Failed to clear outline cache', err);

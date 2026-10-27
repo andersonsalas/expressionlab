@@ -861,7 +861,7 @@ const handleOverlayClick = (e) => {
 
             <div class="table-actions-bar">
               <button
-                class="btn btn-sm btn-default"
+                class="btn btn-default"
                 @click="addParamRow"
               >
                 {{ __('Add Parameter') }}
@@ -1082,7 +1082,7 @@ const handleOverlayClick = (e) => {
 
             <div class="table-actions-bar">
               <button
-                class="btn btn-sm btn-default"
+                class="btn btn-default"
                 @click="addHeaderRow"
               >
                 {{ __('Add Header') }}
@@ -1175,7 +1175,7 @@ const handleOverlayClick = (e) => {
                     <span class="json-error-text">{{ jsonError }}</span>
                   </div>
                   <button
-                    class="btn btn-sm btn-default format-json-btn"
+                    class="btn btn-default format-json-btn"
                     @click="formatJsonBody"
                   >
                     {{ __('Format JSON') }}
@@ -1251,7 +1251,7 @@ const handleOverlayClick = (e) => {
                 </div>
                 <div class="table-actions-bar">
                   <button
-                    class="btn btn-sm btn-default"
+                    class="btn btn-default"
                     @click="addFormDataRow"
                   >
                     {{ __('Add Field') }}
@@ -1426,7 +1426,7 @@ const handleOverlayClick = (e) => {
                 </div>
                 <div class="table-actions-bar">
                   <button
-                    class="btn btn-sm btn-default"
+                    class="btn btn-default"
                     @click="addCookieRow"
                   >
                     {{ __('Add Cookie') }}
@@ -1463,7 +1463,7 @@ const handleOverlayClick = (e) => {
 
               <div class="table-actions-bar">
                 <button
-                  class="btn btn-sm btn-default"
+                  class="btn btn-default"
                   @click="handleCopyCode"
                 >
                   {{ isCopied ? __('Copied!') : __('Copy Code') }}

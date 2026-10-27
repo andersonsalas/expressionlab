@@ -12,6 +12,7 @@ import DataViewerModal from '../components/modals/DataViewerModal.vue';
 import HttpRequestBuilderModal from '../components/modals/HttpRequestBuilderModal.vue';
 import DatabaseBuilderModal from '../components/modals/DatabaseBuilderModal.vue';
 import EntityQueryBuilderModal from '../components/modals/EntityQueryBuilderModal.vue';
+import FilesystemInspectorModal from '../components/modals/FilesystemInspectorModal.vue';
 import DialogModal from '../components/modals/DialogModal.vue';
 import ConsolePassword from '../components/console/ConsolePassword.vue';
 
@@ -66,6 +67,9 @@ onUnmounted(() => {
       :close-on-outside-click="false"
     />
     <EntityQueryBuilderModal
+      :close-on-outside-click="false"
+    />
+    <FilesystemInspectorModal
       :close-on-outside-click="false"
     />
     <!-- /Base Modals -->

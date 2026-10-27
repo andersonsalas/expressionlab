@@ -3,6 +3,7 @@ import {
   useSettingsStore,
   USER_SETTINGS_STORAGE_KEY,
   OUTLINE_CACHE_KEY,
+  FILESYSTEM_CACHE_KEY,
   getStoredDefaultTabMode,
   getStoredSidebarVisible,
 } from '../../stores/settings.js';
@@ -187,6 +188,20 @@ describe('stores/settings.js - Settings Store', () => {
       expect(client.handleLocalStorage).toHaveBeenCalledWith('getItem', OUTLINE_CACHE_KEY);
     });
 
+    it('sets hasOutlineCache to true if only filesystem cache exists', async () => {
+      client.handleLocalStorage.mockImplementation((action, key) => {
+        if (action === 'getItem' && key === FILESYSTEM_CACHE_KEY) {
+          return Promise.resolve('{"timestamp":123}');
+        }
+        return Promise.resolve(null);
+      });
+
+      const store = useSettingsStore();
+      await store.checkOutlineCache();
+
+      expect(store.hasOutlineCache).toBe(true);
+    });
+
     it('sets hasOutlineCache to false if cache is null or empty', async () => {
       client.handleLocalStorage.mockResolvedValue(null);
 
@@ -208,6 +223,7 @@ describe('stores/settings.js - Settings Store', () => {
 
       expect(result).toBe(true);
       expect(client.handleLocalStorage).toHaveBeenCalledWith('removeItem', OUTLINE_CACHE_KEY);
+      expect(client.handleLocalStorage).toHaveBeenCalledWith('removeItem', FILESYSTEM_CACHE_KEY);
       expect(store.hasOutlineCache).toBe(false);
       expect(store.isClearingCache).toBe(false);
     });

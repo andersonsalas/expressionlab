@@ -1,0 +1,1318 @@
+// stylelint-disable no-descending-specificity
+
+#filesystem-inspector-modal {
+	.filesystem-inspector-modal-container {
+		width: 997px;
+		max-width: 95vw;
+		height: 680px;
+		max-height: 92vh;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.filesystem-inspector-modal-content {
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		overflow: hidden;
+	}
+
+	// Header Bar (Segmented Scope Pills)
+	.filesystem-inspector-header-bar {
+		display: flex;
+		align-items: center;
+		padding: 8px 16px;
+		border-bottom: 1px solid $border-color;
+		flex-shrink: 0;
+		background: #f1f1f1;
+
+		.scope-pills-group {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			flex-wrap: wrap;
+
+			.refresh-pill-btn {
+				display: inline-flex;
+				align-items: center;
+				gap: 4px;
+				background: #dbdbdb;
+				border: solid 1px transparent;
+				border-radius: 2px;
+				padding: 4px 10px;
+				font-size: 12px;
+				color: #555;
+				cursor: pointer;
+				flex-shrink: 0;
+				height: 28px;
+
+				&:hover:not(:disabled) {
+					background-color: #c8c8c8;
+					color: #000;
+				}
+
+				&:disabled {
+					opacity: 0.6;
+					cursor: not-allowed;
+				}
+
+				.codicon {
+					font-size: 14px;
+				}
+			}
+
+			.scope-pill-btn {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				height: 28px;
+				padding: 0 10px;
+				background: #fff;
+				border: 1px solid #c3c4c7;
+				border-radius: 2px;
+				font-family: $font-family-sans;
+				font-size: 14px;
+				color: #2c3338;
+				cursor: pointer;
+				outline: none;
+				user-select: none;
+				gap: 6px;
+
+				.pill-icon {
+					font-size: 18px;
+					color: #50575e;
+				}
+
+				.pill-label {
+					line-height: 1;
+				}
+
+				.tab-active-dot {
+					width: 6px;
+					height: 6px;
+					border-radius: 50%;
+					background: $wordpress-primary;
+					flex-shrink: 0;
+				}
+
+				&:hover {
+					border-color: black;
+				}
+
+				&.active {
+					border-color: $wordpress-primary;
+					color: black;
+
+					.pill-icon {
+						color: $wordpress-primary;
+					}
+				}
+			}
+
+			.header-separator {
+				height: 28px;
+				width: 1px;
+				background-color: $border-color;
+				margin: 0 6px;
+			}
+		}
+	}
+
+	// Tabs Header
+	.filesystem-inspector-tabs-header {
+		display: flex;
+		gap: 2px;
+		padding: 0 20px;
+		background: transparent;
+		user-select: none;
+		flex-shrink: 0;
+		border-bottom: solid 2px #eee;
+		margin-top: 2px;
+
+		.builder-tab-btn {
+			background: transparent;
+			border: none;
+			border-bottom: 2px solid transparent;
+			padding: 6px 10px;
+			cursor: pointer;
+			color: #666;
+			font-family: $font-family-sans;
+			font-size: 13px;
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			margin-bottom: -2px;
+
+			&:hover {
+				color: #333;
+			}
+
+			&.active {
+				color: black;
+				border-bottom-color: $wordpress-primary;
+				font-weight: normal;
+			}
+
+			.tab-active-dot {
+				width: 6px;
+				height: 6px;
+				border-radius: 50%;
+				background: $wordpress-primary;
+			}
+		}
+	}
+
+	// Tab Panel
+	.filesystem-inspector-tab-panel {
+		padding: 16px 20px;
+		flex: 1;
+		min-height: 0;
+		overflow: hidden auto;
+		background: #fff;
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+
+		.tab-pane {
+			display: flex;
+			flex-direction: column;
+			flex: 1;
+			min-height: 0;
+
+			&.tab-target,
+			&.tab-operation {
+				flex: 1;
+				min-height: 0;
+			}
+		}
+
+		.pill-panel-section {
+			display: flex;
+			flex-direction: column;
+
+			&.tree-section {
+				flex: 1;
+				min-height: 0;
+			}
+		}
+
+		.panel-section-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 14px;
+			position: relative;
+
+			&.border-top {
+				border-top: solid 1px #ddd !important;
+				padding-top: 20px;
+			}
+
+			h4 {
+				margin: 0;
+				font-size: 13px;
+				font-weight: bold;
+			}
+
+			.panel-section-title {
+				font-size: 13px;
+				font-weight: bold;
+				margin: 0;
+			}
+
+			.panel-section-subtitle {
+				font-size: 12px;
+				color: #646970;
+			}
+		}
+	}
+
+	// Target Summary Banner
+	.target-summary-banner {
+		background: #f6f7f7;
+		border: 1px solid #dcdcde;
+		border-radius: 4px;
+		padding: 8px 12px;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		flex-shrink: 0;
+
+		.target-info {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			flex-wrap: wrap;
+
+			.target-label {
+				font-size: 12px;
+				font-weight: 600;
+				color: #50575e;
+			}
+
+			.target-path {
+				font-family: monospace;
+				font-size: 13px;
+				font-weight: 600;
+				color: #1d2327;
+				background: #fff;
+				padding: 2px 8px;
+				border: 1px solid #dcdcde;
+				border-radius: 3px;
+			}
+
+			.badge-type {
+				font-size: 10px;
+				font-weight: bold;
+				padding: 2px 6px;
+				border-radius: 3px;
+				text-transform: uppercase;
+
+				&.file {
+					background: #e7f5ea;
+					color: #1a7f37;
+					border: 1px solid #bce2c5;
+				}
+
+				&.dir {
+					background: #ddf4ff;
+					color: #0969da;
+					border: 1px solid #b6e3ff;
+				}
+			}
+
+			.badge-size {
+				font-size: 11px;
+				background: #eaecef;
+				color: #57606a;
+				padding: 2px 6px;
+				border-radius: 3px;
+			}
+
+			.badge-missing {
+				font-size: 11px;
+				background: #ffebe9;
+				color: #cf222e;
+				padding: 2px 6px;
+				border-radius: 3px;
+			}
+		}
+
+		.target-description {
+			font-size: 12px;
+			color: #646970;
+		}
+	}
+
+
+	.presets-loading-state,
+	.tree-loading-state {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 12px;
+		padding: 36px 20px;
+		color: #646970;
+		font-size: 13px;
+	}
+
+	.presets-error-state {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
+		padding: 28px 20px;
+		color: #d63638;
+		font-size: 13px;
+	}
+
+	// Presets Grid
+	.presets-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		gap: 16px;
+		padding-bottom: 16px;
+
+		.preset-card {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			font-size: 13px;
+			cursor: pointer;
+			padding: 8px 16px;
+			border: solid 1px $border-color;
+			border-radius: 2px;
+			background: #fff;
+			height: 54.4062px;
+			box-sizing: border-box;
+
+			.preset-type-icon {
+				font-size: 21px;
+				color: $wordpress-primary;
+				margin-right: 7px;
+				flex-shrink: 0;
+			}
+
+			span:not(.preset-type-icon, .preset-status-badge) {
+				min-width: 0;
+				flex: 1;
+				overflow: hidden;
+
+				strong {
+					display: block;
+					font-size: 13px;
+					font-weight: 700;
+					color: #000;
+					overflow: hidden;
+					text-overflow: ellipsis;
+					white-space: nowrap;
+				}
+
+				small {
+					display: block;
+					font-size: 12px;
+					color: #555;
+					white-space: nowrap;
+					overflow: hidden;
+					text-overflow: ellipsis;
+					direction: rtl;
+					text-align: left;
+				}
+			}
+
+			.preset-status-badge {
+				margin-left: auto;
+				flex-shrink: 0;
+				font-size: 11px;
+				padding: 0;
+				background: transparent;
+				color: #646970;
+				line-height: 1.2;
+
+				&.missing {
+					color: #646970;
+				}
+			}
+
+			&:hover {
+				border-color: black;
+			}
+
+			&.active {
+				border-color: $wordpress-primary !important;
+			}
+
+			&.is-missing {
+				background: #f1f1f1;
+
+				&.active {
+					border-color: $wordpress-primary !important;
+				}
+
+				.preset-type-icon {
+					color: #8c8f94;
+				}
+
+				span:not(.preset-type-icon, .preset-status-badge) {
+					strong {
+						color: #50575e;
+					}
+				}
+			}
+		}
+	}
+
+	// Bounded Tree Selector
+	.tree-section {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		min-height: 0;
+
+		.tree-search-wrapper {
+			display: flex;
+			align-items: center;
+			position: absolute;
+			width: 250px;
+			flex-shrink: 0;
+			right: 0;
+			top: -8px;
+
+			.search-icon {
+				position: absolute;
+				left: 8px;
+				font-size: 14px;
+				color: #555;
+			}
+
+			.tree-search-input {
+				width: 100%;
+				padding: 4px 26px 4px 28px;
+				font-size: 14px;
+				border: 1px solid #cdcdcd;
+				border-radius: 0;
+
+				&:hover {
+					border-color: black;
+				}
+
+				&:focus, &:active {
+					border-color: $wordpress-primary;
+				}
+			}
+
+			.clear-search-btn {
+				position: absolute;
+				right: 6px;
+				background: none;
+				border: none;
+				cursor: pointer;
+				color: #555;
+				padding: 0;
+				top: 8px;
+
+				&:hover {
+					color: #2c3338;
+				}
+			}
+		}
+
+		.filesystem-tree-container {
+			border: 1px solid $border-color;
+			border-radius: 0;
+			flex: 1;
+			min-height: 0;
+			overflow-y: auto;
+			background: #fff;
+			padding: 0;
+
+			.tree-columns-header {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: 0 6px;
+				background: #f7f7f7;
+				border-bottom: 1px solid $border-color;
+				font-size: 13px;
+				font-weight: 600;
+				color: #333;
+				user-select: none;
+				position: sticky;
+				top: 0;
+				z-index: 2;
+				height: 26px;
+				line-height: 26px;
+				font-family: $font-family-monospace;
+
+				.header-name-col {
+					flex: 1;
+					min-width: 0;
+					padding-left: 20px;
+				}
+
+				.header-meta-cols {
+					display: flex;
+					align-items: center;
+					gap: 12px;
+					flex-shrink: 0;
+
+					.header-col {
+						&.header-size-col {
+							width: 80px;
+							text-align: right;
+						}
+
+						&.header-owner-col {
+							width: 130px;
+							text-align: right;
+						}
+
+						&.header-perms-col {
+							width: 48px;
+							text-align: right;
+						}
+					}
+				}
+			}
+
+			.tree-empty-state {
+				padding: 16px;
+				text-align: center;
+				font-size: 12px;
+				color: #646970;
+			}
+
+			.tree-node-list {
+				list-style: none;
+				margin: 0;
+				padding: 1px;
+
+				&.subtree {
+					padding: 0;
+				}
+
+				.tree-node {
+					margin: 0 0 1px;
+
+					&:last-child {
+						margin: 0;
+					}
+
+					.tree-node-row {
+						display: flex;
+						align-items: center;
+						justify-content: space-between;
+						padding: 3px 6px;
+						border-radius: 0;
+						cursor: pointer;
+						font-size: 12px;
+						color: #333;
+						user-select: none;
+						border: solid 1px transparent;
+
+						&:hover {
+							background: #eaeaea;
+						}
+
+						&.active {
+							background: $wordpress-primary;
+							color: white;
+
+							.node-icon {
+								color: white !important;
+							}
+
+							.node-col {
+								&.node-size-col,
+								&.node-owner-col,
+								&.node-perms-col {
+									color: white !important;
+								}
+							}
+
+							.tree-expand-btn .codicon {
+								color: white !important;
+							}
+						}
+
+						.node-main-col {
+							display: flex;
+							align-items: center;
+							gap: 6px;
+							flex: 1;
+							min-width: 0;
+
+							.tree-expand-btn {
+								background: none;
+								border: none;
+								padding: 0;
+								width: 14px;
+								height: 14px;
+								display: inline-flex;
+								align-items: center;
+								justify-content: center;
+								cursor: pointer;
+								color: #646970;
+								flex-shrink: 0;
+							}
+
+							.tree-expand-placeholder {
+								width: 14px;
+								flex-shrink: 0;
+							}
+
+							.node-icon {
+								font-size: 15px;
+								color: #727272;
+								flex-shrink: 0;
+
+								&.codicon-folder-opened,
+								&.codicon-folder {
+									color: $wordpress-primary;
+								}
+							}
+
+							.node-name {
+								font-size: 13px;
+								overflow: hidden;
+								text-overflow: ellipsis;
+								white-space: nowrap;
+							}
+						}
+
+						.node-meta-cols {
+							display: flex;
+							align-items: center;
+							gap: 12px;
+							flex-shrink: 0;
+							font-size: 13px;
+							color: #9f9f9f;
+
+							.node-col {
+								white-space: nowrap;
+								overflow: hidden;
+								text-overflow: ellipsis;
+
+								&.node-size-col {
+									width: 80px;
+									text-align: right;
+								}
+
+								&.node-owner-col {
+									width: 130px;
+									text-align: right;
+								}
+
+								&.node-perms-col {
+									width: 48px;
+									text-align: right;
+									letter-spacing: -0.2px;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Directory Stats Folders Grid
+	.stats-folders-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+		gap: 10px;
+
+		.stats-folder-card {
+			border: 1px solid #dcdcde;
+			border-radius: 4px;
+			padding: 10px 12px;
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			cursor: pointer;
+			background: #fff;
+
+			&:hover {
+				border-color: #8c8f94;
+			}
+
+			&.active {
+				border-color: $wordpress-primary;
+				background: #f8fbfe;
+				box-shadow: 0 0 0 1px $wordpress-primary;
+			}
+
+			.folder-card-icon {
+				font-size: 24px;
+				color: $wordpress-primary;
+			}
+
+			.folder-card-info {
+				flex: 1;
+
+				.folder-card-name {
+					font-size: 13px;
+					font-weight: 600;
+					color: #1d2327;
+				}
+
+				.folder-card-path {
+					font-size: 11px;
+					color: #646970;
+				}
+			}
+		}
+	}
+
+	// Custom Path Form
+	.custom-path-form {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	// Action Matrix Grid
+	.actions-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+		gap: 8px;
+
+		.action-card {
+			border: 1px solid #dcdcde;
+			border-radius: 4px;
+			padding: 8px 10px;
+			cursor: pointer;
+			background: #fff;
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+
+			&:hover {
+				border-color: #8c8f94;
+			}
+
+			&.active {
+				border-color: $wordpress-primary;
+				background: #f8fbfe;
+				box-shadow: 0 0 0 1px $wordpress-primary;
+			}
+
+			.action-card-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+
+				.action-title-group {
+					display: flex;
+					align-items: center;
+					gap: 6px;
+
+					.action-icon {
+						font-size: 15px;
+						color: $wordpress-primary;
+					}
+
+					.action-method {
+						font-family: monospace;
+						font-size: 12px;
+						font-weight: 600;
+						color: #1d2327;
+					}
+				}
+			}
+
+			.action-card-desc {
+				font-size: 11px;
+				color: #646970;
+				line-height: 1.3;
+			}
+		}
+	}
+
+	// Parameters Tab
+	.param-group {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		width: 100%;
+		max-width: none;
+
+		.param-label {
+			font-size: 13px;
+			font-weight: 600;
+			color: #1d2327;
+		}
+
+		.param-control-row {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+
+			.range-slider {
+				flex: 1;
+			}
+
+			.number-input {
+				width: 70px;
+				padding: 4px 6px;
+				font-size: 13px;
+				border: 1px solid #8c8f94;
+				border-radius: 3px;
+
+				&.wide {
+					width: 140px;
+				}
+			}
+		}
+
+		.preset-chips-row {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			flex-wrap: wrap;
+
+			.chips-label {
+				font-size: 12px;
+				color: #646970;
+			}
+
+			.param-chip {
+				padding: 2px 8px;
+				font-size: 11px;
+				border: 1px solid #c3c4c7;
+				background: #fff;
+				border-radius: 12px;
+				cursor: pointer;
+
+				&:hover {
+					border-color: #8c8f94;
+				}
+
+				&.active {
+					background: #f0f6fc;
+					border-color: $wordpress-primary;
+					color: $wordpress-primary;
+					font-weight: 600;
+				}
+			}
+		}
+
+		.param-hint {
+			font-size: 12px;
+			color: #646970;
+			font-style: italic;
+		}
+
+		.projection-radios {
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+
+			.radio-label {
+				display: flex;
+				align-items: baseline;
+				gap: 8px;
+				cursor: pointer;
+				font-size: 13px;
+
+				.radio-title {
+					font-weight: 600;
+					color: #2c3338;
+				}
+
+				.radio-code {
+					font-size: 12px;
+					color: #646970;
+				}
+			}
+		}
+	}
+
+	.param-no-options {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 13px;
+		color: #646970;
+		padding: 16px;
+		background: #f6f7f7;
+		border-radius: 4px;
+	}
+
+	// Preview Tab Panel
+	.preview-tab-panel {
+		.copy-code-btn {
+			display: inline-flex;
+			align-items: center;
+			gap: 4px;
+			padding: 4px 10px;
+			font-size: 12px;
+			background: #f6f7f7;
+			border: 1px solid #dcdcde;
+			border-radius: 3px;
+			cursor: pointer;
+
+			&:hover {
+				background: #fff;
+				border-color: #8c8f94;
+			}
+		}
+
+		.preview-empty-notice {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			font-size: 13px;
+			color: #d63638;
+			background: #fcf0f1;
+			border: 1px solid #f5c6cb;
+			padding: 10px 14px;
+			border-radius: 4px;
+		}
+
+		.preview-editor-wrapper {
+			border: 1px solid #dcdcde;
+			border-radius: 4px;
+			flex: 1;
+			overflow: hidden;
+			min-height: 200px;
+
+			.cm-editor {
+				height: 100%;
+				font-family: monospace;
+				font-size: 13px;
+			}
+		}
+	}
+
+	.form-row {
+		display: flex;
+		gap: 16px;
+		margin-bottom: 14px;
+
+		.form-group {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+
+			> label,
+			label:not(.terminal-radio-label) {
+				font-size: 12px;
+				color: #333;
+				font-weight: bold;
+			}
+
+			.form-control {
+				height: 32px;
+				padding: 4px 8px;
+				font-size: 14px;
+				border: 1px solid #ccc;
+				outline: none;
+				min-height: auto;
+				box-shadow: none !important;
+				max-width: 100%;
+
+				&:hover {
+					border-color: black;
+				}
+
+				&:focus {
+					border-color: $wordpress-primary;
+					box-shadow: none !important;
+				}
+
+				&::placeholder {
+					color: #8f8f8f;
+				}
+
+				&:disabled {
+					background-color: #e9e9e9 !important;
+					cursor: not-allowed !important;
+				}
+			}
+
+			.form-help {
+				font-size: 12px;
+				color: #555;
+				margin-top: 2px;
+			}
+		}
+	}
+
+	.form-control {
+		height: 32px;
+		padding: 4px 8px;
+		font-size: 14px;
+		border: 1px solid #ccc;
+		outline: none;
+		min-height: auto;
+		box-shadow: none !important;
+
+		&:hover {
+			border-color: black;
+		}
+
+		&:focus {
+			border-color: $wordpress-primary;
+			box-shadow: none !important;
+		}
+
+		&::placeholder {
+			color: #8f8f8f;
+		}
+
+		&:disabled {
+			background-color: #e9e9e9 !important;
+			cursor: not-allowed !important;
+		}
+	}
+
+	// Terminal Action Group (Exact parity with Entity & Database builders)
+	.terminal-action-group {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 16px;
+		margin-bottom: 16px;
+		width: 100%;
+
+		.terminal-radio-label {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			font-size: 13px;
+			font-weight: normal;
+			cursor: pointer;
+			padding: 8px 16px;
+			border: solid 1px $border-color;
+			border-radius: 2px;
+			background: #fff;
+			min-height: 54.4062px;
+			box-sizing: border-box;
+
+			input[type="radio"],
+			input[type="checkbox"] {
+				margin-right: 12px;
+				flex-shrink: 0;
+				margin-top: 0;
+			}
+
+			span {
+				min-width: 0;
+			}
+
+			strong {
+				display: block;
+				font-size: 13px;
+				font-weight: 700;
+				color: #000;
+			}
+
+			small {
+				display: block;
+				font-size: 12px;
+				font-weight: normal;
+				color: #555;
+			}
+
+			&:hover {
+				border-color: black;
+			}
+
+			&.active {
+				border-color: $wordpress-primary !important;
+			}
+		}
+	}
+
+	// Operation Parameters Section
+	.operation-parameters-section {
+		display: flex;
+		flex-direction: column;
+		margin-top: 8px;
+
+		.form-row {
+			display: grid;
+			grid-template-columns: repeat(2, 1fr);
+			gap: 16px;
+			margin-bottom: 0;
+			width: 100%;
+			box-sizing: border-box;
+
+			.form-group {
+				display: flex;
+				flex-direction: column;
+				gap: 4px;
+				width: 100%;
+
+				.form-control {
+					width: 100%;
+				}
+			}
+		}
+
+		.param-group {
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+			width: 100%;
+			max-width: none;
+
+			.form-group {
+				display: flex;
+				flex-direction: column;
+				gap: 4px;
+				width: 100%;
+			}
+		}
+
+		.projection-radios,
+		.checkbox-grid,
+		.options-grid {
+			display: grid;
+			grid-template-columns: repeat(3, 1fr);
+			gap: 16px;
+			width: 100%;
+			box-sizing: border-box;
+
+			.terminal-radio-label,
+			.options-checkbox-label {
+				display: flex;
+				align-items: center;
+				gap: 6px;
+				font-size: 13px;
+				cursor: pointer;
+				padding: 8px 16px;
+				border: solid 1px $border-color;
+				border-radius: 2px;
+				background: #fff;
+				min-height: 54.4062px;
+				box-sizing: border-box;
+
+				input[type="radio"],
+				input[type="checkbox"] {
+					margin-right: 12px;
+					flex-shrink: 0;
+					margin-top: 0;
+				}
+
+				span {
+					min-width: 0;
+				}
+
+				strong {
+					display: block;
+					font-size: 13px;
+					font-weight: 700;
+					color: #000;
+				}
+
+				small {
+					display: block;
+					font-size: 12px;
+					font-weight: normal;
+					color: #555;
+				}
+
+				&:hover {
+					border-color: black;
+				}
+
+				&.active {
+					border-color: $wordpress-primary !important;
+				}
+			}
+		}
+
+		.options-checkbox-label,
+		.checkbox-label {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			font-size: 12px;
+			font-weight: 600;
+			color: #333;
+			cursor: pointer;
+			user-select: none;
+			margin-bottom: 0;
+
+			input[type="checkbox"] {
+				margin: 0;
+				cursor: pointer;
+				accent-color: $wordpress-primary;
+			}
+		}
+	}
+
+	// Live Expression Bar (Light Theme with CodeMirror 6)
+	.live-expression-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 8px;
+		min-height: 50px;
+		box-sizing: border-box;
+		border-top: 1px solid $border-color;
+		flex-shrink: 0;
+
+		.builder-notice {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			margin: 0;
+			padding: 0 8px;
+			background: transparent;
+			border: none;
+			font-size: 13px;
+			line-height: 1.4;
+
+			.codicon {
+				font-size: 20px;
+				color: $wordpress-primary;
+				flex-shrink: 0;
+			}
+
+			p {
+				margin: 0;
+			}
+		}
+
+		.copy-expression-btn {
+			align-self: flex-start;
+			flex-shrink: 0;
+		}
+
+		.expression-preview-content {
+			display: flex;
+			align-items: center;
+			align-self: center;
+			gap: 4px;
+			overflow: hidden;
+			flex: 1;
+			min-width: 0;
+
+			.expression-icon {
+				font-size: 16px;
+				color: $wordpress-primary;
+				flex-shrink: 0;
+				margin-top: -1px;
+				margin-left: 6px;
+			}
+
+			.expression-code-cm-wrapper {
+				flex: 1;
+				min-width: 0;
+				max-height: 100px;
+				overflow-y: auto;
+				margin-top: -1px;
+
+				.cm-editor {
+					background: transparent !important;
+					outline: none !important;
+					margin-top: 0;
+
+					.cm-scroller {
+						overflow: auto visible;
+						font-family: $font-family-monospace;
+						font-size: 13px;
+						line-height: 1.4;
+					}
+
+					.cm-content {
+						padding: 0;
+					}
+
+					.cm-line {
+						padding: 0;
+					}
+
+					&.cm-focused {
+						outline: none !important;
+					}
+				}
+			}
+		}
+	}
+
+	// Footer
+	.filesystem-inspector-footer {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 8px;
+		border-top: 1px solid $border-color;
+		background: #f6f7f7;
+		flex-shrink: 0;
+
+		.footer-actions-right {
+			display: flex;
+			gap: 8px;
+		}
+
+		.fw-80px {
+			min-width: 80px;
+		}
+	}
+}
