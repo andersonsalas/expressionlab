@@ -148,7 +148,7 @@ BinaryExpression {
 }
 
 ConditionalExpression {
-  expression !ternary "?" expression? ":" expression
+  expression !ternary "?" (":" expression | expression (":" expression)?)
 }
 
 NullCoalesceExpression {
