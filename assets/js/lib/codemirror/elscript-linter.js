@@ -139,6 +139,22 @@ export function lintExpressionLab(input) {
 
   const diagnostics = [];
 
+  // Enforce single-expression program (Expression Lab scripts evaluate to a single expression)
+  let rootExpressionCount = 0;
+  for (let ch = tree.topNode.firstChild; ch; ch = ch.nextSibling) {
+    if (ch.name !== 'BlockComment' && !ch.type.isError) {
+      rootExpressionCount++;
+      if (rootExpressionCount > 1) {
+        diagnostics.push({
+          from: ch.from,
+          to: ch.to,
+          severity: 'error',
+          message: 'Syntax error: unexpected expression. Expression Lab scripts must evaluate to a single expression (use prog[...] to group multiple expressions)',
+        });
+      }
+    }
+  }
+
   tree.iterate({
     enter(node) {
       // 1. Syntax Error Nodes (Lezer ⚠)

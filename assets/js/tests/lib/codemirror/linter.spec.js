@@ -39,9 +39,47 @@ describe('Expression Lab DSL Linter', () => {
       expect(lintExpressionLab('set[\'hours\', 0..23]')).toEqual([]);
       expect(lintExpressionLab('prog[set[\'hours\', 0..23]]')).toEqual([]);
     });
+
+    it('returns empty diagnostics for valid ternary expressions (full, elvis, and binary 1 ? 2)', () => {
+      expect(lintExpressionLab('1 ? 2 : 3')).toEqual([]);
+      expect(lintExpressionLab('1 ?: 2')).toEqual([]);
+      expect(lintExpressionLab('1 ? 2')).toEqual([]);
+      expect(lintExpressionLab('var[\'status\'] ? \'active\'')).toEqual([]);
+      expect(lintExpressionLab('prog[set[\'x\', 1 ? 2], var[\'x\']]')).toEqual([]);
+    });
   });
 
   describe('Syntax Errors', () => {
+    it('detects multiple root expressions (prog[] args[\'name\'])', () => {
+      const code = 'prog[] args[\'name\']';
+      const diags = lintExpressionLab(code);
+      expect(diags.length).toBe(1);
+      expect(diags[0].severity).toBe('error');
+      expect(diags[0].message).toContain('unexpected expression');
+      expect(diags[0].message).toContain('prog[...]');
+      expect(diags[0].from).toBe(7);
+      expect(diags[0].to).toBe(19);
+    });
+
+    it('detects multiple standalone root expressions across multiple lines', () => {
+      const code = `Database.mirror('posts')
+    .fetch()
+
+Posts.get()
+
+Media.get()`;
+      const diags = lintExpressionLab(code);
+      expect(diags.length).toBe(2);
+      expect(diags[0].message).toContain('unexpected expression');
+      expect(code.slice(diags[0].from, diags[0].to)).toBe('Posts.get()');
+      expect(diags[1].message).toContain('unexpected expression');
+      expect(code.slice(diags[1].from, diags[1].to)).toBe('Media.get()');
+    });
+
+    it('allows comments surrounding a single root expression', () => {
+      const code = '/* pre-comment */ Database.mirror(\'posts\').fetch() /* post-comment */';
+      expect(lintExpressionLab(code)).toEqual([]);
+    });
     it('detects unclosed brackets in prog[] and special forms', () => {
       const code = 'prog[set[\'x\', 1]';
       const diags = lintExpressionLab(code);
