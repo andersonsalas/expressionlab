@@ -618,7 +618,17 @@ const handleInsert = () => {
   const code = generatedCode.value;
   uiStore.triggerSnippetInsert({
     code,
-    mode: isScratchpad.value ? 'replace' : 'insert'
+    mode: 'insert'
+  });
+  uiStore.closeModal();
+};
+
+const handleReplace = () => {
+  if (isEmpty.value) return;
+  const code = generatedCode.value;
+  uiStore.triggerSnippetInsert({
+    code,
+    mode: 'replace'
   });
   uiStore.closeModal();
 };
@@ -861,7 +871,7 @@ const handleOverlayClick = (e) => {
 
             <div class="table-actions-bar">
               <button
-                class="btn btn-sm btn-default"
+                class="btn btn-default"
                 @click="addParamRow"
               >
                 {{ __('Add Parameter') }}
@@ -1082,7 +1092,7 @@ const handleOverlayClick = (e) => {
 
             <div class="table-actions-bar">
               <button
-                class="btn btn-sm btn-default"
+                class="btn btn-default"
                 @click="addHeaderRow"
               >
                 {{ __('Add Header') }}
@@ -1175,7 +1185,7 @@ const handleOverlayClick = (e) => {
                     <span class="json-error-text">{{ jsonError }}</span>
                   </div>
                   <button
-                    class="btn btn-sm btn-default format-json-btn"
+                    class="btn btn-default format-json-btn"
                     @click="formatJsonBody"
                   >
                     {{ __('Format JSON') }}
@@ -1251,7 +1261,7 @@ const handleOverlayClick = (e) => {
                 </div>
                 <div class="table-actions-bar">
                   <button
-                    class="btn btn-sm btn-default"
+                    class="btn btn-default"
                     @click="addFormDataRow"
                   >
                     {{ __('Add Field') }}
@@ -1426,7 +1436,7 @@ const handleOverlayClick = (e) => {
                 </div>
                 <div class="table-actions-bar">
                   <button
-                    class="btn btn-sm btn-default"
+                    class="btn btn-default"
                     @click="addCookieRow"
                   >
                     {{ __('Add Cookie') }}
@@ -1463,7 +1473,7 @@ const handleOverlayClick = (e) => {
 
               <div class="table-actions-bar">
                 <button
-                  class="btn btn-sm btn-default"
+                  class="btn btn-default"
                   @click="handleCopyCode"
                 >
                   {{ isCopied ? __('Copied!') : __('Copy Code') }}
@@ -1487,18 +1497,28 @@ const handleOverlayClick = (e) => {
         <div class="footer-actions-right">
           <button
             type="button"
-            class="btn btn-default fw-80px"
+            class="btn btn-default fw-80px cancel-btn"
             @click="handleClose"
           >
             {{ __('Cancel') }}
           </button>
           <button
             type="button"
-            class="btn btn-primary fw-80px"
+            class="btn fw-80px insert-btn"
+            :class="isScratchpad ? 'btn-default' : 'btn-primary'"
             :disabled="isEmpty"
             @click="handleInsert"
           >
-            {{ isScratchpad ? __('Replace') : __('Insert') }}
+            {{ __('Insert') }}
+          </button>
+          <button
+            v-if="isScratchpad"
+            type="button"
+            class="btn btn-primary fw-80px replace-btn"
+            :disabled="isEmpty"
+            @click="handleReplace"
+          >
+            {{ __('Replace') }}
           </button>
         </div>
       </div>

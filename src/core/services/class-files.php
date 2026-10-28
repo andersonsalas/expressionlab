@@ -87,6 +87,128 @@ final class Files {
 	}
 
 	/**
+	 * Checks whether the first 512 bytes of a file contain null bytes.
+	 *
+	 * @internal
+	 *
+	 * @param string $safe_path Resolved absolute file path.
+	 * @return bool
+	 */
+	private function sample_has_null_bytes( string $safe_path ): bool {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		$sample = file_get_contents( $safe_path, false, null, 0, 512 );
+
+		return false !== $sample && str_contains( $sample, "\0" );
+	}
+
+	/**
+	 * Resolves Unix owner username or returns numeric UID string.
+	 *
+	 * @internal
+	 *
+	 * @param string $path Target filesystem path.
+	 * @return string
+	 */
+	private function resolve_owner( string $path ): string {
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		$uid = @fileowner( $path );
+		if ( false === $uid ) {
+			return 'unknown';
+		}
+		if ( function_exists( 'posix_getpwuid' ) ) {
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			$user = @posix_getpwuid( $uid );
+			if ( is_array( $user ) && isset( $user['name'] ) ) {
+				return (string) $user['name'];
+			}
+		}
+		return (string) $uid;
+	}
+
+	/**
+	 * Resolves Unix group name or returns numeric GID string.
+	 *
+	 * @internal
+	 *
+	 * @param string $path Target filesystem path.
+	 * @return string
+	 */
+	private function resolve_group( string $path ): string {
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		$gid = @filegroup( $path );
+		if ( false === $gid ) {
+			return 'unknown';
+		}
+		if ( function_exists( 'posix_getgrgid' ) ) {
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			$group = @posix_getgrgid( $gid );
+			if ( is_array( $group ) && isset( $group['name'] ) ) {
+				return (string) $group['name'];
+			}
+		}
+		return (string) $gid;
+	}
+
+	/**
+	 * Formats raw numeric file permissions into standard Unix symbolic format (e.g. 'drwxr-xr-x', '-rw-r--r--').
+	 *
+	 * @internal
+	 *
+	 * @param int $perms File permissions bitmask.
+	 * @return string
+	 */
+	private function format_symbolic_perms( int $perms ): string {
+		switch ( $perms & 0xF000 ) {
+			case 0xC000:
+				$info = 's';
+				break;
+			case 0xA000:
+				$info = 'l';
+				break;
+			case 0x8000:
+				$info = '-';
+				break;
+			case 0x6000:
+				$info = 'b';
+				break;
+			case 0x4000:
+				$info = 'd';
+				break;
+			case 0x2000:
+				$info = 'c';
+				break;
+			case 0x1000:
+				$info = 'p';
+				break;
+			default:
+				$info = 'u';
+		}
+
+		// Owner.
+		$info .= ( ( $perms & 0x0100 ) ? 'r' : '-' );
+		$info .= ( ( $perms & 0x0080 ) ? 'w' : '-' );
+		$info .= ( ( $perms & 0x0040 ) ?
+					( ( $perms & 0x0800 ) ? 's' : 'x' ) :
+					( ( $perms & 0x0800 ) ? 'S' : '-' ) );
+
+		// Group.
+		$info .= ( ( $perms & 0x0020 ) ? 'r' : '-' );
+		$info .= ( ( $perms & 0x0010 ) ? 'w' : '-' );
+		$info .= ( ( $perms & 0x0008 ) ?
+					( ( $perms & 0x0400 ) ? 's' : 'x' ) :
+					( ( $perms & 0x0400 ) ? 'S' : '-' ) );
+
+		// Others.
+		$info .= ( ( $perms & 0x0004 ) ? 'r' : '-' );
+		$info .= ( ( $perms & 0x0002 ) ? 'w' : '-' );
+		$info .= ( ( $perms & 0x0001 ) ?
+					( ( $perms & 0x0200 ) ? 't' : 'x' ) :
+					( ( $perms & 0x0200 ) ? 'T' : '-' ) );
+
+		return $info;
+	}
+
+	/**
 	 * Check whether a file or directory exists within the WordPress root directory.
 	 *
 	 * Evaluates path existence safely within `ABSPATH`. If the path resolves outside
@@ -182,8 +304,11 @@ final class Files {
 	/**
 	 * Retrieve the size of a file or directory in bytes and as a formatted human-readable string.
 	 *
+	 * For directories, the value is the size of the directory entry reported by the filesystem,
+	 * not the cumulative size of its contents. Use `Files.stats()` for aggregated directory sizes.
+	 *
 	 * Return structure:
-	 * * `bytes` (`int`): Exact file or directory size in bytes.
+	 * * `bytes` (`int`): Exact file size in bytes, or directory entry size for directories.
 	 * * `human` (`string`): Formatted size string with binary units (`B`, `KB`, `MB`, `GB`, `TB`) rounded to two decimal places.
 	 *
 	 * Examples:
@@ -256,6 +381,50 @@ final class Files {
 	}
 
 	/**
+	 * Retrieve Unix permissions and ownership details for a file or directory.
+	 *
+	 * Evaluates target within `ABSPATH`. Returns octal and symbolic permission strings,
+	 * owner and group names (or numeric IDs), and boolean flags for readable,
+	 * writable, and executable status.
+	 *
+	 * Examples:
+	 *
+	 * ```elscript
+	 * Files.perms('wp-config.php')
+	 * ```
+	 *
+	 * ```elscript
+	 * Files.perms('wp-content/mu-plugins')
+	 * ```
+	 *
+	 * @see https://expressionlab.io/docs/api-reference/files#filesperms
+	 *
+	 * @param string $path File or directory path relative to ABSPATH or absolute within ABSPATH.
+	 * @return array Associative array with `octal`, `symbolic`, `owner`, `group`, `readable`, `writable`, `executable`.
+	 * @throws \InvalidArgumentException|\RuntimeException If the path does not exist or resolves outside ABSPATH.
+	 */
+	public function perms( string $path ): array {
+		$safe_path = $this->resolve_safe_path( $path, true );
+		LanguageEngine::get()->tick();
+
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		$raw_perms = @fileperms( $safe_path );
+		if ( false === $raw_perms ) {
+			throw new \RuntimeException( esc_html( "Failed to retrieve permissions for: $path" ) );
+		}
+
+		return array(
+			'octal'      => substr( sprintf( '%o', $raw_perms ), -4 ),
+			'symbolic'   => $this->format_symbolic_perms( (int) $raw_perms ),
+			'owner'      => $this->resolve_owner( $safe_path ),
+			'group'      => $this->resolve_group( $safe_path ),
+			'readable'   => is_readable( $safe_path ),
+			'writable'   => wp_is_writable( $safe_path ),
+			'executable' => is_executable( $safe_path ),
+		);
+	}
+
+	/**
 	 * Read the content of a file up to a specified maximum byte limit.
 	 *
 	 * Reads file content safely within `ABSPATH`. The `$max_bytes` parameter is clamped
@@ -287,7 +456,7 @@ final class Files {
 
 		LanguageEngine::get()->tick();
 
-		$mime = 'application/octet-stream';
+		$mime = null;
 		if ( class_exists( '\finfo' ) ) {
 			$finfo = new \finfo( FILEINFO_MIME_TYPE );
 			$res   = $finfo->file( $safe_path );
@@ -307,7 +476,7 @@ final class Files {
 		);
 
 		// Handle images: read if within budget and return Data URI.
-		if ( in_array( $mime, $image_mimes, true ) ) {
+		if ( null !== $mime && in_array( $mime, $image_mimes, true ) ) {
 			$size = (int) filesize( $safe_path );
 			if ( $size > LanguageEngine::MAX_EMBEDDED_BINARY_BYTES || ! LanguageEngine::get()->can_allocate_binary( $size ) ) {
 				LanguageEngine::get()->add_message(
@@ -360,8 +529,8 @@ final class Files {
 			return "data:{$mime};base64,{$base64}";
 		}
 
-		// Check for non-image binary file.
-		$is_text_mime = str_starts_with( $mime, 'text/' ) || in_array(
+		// Without fileinfo, binary detection relies on the null-byte sample only.
+		$is_text_mime = null === $mime || str_starts_with( $mime, 'text/' ) || in_array(
 			$mime,
 			array(
 				'application/json',
@@ -373,15 +542,13 @@ final class Files {
 				'application/sql',
 				'application/x-sh',
 				'application/xhtml+xml',
+				'application/x-empty',
+				'inode/x-empty',
 			),
 			true
 		);
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-		$sample         = file_get_contents( $safe_path, false, null, 0, 512 );
-		$has_null_bytes = false !== $sample && str_contains( $sample, "\0" );
-
-		if ( ! $is_text_mime || $has_null_bytes ) {
+		if ( ! $is_text_mime || $this->sample_has_null_bytes( $safe_path ) ) {
 			LanguageEngine::get()->add_message(
 				'warning',
 				sprintf( 'Binary file detected: %s cannot be read as plain text.', $filename )
@@ -420,7 +587,14 @@ final class Files {
 	 *
 	 * Reads lines by seeking backwards from EOF in binary mode (`fseek`), making it ideal
 	 * for large log files (e.g. `debug.log`). The `$lines` argument is clamped between `1` and `500`.
-	 * Buffer accumulation is guarded by `Files.MAX_TAIL_BYTES` (1 MB) against runaway single-line files.
+	 * A single trailing newline at EOF does not produce an empty last line.
+	 *
+	 * The public signature is `tail( string $path, int $lines = 50 ): array`. `Files.MAX_TAIL_BYTES`
+	 * (1 MB) is an internal buffer threshold, not an argument: once reached, reading stops and the
+	 * first returned line may be truncated (e.g. on runaway single-line files).
+	 *
+	 * Files with null bytes in their first 512 bytes or in the tailed content are treated as
+	 * binary: a warning is emitted and an empty array is returned.
 	 *
 	 * Examples:
 	 *
@@ -450,8 +624,15 @@ final class Files {
 			throw new \RuntimeException( 'Cannot tail a directory.' );
 		}
 
-		$lines = min( max( 1, $lines ), 500 );
+		$lines          = min( max( 1, $lines ), 500 );
+		$filename       = basename( $safe_path );
+		$binary_warning = sprintf( 'Binary file detected: %s cannot be visualized as plain text.', $filename );
 		LanguageEngine::get()->tick();
+
+		if ( $this->sample_has_null_bytes( $safe_path ) ) {
+			LanguageEngine::get()->add_message( 'warning', $binary_warning );
+			return array();
+		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 		$file = fopen( $safe_path, 'rb' );
@@ -459,56 +640,52 @@ final class Files {
 			throw new \RuntimeException( 'Failed to open file for tailing.' );
 		}
 
-		$output     = array();
-		$buffer_len = 4096;
+		$chunks   = array();
+		$buffered = 0;
+		$newlines = 0;
 
 		try {
 			fseek( $file, 0, SEEK_END );
-			$pos        = ftell( $file );
-			$str        = '';
-			$str_len    = 0;
-			$line_count = 0;
+			$pos = (int) ftell( $file );
 
-			while ( $pos > 0 && $line_count <= $lines ) {
+			while ( $pos > 0 && $newlines <= $lines && $buffered < self::MAX_TAIL_BYTES ) {
 				LanguageEngine::get()->tick();
 
-				$seek = min( $pos, $buffer_len );
+				$seek = min( $pos, 4096 );
 				$pos -= $seek;
 				fseek( $file, $pos, SEEK_SET );
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread
-				$chunk    = fread( $file, $seek );
-				$str      = $chunk . $str;
-				$str_len += $seek;
-
-				// Guard against unbounded memory growth (e.g., a massive single-line file).
-				if ( $str_len > self::MAX_TAIL_BYTES ) {
-					break;
-				}
-
-				$output     = explode( "\n", $str );
-				$line_count = count( $output );
+				$chunk     = (string) fread( $file, $seek );
+				$chunks[]  = $chunk;
+				$buffered += strlen( $chunk );
+				$newlines += substr_count( $chunk, "\n" );
 			}
 		} finally {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 			fclose( $file );
 		}
 
-		$lines_slice = array_slice( $output, -$lines );
+		$buffer = substr( implode( '', array_reverse( $chunks ) ), -self::MAX_TAIL_BYTES );
+		if ( str_ends_with( $buffer, "\n" ) ) {
+			$buffer = substr( $buffer, 0, -1 );
+		}
+
+		$lines_slice = '' === $buffer ? array() : array_map(
+			static fn( string $line ): string => rtrim( $line, "\r" ),
+			array_slice( explode( "\n", $buffer ), -$lines )
+		);
 		$joined      = implode( "\n", $lines_slice );
 
 		if ( str_contains( $joined, "\0" ) ) {
-			LanguageEngine::get()->add_message(
-				'warning',
-				sprintf( 'Binary file detected: %s cannot be visualized as plain text.', basename( $safe_path ) )
-			);
-			return $lines_slice;
+			LanguageEngine::get()->add_message( 'warning', $binary_warning );
+			return array();
 		}
 
 		LanguageEngine::get()->begin_visualization_group()->add_visualization(
 			array(
 				'type'       => 'file',
-				'title'      => 'File: ' . basename( $safe_path ) . " (tail {$lines})",
-				'filename'   => basename( $safe_path ),
+				'title'      => 'File: ' . $filename . " (tail {$lines})",
+				'filename'   => $filename,
 				'path'       => $path,
 				'content'    => $joined,
 				'bytes'      => strlen( $joined ),
@@ -521,160 +698,12 @@ final class Files {
 		return $lines_slice;
 	}
 
-	/**
-	 * Inspect and generate an interactive visualization for a file or image within ABSPATH.
-	 *
-	 * Detects the MIME type of the target file via magic bytes. If the target is an image
-	 * (`image/jpeg`, `image/png`, `image/gif`, `image/webp`, `image/avif`, `image/svg+xml`),
-	 * verifies dimensions and size (up to 2 MB) and registers an `'image'` visualization.
-	 * If the file is code or text, reads content up to `$max_bytes` and registers a `'file'` visualization.
-	 *
-	 * Examples:
-	 *
-	 * ```elscript
-	 * Files.show('wp-config.php')
-	 * ```
-	 *
-	 * ```elscript
-	 * Files.show('wp-content/themes/twentytwentyfour/screenshot.png')
-	 * ```
-	 *
-	 * @see https://expressionlab.io/docs/api-reference/files#filesshow
-	 *
-	 * @param string $path      File path relative to ABSPATH or absolute within ABSPATH.
-	 * @param int    $max_bytes Optional. Maximum number of bytes to read for text files. Default `Files.MAX_READ_BYTES`.
-	 * @return array Diagnostic file metadata summary.
-	 * @throws \InvalidArgumentException|\RuntimeException If the path does not exist, resolves outside ABSPATH, or target is a directory.
-	 */
-	public function show( string $path, int $max_bytes = self::MAX_READ_BYTES ): array {
-		$safe_path = $this->resolve_safe_path( $path, true );
-
-		if ( is_dir( $safe_path ) ) {
-			throw new \RuntimeException( 'Cannot show a directory as a file.' );
-		}
-
-		LanguageEngine::get()->tick();
-
-		$mime = 'application/octet-stream';
-		if ( class_exists( '\finfo' ) ) {
-			$finfo = new \finfo( FILEINFO_MIME_TYPE );
-			$res   = $finfo->file( $safe_path );
-			if ( false !== $res ) {
-				$mime = (string) $res;
-			}
-		}
-
-		$filename = basename( $safe_path );
-		$ext      = strtolower( pathinfo( $safe_path, PATHINFO_EXTENSION ) );
-		$size     = (int) filesize( $safe_path );
-
-		$image_mimes = array(
-			'image/jpeg',
-			'image/png',
-			'image/gif',
-			'image/webp',
-			'image/avif',
-			'image/svg+xml',
-		);
-
-		if ( in_array( $mime, $image_mimes, true ) ) {
-			if ( $size > LanguageEngine::MAX_EMBEDDED_BINARY_BYTES || ! LanguageEngine::get()->can_allocate_binary( $size ) ) {
-				throw new \RuntimeException( esc_html( "Image file exceeds maximum preview budget of {$this->format_bytes( LanguageEngine::MAX_EMBEDDED_BINARY_BYTES )} ({$this->format_bytes( $size )})." ) );
-			}
-
-			$dimensions = array(
-				'width'  => 0,
-				'height' => 0,
-			);
-
-			if ( 'image/svg+xml' !== $mime && function_exists( 'getimagesize' ) ) {
-				// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-				$img_info = @getimagesize( $safe_path );
-				if ( is_array( $img_info ) ) {
-					$dimensions = array(
-						'width'  => (int) $img_info[0],
-						'height' => (int) $img_info[1],
-					);
-				}
-			}
-
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-			$raw_bytes = file_get_contents( $safe_path );
-			if ( false === $raw_bytes ) {
-				throw new \RuntimeException( 'Failed to read image file contents.' );
-			}
-
-			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
-			$base64 = base64_encode( $raw_bytes );
-			LanguageEngine::get()->allocate_binary( $size );
-
-			LanguageEngine::get()->begin_visualization_group()->add_visualization(
-				array(
-					'type'       => 'image',
-					'title'      => "Image: {$filename}",
-					'filename'   => $filename,
-					'path'       => $path,
-					'mime'       => $mime,
-					'base64'     => $base64,
-					'dimensions' => $dimensions,
-					'bytes'      => $size,
-					'size_human' => $this->format_bytes( $size ),
-				)
-			);
-
-			return array(
-				'path'       => $path,
-				'name'       => $filename,
-				'type'       => 'image',
-				'mime'       => $mime,
-				'bytes'      => $size,
-				'size'       => $this->format_bytes( $size ),
-				'dimensions' => $dimensions,
-			);
-		}
-
-		// Text/code file.
-		$max_bytes = min( max( 1, $max_bytes ), self::MAX_READ_BYTES );
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-		$content = file_get_contents( $safe_path, false, null, 0, $max_bytes );
-		if ( false === $content ) {
-			throw new \RuntimeException( 'Failed to read file contents.' );
-		}
-
-		if ( str_contains( substr( $content, 0, 512 ), "\0" ) ) {
-			throw new \RuntimeException( esc_html( "Binary file detected: {$filename} cannot be shown as plain text." ) );
-		}
-
-		LanguageEngine::get()->begin_visualization_group()->add_visualization(
-			array(
-				'type'       => 'file',
-				'title'      => "File: {$filename}",
-				'filename'   => $filename,
-				'path'       => $path,
-				'content'    => $content,
-				'bytes'      => strlen( $content ),
-				'size_human' => $this->format_bytes( strlen( $content ) ),
-				'mime'       => $mime,
-				'ext'        => $ext,
-				'line_count' => substr_count( $content, "\n" ) + 1,
-			)
-		);
-
-		return array(
-			'path'       => $path,
-			'name'       => $filename,
-			'type'       => 'file',
-			'mime'       => $mime,
-			'bytes'      => strlen( $content ),
-			'size'       => $this->format_bytes( strlen( $content ) ),
-			'line_count' => substr_count( $content, "\n" ) + 1,
-		);
-	}
 
 	/**
 	 * List contents of a directory with item type, formatted size, and modification timestamp.
 	 *
-	 * Inspects immediate directory entries within `ABSPATH`. Dot entries (`.` and `..`) are excluded.
+	 * Inspects immediate directory entries within `ABSPATH`. Dot entries (`.` and `..`) and dangling
+	 * symlinks (whose target does not exist) are excluded.
 	 * Results are sorted with directories first (alphabetical, case-insensitive), followed by
 	 * regular files (alphabetical, case-insensitive).
 	 *
@@ -682,6 +711,9 @@ final class Files {
 	 * * `name` (`string`): Filename or directory name.
 	 * * `type` (`string`): Entry type (`'dir'` or `'file'`).
 	 * * `size` (`string|null`): Formatted human-readable size for files, or `null` for directories.
+	 * * `perms` (`string|null`): Formatted octal permission string (e.g. `'0755'`, `'0644'`).
+	 * * `owner` (`string`): Unix owner username or numeric UID.
+	 * * `group` (`string`): Unix group name or numeric GID.
 	 * * `modified` (`string`): UTC modification datetime formatted as `YYYY-MM-DD HH:MM:SS`.
 	 *
 	 * Examples:
@@ -698,10 +730,10 @@ final class Files {
 	 * Files.list('wp-content/plugins')
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/files#filelist
+	 * @see https://expressionlab.io/docs/api-reference/files#fileslist
 	 *
 	 * @param string $path Directory path relative to ABSPATH or absolute within ABSPATH. Default `'.'`.
-	 * @return array Indexed array of associative arrays with `name`, `type`, `size`, and `modified`.
+	 * @return array Indexed array of associative arrays with `name`, `type`, `size`, `perms`, `owner`, `group`, and `modified`.
 	 * @throws \InvalidArgumentException|\RuntimeException If the path does not exist or resolves outside ABSPATH, or if the specified path is not a directory.
 	 */
 	public function list( string $path = '.' ): array {
@@ -719,14 +751,23 @@ final class Files {
 		foreach ( $dir as $item ) {
 			LanguageEngine::get()->tick();
 
-			if ( $item->isDot() ) {
+			$item_path = $item->getPathname();
+
+			if ( $item->isDot() || ( $item->isLink() && ! file_exists( $item_path ) ) ) {
 				continue;
 			}
+
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			$raw_perms   = @fileperms( $item_path );
+			$octal_perms = false !== $raw_perms ? substr( sprintf( '%o', $raw_perms ), -4 ) : null;
 
 			$items[] = array(
 				'name'     => $item->getFilename(),
 				'type'     => $item->isDir() ? 'dir' : 'file',
 				'size'     => $item->isDir() ? null : $this->format_bytes( (int) $item->getSize() ),
+				'perms'    => $octal_perms,
+				'owner'    => $this->resolve_owner( $item_path ),
+				'group'    => $this->resolve_group( $item_path ),
 				'modified' => gmdate( 'Y-m-d H:i:s', $item->getMTime() ),
 			);
 		}
@@ -747,7 +788,8 @@ final class Files {
 	/**
 	 * Compute disk space usage statistics for a directory and render visual breakdowns.
 	 *
-	 * Aggregates file counts and byte sizes grouped by file extension. Automatically generates
+	 * Aggregates file counts and byte sizes grouped by file extension over the immediate entries
+	 * of the directory (non-recursive). Dangling symlinks are ignored. Automatically generates
 	 * interactive visual diagnostics in the Expression Lab console:
 	 * 1. **Table Visualization**: Tabular distribution (`Table: Directory disk distribution by extension`) displaying `extension`, `files`, `size`, and `bytes`.
 	 * 2. **Radial Chart**: Interactive radial (pie) chart (`Graph: Disk size distribution by extension`) displaying cumulative disk size per file extension.
@@ -796,7 +838,7 @@ final class Files {
 		foreach ( $dir as $item ) {
 			LanguageEngine::get()->tick();
 
-			if ( $item->isDot() ) {
+			if ( $item->isDot() || ( $item->isLink() && ! file_exists( $item->getPathname() ) ) ) {
 				continue;
 			}
 

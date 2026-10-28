@@ -424,7 +424,7 @@ watch(displayedData, () => {
           role="menuitem"
           @click.stop="handleViewData"
         >
-          <span class="codicon codicon-eye" />
+          <span class="codicon codicon-open-in-window" />
           <span>{{ __('View data...') }}</span>
         </div>
         <div

@@ -207,7 +207,7 @@ describe('ConsoleLog.vue', () => {
 
     const inspectBtn = wrapper.find('.action.inspect-action');
     expect(inspectBtn.exists()).toBe(true);
-    expect(inspectBtn.find('.codicon.codicon-eye').exists()).toBe(true);
+    expect(inspectBtn.find('.codicon.codicon-open-in-window').exists()).toBe(true);
 
     await inspectBtn.trigger('click');
     expect(uiStore.openModal).toHaveBeenCalledWith('data-viewer', {

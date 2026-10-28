@@ -177,6 +177,11 @@ const handleOpenEntityBuilder = () => {
   uiStore.openModal('entity-builder');
 };
 
+const handleOpenFilesystemInspector = () => {
+  isToolsDropdownOpen.value = false;
+  uiStore.openModal('filesystem-inspector');
+};
+
 const handleWindowClick = (event) => {
   if (
     isToolsDropdownOpen.value &&
@@ -599,6 +604,13 @@ onUnmounted(() => {
       >
         <span class="codicon codicon-layers" />
         <span>{{ __('Entity Query Builder') }}</span>
+      </div>
+      <div
+        class="tab-menu-item"
+        @click="handleOpenFilesystemInspector"
+      >
+        <span class="codicon codicon-folder" />
+        <span>{{ __('Filesystem Inspector') }}</span>
       </div>
     </div>
   </Teleport>

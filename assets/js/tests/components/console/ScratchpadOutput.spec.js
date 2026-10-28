@@ -1,4 +1,5 @@
 import { mount } from '@vue/test-utils';
+import { setActivePinia, createPinia } from 'pinia';
 
 jest.mock('../../../components/console/visualizations/GraphVisualization.vue', () => ({
   name: 'GraphVisualization',
@@ -7,6 +8,7 @@ jest.mock('../../../components/console/visualizations/GraphVisualization.vue', (
 
 import ScratchpadOutput from '../../../components/console/ScratchpadOutput.vue';
 import * as client from '../../../lib/api/client.js';
+import { useUiStore } from '../../../stores/ui.js';
 
 jest.mock('../../../lib/api/client.js', () => ({
   handleClipboardCopy: jest.fn(),
@@ -14,6 +16,7 @@ jest.mock('../../../lib/api/client.js', () => ({
 
 describe('ScratchpadOutput.vue', () => {
   beforeEach(() => {
+    setActivePinia(createPinia());
     jest.clearAllMocks();
   });
 
@@ -302,4 +305,125 @@ describe('ScratchpadOutput.vue', () => {
     expect(select.exists()).toBe(true);
     expect(select.element.value).toBe('100');
   });
+
+  it('renders View Data button in actions bar and opens data-viewer modal for raw tab', async () => {
+    const uiStore = useUiStore();
+    jest.spyOn(uiStore, 'openModal');
+
+    const wrapper = mount(ScratchpadOutput, {
+      props: {
+        result: {
+          result: 12345,
+          type: null,
+          visualizations: [],
+          messages: [],
+        },
+      },
+    });
+
+    const viewDataBtn = wrapper.find('.output-action-btn.view-data-btn');
+    expect(viewDataBtn.exists()).toBe(true);
+    expect(viewDataBtn.attributes('title')).toBe('View data...');
+    expect(viewDataBtn.find('.codicon.codicon-open-in-window').exists()).toBe(true);
+
+    await viewDataBtn.trigger('click');
+    expect(uiStore.openModal).toHaveBeenCalledWith('data-viewer', {
+      title: 'Raw Output',
+      content: 12345,
+      viewMode: 'raw',
+    });
+  });
+
+  it('opens data-viewer modal with preview mode when on Preview tab', async () => {
+    const uiStore = useUiStore();
+    jest.spyOn(uiStore, 'openModal');
+
+    const testData = [{ id: 1, name: 'Sample' }];
+    const wrapper = mount(ScratchpadOutput, {
+      props: {
+        result: {
+          result: testData,
+          type: null,
+          visualizations: [],
+          messages: [],
+        },
+      },
+    });
+
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find('.scratchpad-tab-btn.active').text()).toContain('Preview');
+
+    const viewDataBtn = wrapper.find('.output-action-btn.view-data-btn');
+    await viewDataBtn.trigger('click');
+
+    expect(uiStore.openModal).toHaveBeenCalledWith('data-viewer', {
+      title: 'Data Preview',
+      content: testData,
+      viewMode: 'preview',
+    });
+  });
+
+  it('opens data-viewer modal with formatted messages when on Output tab', async () => {
+    const uiStore = useUiStore();
+    jest.spyOn(uiStore, 'openModal');
+
+    const wrapper = mount(ScratchpadOutput, {
+      props: {
+        result: {
+          result: 'Some text',
+          messages: [
+            { type: 'log', text: 'Info message' },
+            { type: 'error', text: 'Failure alert' },
+          ],
+        },
+      },
+    });
+
+    const outputTab = wrapper.findAll('.scratchpad-tab-btn').find(b => b.text().includes('Output'));
+    await outputTab.trigger('click');
+    await wrapper.vm.$nextTick();
+
+    const viewDataBtn = wrapper.find('.output-action-btn.view-data-btn');
+    await viewDataBtn.trigger('click');
+
+    expect(uiStore.openModal).toHaveBeenCalledWith('data-viewer', {
+      title: 'Output Messages',
+      content: '[LOG] Info message\n[ERROR] Failure alert',
+      viewMode: 'raw',
+    });
+  });
+
+  it('opens data-viewer modal with visualization payload when on Visualization tab', async () => {
+    const uiStore = useUiStore();
+    jest.spyOn(uiStore, 'openModal');
+
+    const imgViz = {
+      type: 'image',
+      title: 'Image: test.jpeg',
+      data: 'data:image/jpeg;base64,...',
+    };
+
+    const wrapper = mount(ScratchpadOutput, {
+      props: {
+        result: {
+          result: null,
+          visualizations: [imgViz],
+        },
+      },
+    });
+
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find('.scratchpad-tab-btn.active').text()).toContain('Image: test.jpeg');
+
+    const viewDataBtn = wrapper.find('.output-action-btn.view-data-btn');
+    await viewDataBtn.trigger('click');
+
+    expect(uiStore.openModal).toHaveBeenCalledWith('data-viewer', {
+      title: 'Image: test.jpeg',
+      content: imgViz.data,
+      visualizations: [imgViz],
+      viewMode: 0,
+    });
+  });
 });
+

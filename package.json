@@ -78,6 +78,7 @@
     "vue-jest": "^5.0.0-alpha.10",
     "vue-loader": "^17.4.2",
     "vue-template-compiler": "^2.7.16",
+    "wawoff2": "^2.0.1",
     "webpack-dev-server": "^5.2.2",
     "wrangler": "^4.130.0"
   },
@@ -104,7 +105,7 @@
     "@lezer/highlight": "^1.2.4",
     "@lezer/lr": "^1.4.10",
     "@noble/curves": "^2.0.1",
-    "@vscode/codicons": "^0.0.44",
+    "@vscode/codicons": "0.0.46-24",
     "codemirror": "^6.0.2",
     "core-js": "^3.49.0",
     "d3": "^7.9.0",

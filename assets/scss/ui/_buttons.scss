@@ -79,10 +79,19 @@
 	font-size: 13px;
 	transition: background 0.2s, border-color 0.2s, opacity 0.2s;
 
+	&.btn-sm {
+		padding: 4px 8px;
+		font-size: 12px;
+	}
+
 	&:disabled,
 	&.disabled {
 		opacity: 0.70;
 		cursor: not-allowed;
+	}
+
+	&.fw-50px {
+		min-width: 60px;
 	}
 
 	&.fw-80px {

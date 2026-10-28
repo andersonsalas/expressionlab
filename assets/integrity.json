@@ -1,9 +1,9 @@
 {
   "assets/build/expressionlab-app-sandbox.css": "d1c74eed1c593434ae83054d0c72705c65cbe27117af1c3dffc75e68f865d7ed",
   "assets/build/expressionlab-app-sandbox.js": "e8485079a39a58b9e840f754cc0812c0e06b94d5c4c8118c471f8089ab1a572b",
-  "assets/build/expressionlab-app.css": "56c918509a61bf3e0cb8cf1c7ff1d4eb76934c94e273510d3e89154c74da6169",
-  "assets/build/expressionlab-app.js": "030c61ff86915b1bfe99b882cdd865452e0d3ccbb197b421e42d074e09a4a009",
-  "assets/build/expressionlab-onboard.css": "303007769827161b6b3ef7adb5c5feb7f217e0eeea3ed6b5d3a9bb235b970e6a",
+  "assets/build/expressionlab-app.css": "21da6f8747f5eb1af79ef0dba96696ec8a60a1830db3497215530f6726232fb4",
+  "assets/build/expressionlab-app.js": "b84fc35729d878c518478479cd429adfb2a47d3c159466782257cccf00899cc0",
+  "assets/build/expressionlab-onboard.css": "b6c2d0726009f068dd7afabdb356f46c5d7af7667bfdb6e2cac1664ea68f98f1",
   "assets/build/expressionlab-onboard.js": "4af2191646088d6aa2e7ce3530c24c9d3836753c50b8fd4151bc93e3d0b54dbc",
   "assets/fonts/CascadiaMono-Regular.woff2": "6df814aed3f36111ba1f24080fa99a7439a6dd41a42c6a153ebbf5dcaaf12a8e",
   "assets/fonts/Roboto-Bold.woff2": "11f83f118ee67214889bf98726889b5a68a7243ca27c7f79cb26f0085d204fe2",
@@ -11,5 +11,5 @@
   "assets/fonts/Roboto-Regular.woff2": "c7a719a69c5f658253b7455cf781c007962bed6a869726f9439a3878016e5c6b",
   "assets/fonts/RobotoSlab-Bold.woff2": "467ccc7adbd8b45619008005436bd82fb35e2f6facd0e3ae22351052b6b5a1b1",
   "assets/fonts/RobotoSlab-Regular.woff2": "eff1aced7de3e154be37eb8c8b388d1ace676fda55b1767a3c7a209a3a3345e4",
-  "assets/fonts/codicon.woff2": "5eaa24ec9c4e6fcc435da5430d9433b4005dafd0b9d130514202bd906fb5a556"
+  "assets/fonts/codicon.woff2": "ae2f4340c37e65f8bfdce5fd1ddf3aaacf9cfb762e5745d06d67e2bdddc091ac"
 }

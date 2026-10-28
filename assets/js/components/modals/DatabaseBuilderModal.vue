@@ -1152,7 +1152,17 @@ const handleInsert = () => {
   const code = generatedCode.value;
   uiStore.triggerSnippetInsert({
     code,
-    mode: isScratchpad.value ? 'replace' : 'insert'
+    mode: 'insert'
+  });
+  uiStore.closeModal();
+};
+
+const handleReplace = () => {
+  if (isEmpty.value) return;
+  const code = generatedCode.value;
+  uiStore.triggerSnippetInsert({
+    code,
+    mode: 'replace'
   });
   uiStore.closeModal();
 };
@@ -1895,7 +1905,7 @@ onBeforeUnmount(() => {
                     <button
                       v-if="activeFilterGroups.length > 1"
                       type="button"
-                      class="btn btn-sm btn-default btn-remove-group"
+                      class="btn btn-default btn-remove-group"
                       :title="__('Remove condition group')"
                       @click="removeOrGroup(gIdx)"
                     >
@@ -1904,7 +1914,7 @@ onBeforeUnmount(() => {
                     </button>
                     <button
                       type="button"
-                      class="btn btn-sm btn-default"
+                      class="btn btn-default"
                       @click="addFilterRow(gIdx)"
                     >
                       {{ __('Add Filter') }}
@@ -1921,7 +1931,7 @@ onBeforeUnmount(() => {
               <div class="or-groups-bottom-actions">
                 <button
                   type="button"
-                  class="btn btn-sm btn-default add-or-group-btn"
+                  class="btn btn-default add-or-group-btn"
                   @click="addOrGroup"
                 >
                   <span>{{ __('Add OR Group') }}</span>
@@ -2179,7 +2189,7 @@ onBeforeUnmount(() => {
                 </div>
                 <button
                   type="button"
-                  class="btn btn-sm btn-default format-sql-btn"
+                  class="btn btn-default format-sql-btn"
                   @click="formatSqlQuery"
                 >
                   {{ __('Format SQL') }}
@@ -2214,7 +2224,7 @@ onBeforeUnmount(() => {
               <div class="table-actions-bar">
                 <button
                   type="button"
-                  class="btn btn-sm btn-default"
+                  class="btn btn-default"
                   @click="copyCode"
                 >
                   {{ isCopied ? __('Copied!') : __('Copy Code') }}
@@ -2237,18 +2247,28 @@ onBeforeUnmount(() => {
         <div class="footer-actions-right">
           <button
             type="button"
-            class="btn btn-default fw-80px"
+            class="btn btn-default fw-80px cancel-btn"
             @click="handleClose"
           >
             {{ __('Cancel') }}
           </button>
           <button
             type="button"
-            class="btn btn-primary fw-80px"
+            class="btn fw-80px insert-btn"
+            :class="isScratchpad ? 'btn-default' : 'btn-primary'"
             :disabled="isEmpty"
             @click="handleInsert"
           >
-            {{ isScratchpad ? __('Replace') : __('Insert') }}
+            {{ __('Insert') }}
+          </button>
+          <button
+            v-if="isScratchpad"
+            type="button"
+            class="btn btn-primary fw-80px replace-btn"
+            :disabled="isEmpty"
+            @click="handleReplace"
+          >
+            {{ __('Replace') }}
           </button>
         </div>
       </div>

@@ -248,8 +248,7 @@
 	justify-content: space-between;
 	height: 36px;
 	min-height: 36px;
-	border-bottom: 2px solid #dcdcde;
-	background: #f6f7f7;
+	border-bottom: 2px solid #e0e0e0;
 	padding: 0 8px;
 	user-select: none;
 	flex-shrink: 0;
@@ -311,7 +310,7 @@
 	.scratchpad-output-actions {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: 3px;
 
 		.object-type-badge {
 			display: inline-flex;
@@ -321,8 +320,8 @@
 			border-radius: 3px;
 			font-size: 12px;
 			font-family: $font-family-monospace;
-			font-weight: 500;
 			margin-right: 4px;
+			color: #5d5d5d;
 
 			.codicon {
 				font-size: 14px;
@@ -339,25 +338,20 @@
 			padding: 0;
 			background: transparent;
 			border: 1px solid transparent;
-			border-radius: 3px;
-			color: #646970;
+			border-radius: 0;
+			color: #3c434a;
 			cursor: pointer;
-			transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 
 			.codicon {
 				font-size: 16px;
 			}
 
 			&:hover {
-				background: #f0f0f1;
-				color: #1d2327;
-				border-color: #dcdcde;
+				border-color: black;
 			}
 
 			&:active,
 			&.active {
-				background: #e5f1fb;
-				color: $wordpress-primary;
 				border-color: $wordpress-primary;
 			}
 		}
@@ -433,6 +427,28 @@
 						max-height: none;
 						flex: 1;
 						height: 100% !important;
+						min-height: 0;
+					}
+
+					.editor-viewport {
+						display: flex;
+						flex-direction: column;
+						overflow: hidden;
+
+						.cm-editor {
+							height: 100% !important;
+							max-height: none !important;
+							flex: 1;
+							min-height: 0;
+							display: flex;
+							flex-direction: column;
+
+							.cm-scroller {
+								height: 100% !important;
+								flex: 1;
+								overflow: auto;
+							}
+						}
 					}
 				}
 			}

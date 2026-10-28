@@ -412,13 +412,30 @@ describe('DatabaseBuilderModal.vue', () => {
     });
 
     const uiStore = useUiStore();
-    const insertBtn = wrapper.find('.database-builder-footer .btn-primary');
-    expect(insertBtn.text()).toBe('Replace');
+    const replaceBtn = wrapper.find('.database-builder-footer .replace-btn');
+    const insertBtn = wrapper.find('.database-builder-footer .insert-btn');
+
+    expect(replaceBtn.exists()).toBe(true);
+    expect(replaceBtn.text()).toBe('Replace');
+    expect(replaceBtn.classes()).toContain('btn-primary');
+
+    expect(insertBtn.exists()).toBe(true);
+    expect(insertBtn.text()).toBe('Insert');
+    expect(insertBtn.classes()).toContain('btn-default');
 
     wrapper.vm.steps[0].table = 'posts';
     await wrapper.vm.$nextTick();
 
+    // Clicking Insert passes mode 'insert'
     await insertBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'insert'
+      })
+    );
+
+    // Clicking Replace passes mode 'replace'
+    await replaceBtn.trigger('click');
     expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith(
       expect.objectContaining({
         mode: 'replace'

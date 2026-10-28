@@ -724,6 +724,10 @@
 				box-shadow: none !important;
 				max-width: 100%;
 
+				&:hover {
+					border-color: black;
+				}
+
 				&:focus {
 					border-color: $wordpress-primary;
 				}
@@ -807,7 +811,7 @@
 	// Terminal Actions Tab
 	.terminal-action-group {
 		display: grid;
-		grid-template-columns: repeat(2, 1fr);
+		grid-template-columns: repeat(3, 1fr);
 		gap: 16px;
 		margin-bottom: 16px;
 		width: 100%;

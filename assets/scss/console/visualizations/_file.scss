@@ -13,14 +13,20 @@
 	.editor-viewport {
 		height: 100%;
 		min-height: 180px;
-		max-height: 520px;
-		overflow: auto;
+		max-height: 420px;
+		overflow: hidden;
 		background: #fff;
+		display: flex;
+		flex-direction: column;
 
 		.cm-editor {
 			height: 100%;
+			flex: 1;
+			min-height: 0;
 			margin-top: 0;
 			background: #fff !important;
+			display: flex;
+			flex-direction: column;
 
 			&,
 			* {
@@ -32,6 +38,9 @@
 				font-family: $font-family-monospace;
 				font-size: 13px;
 				line-height: 19px;
+				height: 100%;
+				flex: 1;
+				overflow: auto;
 			}
 
 			.cm-content {

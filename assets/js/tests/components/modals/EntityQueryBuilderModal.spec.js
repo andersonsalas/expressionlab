@@ -33,8 +33,8 @@ describe('EntityQueryBuilderModal.vue', () => {
     const pills = wrapper.findAll('.entity-pill-btn');
     expect(pills.length).toBe(4);
     expect(pills[0].text()).toContain('Users');
+    expect(pills[0].classes()).toContain('active');
     expect(pills[1].text()).toContain('Posts');
-    expect(pills[1].classes()).toContain('active');
     expect(pills[2].text()).toContain('Media');
     expect(pills[3].text()).toContain('More...');
 
@@ -114,12 +114,12 @@ describe('EntityQueryBuilderModal.vue', () => {
       }
     });
 
-    // Add filter on Posts
+    // Add filter on Users
     const colInput = wrapper.find('.tab-filters .kv-table .col-col input');
-    await colInput.setValue('post_status');
+    await colInput.setValue('user_email');
 
     const valInput = wrapper.find('.tab-filters .kv-table .col-val input');
-    await valInput.setValue('publish');
+    await valInput.setValue('admin@example.com');
 
     // Helper to switch entity via pills
     const switchEntity = async (entityName) => {
@@ -134,29 +134,29 @@ describe('EntityQueryBuilderModal.vue', () => {
       await flushPromises();
     };
 
-    // Switch entity to Users
-    await switchEntity('Users');
-
-    // Verify Users starts clean
-    const usersColInput = wrapper.find('.tab-filters .kv-table .col-col input');
-    expect(usersColInput.element.value).toBe('');
-
-    // Add filter on Users
-    await usersColInput.setValue('user_email');
-
-    // Switch back to Posts
+    // Switch entity to Posts
     await switchEntity('Posts');
 
-    // Verify Posts filter is intact
-    const restoredColInput = wrapper.find('.tab-filters .kv-table .col-col input');
-    expect(restoredColInput.element.value).toBe('post_status');
-    const restoredValInput = wrapper.find('.tab-filters .kv-table .col-val input');
-    expect(restoredValInput.element.value).toBe('publish');
+    // Verify Posts starts clean
+    const postsColInput = wrapper.find('.tab-filters .kv-table .col-col input');
+    expect(postsColInput.element.value).toBe('');
 
-    // Switch back to Users and verify Users filter is intact
+    // Add filter on Posts
+    await postsColInput.setValue('post_status');
+
+    // Switch back to Users
     await switchEntity('Users');
-    const restoredUsersCol = wrapper.find('.tab-filters .kv-table .col-col input');
-    expect(restoredUsersCol.element.value).toBe('user_email');
+
+    // Verify Users filter is intact
+    const restoredColInput = wrapper.find('.tab-filters .kv-table .col-col input');
+    expect(restoredColInput.element.value).toBe('user_email');
+    const restoredValInput = wrapper.find('.tab-filters .kv-table .col-val input');
+    expect(restoredValInput.element.value).toBe('admin@example.com');
+
+    // Switch back to Posts and verify Posts filter is intact
+    await switchEntity('Posts');
+    const restoredPostsCol = wrapper.find('.tab-filters .kv-table .col-col input');
+    expect(restoredPostsCol.element.value).toBe('post_status');
   });
 
   it('adds and removes filter rows and OR groups', async () => {
@@ -253,18 +253,18 @@ describe('EntityQueryBuilderModal.vue', () => {
 
     const radioLabels = wrapper.findAll('.terminal-radio-label');
     expect(radioLabels.length).toBe(4);
-    expect(radioLabels[0].find('strong').text()).toBe('Posts.get()');
-    expect(radioLabels[1].find('strong').text()).toBe('Posts.count()');
-    expect(radioLabels[2].find('strong').text()).toBe('Posts.to_sql()');
-    expect(radioLabels[3].find('strong').text()).toBe('Posts.query(SQL)');
-
-    // Changing entity updates the labels dynamically
-    wrapper.vm.selectEntity('Users');
-    await wrapper.vm.$nextTick();
     expect(radioLabels[0].find('strong').text()).toBe('Users.get()');
     expect(radioLabels[1].find('strong').text()).toBe('Users.count()');
     expect(radioLabels[2].find('strong').text()).toBe('Users.to_sql()');
     expect(radioLabels[3].find('strong').text()).toBe('Users.query(SQL)');
+
+    // Changing entity updates the labels dynamically
+    wrapper.vm.selectEntity('Posts');
+    await wrapper.vm.$nextTick();
+    expect(radioLabels[0].find('strong').text()).toBe('Posts.get()');
+    expect(radioLabels[1].find('strong').text()).toBe('Posts.count()');
+    expect(radioLabels[2].find('strong').text()).toBe('Posts.to_sql()');
+    expect(radioLabels[3].find('strong').text()).toBe('Posts.query(SQL)');
 
     // Select .count()
     await radioLabels[1].find('input').setValue();
@@ -351,13 +351,29 @@ describe('EntityQueryBuilderModal.vue', () => {
 
     const uiStore = useUiStore();
 
-    // In scratchpad mode, button says Replace
-    const primaryBtn = wrapper.find('.footer-actions-right .btn-primary');
-    expect(primaryBtn.text()).toBe('Replace');
+    // In scratchpad mode, both Insert and Replace buttons coexist
+    const replaceBtn = wrapper.find('.footer-actions-right .replace-btn');
+    const insertBtn = wrapper.find('.footer-actions-right .insert-btn');
 
-    await primaryBtn.trigger('click');
+    expect(replaceBtn.exists()).toBe(true);
+    expect(replaceBtn.text()).toBe('Replace');
+    expect(replaceBtn.classes()).toContain('btn-primary');
+
+    expect(insertBtn.exists()).toBe(true);
+    expect(insertBtn.text()).toBe('Insert');
+    expect(insertBtn.classes()).toContain('btn-default');
+
+    // Clicking Insert passes mode 'insert'
+    await insertBtn.trigger('click');
     expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith({
-      code: 'Posts.get()',
+      code: 'Users.get()',
+      mode: 'insert'
+    });
+
+    // Clicking Replace passes mode 'replace'
+    await replaceBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith({
+      code: 'Users.get()',
       mode: 'replace'
     });
     expect(uiStore.closeModal).toHaveBeenCalled();
@@ -418,7 +434,7 @@ describe('EntityQueryBuilderModal.vue', () => {
     const uiStore = useUiStore();
     uiStore.showDialog.mockResolvedValue(true);
 
-    await wrapper.find('.tab-filters .kv-table .col-col input').setValue('post_title');
+    await wrapper.find('.tab-filters .kv-table .col-col input').setValue('user_login');
     await wrapper.find('.tab-filters .kv-table .col-val input').setValue('Hello');
     await wrapper.findAll('.builder-tab-btn').at(3).trigger('click');
     await flushPromises();
@@ -428,7 +444,7 @@ describe('EntityQueryBuilderModal.vue', () => {
     await flushPromises();
 
     expect(wrapper.find('.tab-preview .code-preview-cm-editor .cm-editor').exists()).toBe(true);
-    expect(wrapper.find('.tab-preview .cm-content').text()).toContain('Posts.get()');
+    expect(wrapper.find('.tab-preview .cm-content').text()).toContain('Users.get()');
     wrapper.unmount();
   });
 
@@ -571,15 +587,15 @@ describe('EntityQueryBuilderModal.vue', () => {
     const pills = wrapper.findAll('.entity-pill-btn');
     expect(pills.length).toBe(4);
 
-    // Initial state: Posts is active
-    expect(wrapper.vm.selectedEntity).toBe('Posts');
-    expect(pills[1].classes()).toContain('active');
-
-    // Click Users pill
-    await pills[0].trigger('click');
+    // Initial state: Users is active
     expect(wrapper.vm.selectedEntity).toBe('Users');
     expect(pills[0].classes()).toContain('active');
-    expect(pills[1].classes()).not.toContain('active');
+
+    // Click Posts pill
+    await pills[1].trigger('click');
+    expect(wrapper.vm.selectedEntity).toBe('Posts');
+    expect(pills[1].classes()).toContain('active');
+    expect(pills[0].classes()).not.toContain('active');
 
     // Click Media pill
     await pills[2].trigger('click');

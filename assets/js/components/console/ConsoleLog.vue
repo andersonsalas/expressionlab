@@ -230,7 +230,7 @@ const openDataViewer = (item) => {
           :title="__('View data...')"
           @click="openDataViewer(item)"
         >
-          <div class="codicon codicon-eye" />
+          <div class="codicon codicon-open-in-window" />
         </div>
       </div>
       <div 
