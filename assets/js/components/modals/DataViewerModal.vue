@@ -141,7 +141,11 @@ const initViewMode = () => {
   isCopied.value = false;
   wordWrap.value = false;
   const detected = detectedType.value;
-  if (supportedVisualizations.value.length > 0) {
+  if (modalData.value.viewMode !== undefined) {
+    viewMode.value = modalData.value.viewMode;
+  } else if (modalData.value.initialTab !== undefined) {
+    viewMode.value = modalData.value.initialTab;
+  } else if (supportedVisualizations.value.length > 0) {
     viewMode.value = 0;
   } else if (canPreview.value) {
     viewMode.value = 'preview';

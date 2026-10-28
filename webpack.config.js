@@ -119,7 +119,50 @@ Encore
       });
     });
   });
-;
+
+class CodiconWoff2Plugin {
+  apply(compiler) {
+    const handler = async () => {
+      const ttfPath = path.resolve(__dirname, 'node_modules/@vscode/codicons/dist/codicon.ttf');
+      const woff2Path = path.resolve(__dirname, 'assets/fonts/codicon.woff2');
+
+      if (!fs.existsSync(ttfPath)) {
+        return;
+      }
+
+      if (fs.existsSync(woff2Path)) {
+        const ttfStat = fs.statSync(ttfPath);
+        const woff2Stat = fs.statSync(woff2Path);
+        if (woff2Stat.mtimeMs >= ttfStat.mtimeMs) {
+          return;
+        }
+      }
+
+      try {
+        const wawoff2 = require('wawoff2');
+        const input = fs.readFileSync(ttfPath);
+        const output = await wawoff2.compress(input);
+        fs.mkdirSync(path.dirname(woff2Path), { recursive: true });
+        fs.writeFileSync(woff2Path, output);
+
+        const integrityPath = path.resolve(__dirname, 'assets/integrity.json');
+        if (fs.existsSync(integrityPath)) {
+          const hash = crypto.createHash('sha256').update(output).digest('hex');
+          const integrityManifest = JSON.parse(fs.readFileSync(integrityPath, 'utf8'));
+          integrityManifest['assets/fonts/codicon.woff2'] = hash;
+          fs.writeFileSync(integrityPath, JSON.stringify(integrityManifest, null, 2) + '\n');
+        }
+      } catch (err) {
+        console.error('Failed to convert codicon.ttf to codicon.woff2:', err);
+      }
+    };
+
+    compiler.hooks.beforeRun.tapPromise('CodiconWoff2Plugin', handler);
+    compiler.hooks.watchRun.tapPromise('CodiconWoff2Plugin', handler);
+  }
+}
+
+Encore.addPlugin(new CodiconWoff2Plugin());
 
 if ( Encore.isProduction() ) {
   class AssetIntegrityPlugin {

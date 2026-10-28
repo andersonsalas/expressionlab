@@ -11,6 +11,7 @@ import elscriptLang from '../../lib/highlight/elscript.js';
 import jsonLang from 'highlight.js/lib/languages/json';
 import phpLang from 'highlight.js/lib/languages/php';
 import DOMPurify from 'dompurify';
+import { useUiStore } from '../../stores/ui.js';
 
 hljs.registerLanguage('elscript', elscriptLang);
 hljs.registerLanguage('expressionlab', elscriptLang);
@@ -213,6 +214,44 @@ const copyOutput = () => {
 
   handleClipboardCopy(rawString.value);
 };
+
+const openDataViewer = () => {
+  if (!props.result) return;
+  const uiStore = useUiStore();
+
+  let payload = {};
+
+  if (typeof activeTab.value === 'number' && visualizations.value[activeTab.value]) {
+    const viz = visualizations.value[activeTab.value];
+    payload = {
+      title: viz.title || (viz.type === 'image' ? __('Image') : (viz.type === 'file' ? __('File') : __('Data viewer'))),
+      content: viz.content !== undefined ? viz.content : (viz.data !== undefined ? viz.data : (rawResult.value ?? '')),
+      visualizations: [viz],
+      viewMode: 0,
+    };
+  } else if (activeTab.value === 'output') {
+    payload = {
+      title: __('Output Messages'),
+      content: messages.value.map((m) => `[${(m.type || 'log').toUpperCase()}] ${m.text}`).join('\n'),
+      viewMode: 'raw',
+    };
+  } else if (activeTab.value === 'preview') {
+    payload = {
+      title: __('Data Preview'),
+      content: rawResult.value ?? '',
+      viewMode: 'preview',
+    };
+  } else {
+    // 'raw'
+    payload = {
+      title: __('Raw Output'),
+      content: rawResult.value ?? '',
+      viewMode: 'raw',
+    };
+  }
+
+  uiStore.openModal('data-viewer', payload);
+};
 </script>
 
 <template>
@@ -265,6 +304,15 @@ const copyOutput = () => {
       </div>
 
       <div class="scratchpad-output-actions">
+        <div
+          v-if="objectType"
+          class="object-type-badge"
+          :title="sprintf(__('Object Type: %s'), objectType)"
+        >
+          <span class="codicon codicon-symbol-class" />
+          <span class="object-type-name">{{ objectType }}</span>
+        </div>
+
         <!-- Tree controls when on Preview tab -->
         <template v-if="activeTab === 'preview'">
           <button
@@ -297,15 +345,6 @@ const copyOutput = () => {
           <span class="codicon codicon-word-wrap" />
         </button>
 
-        <div
-          v-if="objectType"
-          class="object-type-badge"
-          :title="sprintf(__('Object Type: %s'), objectType)"
-        >
-          <span class="codicon codicon-symbol-class" />
-          <span class="object-type-name">{{ objectType }}</span>
-        </div>
-
         <button
           type="button"
           class="output-action-btn"
@@ -317,11 +356,20 @@ const copyOutput = () => {
 
         <button
           type="button"
+          class="output-action-btn view-data-btn"
+          :title="__('View data...')"
+          @click="openDataViewer"
+        >
+          <span class="codicon codicon-open-in-window" />
+        </button>
+
+        <button
+          type="button"
           class="output-action-btn"
           :title="__('Clear output')"
           @click="emit('clear-output')"
         >
-          <span class="codicon codicon-clear-all" />
+          <span class="codicon codicon-circle-slash" />
         </button>
 
         <button

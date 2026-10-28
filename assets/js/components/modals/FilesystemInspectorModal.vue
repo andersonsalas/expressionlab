@@ -636,8 +636,7 @@ watch(
                 v-else-if="loadError"
                 class="presets-error-state"
               >
-                <span class="codicon codicon-warning" />
-                <span>{{ loadError }}</span>
+                <p>{{ loadError }}</p>
                 <button
                   type="button"
                   class="btn btn-default btn-sm fw-50px"
