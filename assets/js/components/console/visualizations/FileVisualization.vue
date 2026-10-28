@@ -313,11 +313,11 @@ const initEditor = () => {
     EditorView.theme({
       '&': {
         height: '100%',
-        maxHeight: '520px',
         fontSize: '13px',
         fontFamily: 'monospace',
       },
       '.cm-scroller': {
+        height: '100%',
         overflow: 'auto',
         fontFamily: 'SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
       },

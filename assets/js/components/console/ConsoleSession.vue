@@ -438,7 +438,7 @@ const adjustOutputForVisualization = (force = false, retryCount = 0) => {
       const workspaceHeight = workspaceEl.getBoundingClientRect().height;
       if (!workspaceHeight || workspaceHeight <= 0) return;
 
-      const MIN_EDITOR_PX = 220;
+      const MIN_EDITOR_PX = 200;
       const SPLITTER_PX = 6;
       const maxOutputHeight = Math.max(60, workspaceHeight - MIN_EDITOR_PX - SPLITTER_PX);
 
@@ -457,19 +457,21 @@ const adjustOutputForVisualization = (force = false, retryCount = 0) => {
       const tableEl = outputSectionEl.querySelector('.fp-table');
       const tableControlsEl = outputSectionEl.querySelector('.table-controls');
       const tableScrollWrapper = outputSectionEl.querySelector('.table-scroll-wrapper');
-      const isFileViz = Boolean(outputSectionEl.querySelector('.file-visualization'));
+      const isFileViz = Boolean(outputSectionEl.querySelector('.file-visualization, .visualization-type-file'));
       const imageVisualizationEl = outputSectionEl.querySelector('.image-visualization');
 
       if (isFileViz) {
-        if (force) {
-          isAutoAdjusting.value = true;
-          tabsStore.updateTabScratchpad(props.tabId, {
-            scratchpadEditorRatio: 50,
-          });
-          setTimeout(() => {
-            isAutoAdjusting.value = false;
-          }, 260);
-        }
+        const targetEditorPx = Math.max(MIN_EDITOR_PX, 200);
+        const targetEditorRatio = Math.max(15, Math.min(85, (targetEditorPx / workspaceHeight) * 100));
+
+        isAutoAdjusting.value = true;
+        tabsStore.updateTabScratchpad(props.tabId, {
+          scratchpadEditorRatio: targetEditorRatio,
+        });
+
+        setTimeout(() => {
+          isAutoAdjusting.value = false;
+        }, 260);
         return;
       }
 
@@ -553,6 +555,16 @@ const handleVisualizationRendered = () => {
     pendingEvaluationAutoAdjust = false;
     adjustOutputForVisualization(false);
   }
+};
+
+const handleOutputTabChange = () => {
+  nextTick(() => {
+    const workspaceEl = document.querySelector(`.console-session-${props.tabId} .scratchpad-workspace`);
+    const isFileViz = Boolean(workspaceEl?.querySelector('.scratchpad-output-section .file-visualization, .scratchpad-output-section .visualization-type-file'));
+    if (isFileViz) {
+      adjustOutputForVisualization(true);
+    }
+  });
 };
 
 watch(
@@ -704,6 +716,7 @@ defineExpose({
           @clear-output="clearScratchpadOutput"
           @close="tabsStore.updateTabScratchpad(tabId, { isScratchpadOutputVisible: false })"
           @visualization-rendered="handleVisualizationRendered"
+          @tab-change="handleOutputTabChange"
         />
       </div>
     </div>
