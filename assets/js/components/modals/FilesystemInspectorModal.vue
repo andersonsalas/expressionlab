@@ -457,7 +457,17 @@ const handleInsert = () => {
   const code = generatedCode.value;
   uiStore.triggerSnippetInsert({
     code,
-    mode: isScratchpad.value ? 'replace' : 'insert',
+    mode: 'insert',
+  });
+  uiStore.closeModal();
+};
+
+const handleReplace = () => {
+  if (isCodeEmpty.value) return;
+  const code = generatedCode.value;
+  uiStore.triggerSnippetInsert({
+    code,
+    mode: 'replace',
   });
   uiStore.closeModal();
 };
@@ -1210,18 +1220,28 @@ watch(
         <div class="footer-actions-right">
           <button
             type="button"
-            class="btn btn-default fw-80px"
+            class="btn btn-default fw-80px cancel-btn"
             @click="handleClose"
           >
             {{ __('Cancel') }}
           </button>
           <button
             type="button"
-            class="btn btn-primary fw-80px insert-btn"
+            class="btn fw-80px insert-btn"
+            :class="isScratchpad ? 'btn-default' : 'btn-primary'"
             :disabled="isCodeEmpty"
             @click="handleInsert"
           >
-            {{ isScratchpad ? __('Replace') : __('Insert') }}
+            {{ __('Insert') }}
+          </button>
+          <button
+            v-if="isScratchpad"
+            type="button"
+            class="btn btn-primary fw-80px replace-btn"
+            :disabled="isCodeEmpty"
+            @click="handleReplace"
+          >
+            {{ __('Replace') }}
           </button>
         </div>
       </div>

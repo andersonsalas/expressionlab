@@ -486,14 +486,31 @@ describe('HttpRequestBuilderModal.vue', () => {
     });
 
     const uiStore = useUiStore();
-    const insertBtn = wrapper.find('.http-builder-footer .btn-primary');
-    expect(insertBtn.text()).toBe('Replace');
+    const replaceBtn = wrapper.find('.http-builder-footer .replace-btn');
+    const insertBtn = wrapper.find('.http-builder-footer .insert-btn');
+
+    expect(replaceBtn.exists()).toBe(true);
+    expect(replaceBtn.text()).toBe('Replace');
+    expect(replaceBtn.classes()).toContain('btn-primary');
+
+    expect(insertBtn.exists()).toBe(true);
+    expect(insertBtn.text()).toBe('Insert');
+    expect(insertBtn.classes()).toContain('btn-default');
 
     const addressInput = wrapper.find('.request-url-input');
     await addressInput.setValue('https://api.example.com/data');
     await wrapper.vm.$nextTick();
 
+    // Clicking Insert passes mode 'insert'
     await insertBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'insert'
+      })
+    );
+
+    // Clicking Replace passes mode 'replace'
+    await replaceBtn.trigger('click');
     expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith(
       expect.objectContaining({
         mode: 'replace'

@@ -351,11 +351,27 @@ describe('EntityQueryBuilderModal.vue', () => {
 
     const uiStore = useUiStore();
 
-    // In scratchpad mode, button says Replace
-    const primaryBtn = wrapper.find('.footer-actions-right .btn-primary');
-    expect(primaryBtn.text()).toBe('Replace');
+    // In scratchpad mode, both Insert and Replace buttons coexist
+    const replaceBtn = wrapper.find('.footer-actions-right .replace-btn');
+    const insertBtn = wrapper.find('.footer-actions-right .insert-btn');
 
-    await primaryBtn.trigger('click');
+    expect(replaceBtn.exists()).toBe(true);
+    expect(replaceBtn.text()).toBe('Replace');
+    expect(replaceBtn.classes()).toContain('btn-primary');
+
+    expect(insertBtn.exists()).toBe(true);
+    expect(insertBtn.text()).toBe('Insert');
+    expect(insertBtn.classes()).toContain('btn-default');
+
+    // Clicking Insert passes mode 'insert'
+    await insertBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith({
+      code: 'Users.get()',
+      mode: 'insert'
+    });
+
+    // Clicking Replace passes mode 'replace'
+    await replaceBtn.trigger('click');
     expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith({
       code: 'Users.get()',
       mode: 'replace'

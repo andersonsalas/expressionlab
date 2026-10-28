@@ -698,10 +698,28 @@ describe('FilesystemInspectorModal.vue', () => {
     await presetCards[0].trigger('click');
 
     const insertBtn = wrapper.find('.insert-btn');
-    expect(insertBtn.text()).toBe('Replace');
+    const replaceBtn = wrapper.find('.replace-btn');
+
+    expect(insertBtn.exists()).toBe(true);
+    expect(insertBtn.text()).toBe('Insert');
+    expect(insertBtn.classes()).toContain('btn-default');
     expect(insertBtn.attributes('disabled')).toBeUndefined();
 
+    expect(replaceBtn.exists()).toBe(true);
+    expect(replaceBtn.text()).toBe('Replace');
+    expect(replaceBtn.classes()).toContain('btn-primary');
+    expect(replaceBtn.attributes('disabled')).toBeUndefined();
+
+    // Clicking Insert sends mode 'insert'
     await insertBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'insert',
+      })
+    );
+
+    // Clicking Replace sends mode 'replace'
+    await replaceBtn.trigger('click');
     expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith(
       expect.objectContaining({
         mode: 'replace',
