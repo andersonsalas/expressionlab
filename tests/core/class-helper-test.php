@@ -5,6 +5,28 @@
 use ExpressionLab\Core\Helper;
 
 class HelperTest extends WP_UnitTestCase {
+	/**
+	 * Preserved SERVER_SOFTWARE value.
+	 *
+	 * @var string|null
+	 */
+	private ?string $original_server_software = null;
+
+	public function setUp(): void {
+		parent::setUp();
+		$this->original_server_software = isset( $_SERVER['SERVER_SOFTWARE'] ) ? $_SERVER['SERVER_SOFTWARE'] : null;
+	}
+
+	public function tearDown(): void {
+		if ( null !== $this->original_server_software ) {
+			$_SERVER['SERVER_SOFTWARE'] = $this->original_server_software;
+		} else {
+			unset( $_SERVER['SERVER_SOFTWARE'] );
+		}
+
+		parent::tearDown();
+	}
+
 	public function test_resolve_safe_path_existing_file_default_base() {
 		$resolved = Helper::resolve_safe_path( 'wp-login.php', ABSPATH, true );
 		$this->assertIsString( $resolved );
@@ -520,5 +542,44 @@ class HelperTest extends WP_UnitTestCase {
 			chmod( $dir, $perms );
 			Helper::ensure_storage_dir();
 		}
+	}
+
+	public function test_is_playground_default_is_false() {
+		$this->assertFalse( Helper::is_playground() );
+	}
+
+	public function test_is_playground_detects_server_software_wasm() {
+		$_SERVER['SERVER_SOFTWARE'] = 'PHP.wasm/0.0.1';
+		$this->assertTrue( Helper::is_playground() );
+	}
+
+	public function test_is_playground_ignores_standard_server_software() {
+		$_SERVER['SERVER_SOFTWARE'] = 'Apache/2.4.41 (Ubuntu)';
+		$this->assertFalse( Helper::is_playground() );
+	}
+
+	public function test_plugin_is_fully_configured_and_admin_in_playground_context() {
+		$_SERVER['SERVER_SOFTWARE'] = 'PHP.wasm';
+		$this->assertTrue( Helper::plugin_is_fully_configured() );
+
+		$admin_id = $this->factory->user->create( array( 'role' => 'administrator' ) );
+		if ( is_multisite() ) {
+			grant_super_admin( $admin_id );
+		}
+		wp_set_current_user( $admin_id );
+		$this->assertTrue( Helper::user_is_expressionlab_admin() );
+
+		wp_set_current_user( 0 );
+		$this->assertFalse( Helper::user_is_expressionlab_admin() );
+	}
+
+	public function test_user_is_expressionlab_admin_in_playground_rejects_non_admin() {
+		$_SERVER['SERVER_SOFTWARE'] = 'PHP.wasm';
+
+		$subscriber_id = $this->factory->user->create( array( 'role' => 'subscriber' ) );
+		wp_set_current_user( $subscriber_id );
+		$this->assertFalse( Helper::user_is_expressionlab_admin() );
+
+		wp_set_current_user( 0 );
 	}
 }

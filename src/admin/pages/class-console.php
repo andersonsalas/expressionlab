@@ -226,6 +226,7 @@ class Console extends AdminPage {
 			),
 			'settings'   => array(
 				'enable_sandbox'      => EXPRESSION_LAB_SANDBOX_ENABLED,
+				'is_playground'       => Helper::is_playground(),
 				'hooks_enabled'       => defined( 'EXPRESSION_LAB_HOOKS_ENABLED' ) && EXPRESSION_LAB_HOOKS_ENABLED,
 				'enable_cache'        => EXPRESSION_LAB_CACHE,
 				'debug_mode'          => EXPRESSION_LAB_DEBUG_MODE,
@@ -247,6 +248,7 @@ class Console extends AdminPage {
 				'debug_enabled'  => defined( 'WP_DEBUG' ) && WP_DEBUG,
 				'sqlite_enabled' => extension_loaded( 'sqlite3' ),
 				'sodium_enabled' => extension_loaded( 'sodium' ),
+				'is_playground'  => Helper::is_playground(),
 			),
 			'i18n'       => $this->get_i18n_strings(),
 		);
@@ -558,10 +560,6 @@ class Console extends AdminPage {
 	public function validate_ajax_request(): bool {
 		$nonce = isset( $_REQUEST['nonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['nonce'] ) ) : '';
 
-		if ( ! function_exists( 'sodium_crypto_sign_verify_detached' ) ) {
-			throw new SecurityException( esc_html__( 'Sodium extension is required for AJAX requests.', 'expression-lab' ), 500 );
-		}
-
 		if ( ! Helper::plugin_is_fully_configured() ) {
 			throw new SecurityException( esc_html__( 'Plugin is not fully configured.', 'expression-lab' ), 400 );
 		}
@@ -574,9 +572,13 @@ class Console extends AdminPage {
 			throw new SecurityException( esc_html__( 'Unauthorized', 'expression-lab' ), 403 );
 		}
 
-		// Bypass cryptographic signature validation during development.
+		// Bypass cryptographic signature validation when the sandbox is disabled.
 		if ( false === EXPRESSION_LAB_SANDBOX_ENABLED ) {
 			return true;
+		}
+
+		if ( ! function_exists( 'sodium_crypto_sign_verify_detached' ) ) {
+			throw new SecurityException( esc_html__( 'Sodium extension is required for AJAX requests.', 'expression-lab' ), 500 );
 		}
 
 		// Signature validation for requests coming from the sandboxed iframe.

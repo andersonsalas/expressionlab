@@ -26,6 +26,7 @@ const signatureTimeRemaining = ref(0);
 const signatureProgress = ref(0);
 const isSidebarVisible = computed(() => settingsStore.isSidebarVisible);
 const enableSandbox = window.el_settings.settings?.enable_sandbox;
+const isPlayground = Boolean(window.el_settings.settings?.is_playground || window.el_settings.server?.is_playground);
 
 const sessionRefs = ref({});
 
@@ -566,7 +567,7 @@ onUnmounted(() => {
         </template>
       </div>
       <div
-        v-else
+        v-else-if="!isPlayground"
         class="footer-badge sandbox-disabled-badge"
         :title="__('Sandbox disabled')"
       >

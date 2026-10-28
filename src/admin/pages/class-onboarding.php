@@ -41,6 +41,10 @@ class Onboarding extends AdminPage {
 	 * @return bool True if the plugin is not yet fully configured, false otherwise.
 	 */
 	public function should_load() {
+		if ( Helper::is_playground() ) {
+			return false;
+		}
+
 		return ! Helper::plugin_is_fully_configured();
 	}
 

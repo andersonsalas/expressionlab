@@ -27,16 +27,44 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Helper {
 	/**
+	 * Checks if the current environment is WordPress Playground.
+	 *
+	 * Detects whether the plugin is executing inside WordPress Playground by checking
+	 * the dedicated `EXPRESSION_LAB_PLAYGROUND` constant, the community `WP_PLAYGROUND`
+	 * constant, or inspecting server software and runtime environment markers.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @return bool True if running in WordPress Playground, false otherwise.
+	 */
+	public static function is_playground(): bool {
+		if ( defined( 'EXPRESSION_LAB_PLAYGROUND' ) && (bool) constant( 'EXPRESSION_LAB_PLAYGROUND' ) ) {
+			return true;
+		}
+
+		if ( defined( 'WP_PLAYGROUND' ) && (bool) constant( 'WP_PLAYGROUND' ) ) {
+			return true;
+		}
+
+		return ( isset( $_SERVER['SERVER_SOFTWARE'] ) && str_contains( $_SERVER['SERVER_SOFTWARE'], 'PHP.wasm' ) ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			|| 'Emscripten' === php_uname( 's' );
+	}
+
+	/**
 	 * Checks if the plugin is fully configured.
 	 *
 	 * Verifies that all required constants for plugin operation are defined
-	 * and non-empty.
+	 * and non-empty. In Playground environments, returns true unconditionally.
 	 *
 	 * @since 0.0.1
 	 *
 	 * @return bool True if the plugin is fully configured, false otherwise.
 	 */
 	public static function plugin_is_fully_configured(): bool {
+		if ( self::is_playground() ) {
+			return true;
+		}
+
 		return defined( 'EXPRESSION_LAB_ADMIN_USER_ID' )
 			&& ! empty( constant( 'EXPRESSION_LAB_ADMIN_USER_ID' ) )
 			&& defined( 'EXPRESSION_LAB_ADMIN_PUBLIC_KEY' )
@@ -91,6 +119,7 @@ class Helper {
 	 *
 	 * Verifies user capabilities and ensures the current logged-in user matches
 	 * the administrator ID defined by the `EXPRESSION_LAB_ADMIN_USER_ID` constant.
+	 * In Playground environments, any user with administrator capabilities is granted access.
 	 *
 	 * @since 0.0.1
 	 *
@@ -107,6 +136,10 @@ class Helper {
 			}
 		} elseif ( ! current_user_can( 'manage_options' ) ) {
 			return false;
+		}
+
+		if ( self::is_playground() ) {
+			return true;
 		}
 
 		$allowed_admin_id = defined( 'EXPRESSION_LAB_ADMIN_USER_ID' )

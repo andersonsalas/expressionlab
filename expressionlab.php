@@ -153,6 +153,24 @@ if ( ! defined( 'EXPRESSION_LAB_STAGING_URL' ) ) {
 	define( 'EXPRESSION_LAB_STAGING_URL', null );
 }
 
+if ( ! defined( 'EXPRESSION_LAB_PLAYGROUND' ) ) {
+	/**
+	 * WordPress Playground environment flag.
+	 *
+	 * When enabled, Expression Lab adapts dynamically to browser-based WebAssembly
+	 * environments by disabling the iframe sandbox, bypassing the onboarding wizard,
+	 * relaxing admin key verification, and silencing sandbox-disabled warnings.
+	 *
+	 * @var bool
+	 */
+	define(
+		'EXPRESSION_LAB_PLAYGROUND',
+		( defined( 'WP_PLAYGROUND' ) && (bool) constant( 'WP_PLAYGROUND' ) )
+		|| ( isset( $_SERVER['SERVER_SOFTWARE'] ) && str_contains( $_SERVER['SERVER_SOFTWARE'], 'PHP.wasm' ) ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		|| 'Emscripten' === php_uname( 's' )
+	);
+}
+
 if ( ! defined( 'EXPRESSION_LAB_SANDBOX_ENABLED' ) ) {
 	/**
 	 * Security sandbox.
@@ -164,7 +182,7 @@ if ( ! defined( 'EXPRESSION_LAB_SANDBOX_ENABLED' ) ) {
 	 *
 	 * @var bool
 	 */
-	define( 'EXPRESSION_LAB_SANDBOX_ENABLED', true );
+	define( 'EXPRESSION_LAB_SANDBOX_ENABLED', ! EXPRESSION_LAB_PLAYGROUND );
 }
 
 if ( ! defined( 'EXPRESSION_LAB_HOOKS_ENABLED' ) ) {
@@ -202,9 +220,11 @@ if ( ! defined( 'EXPRESSION_LAB_DATABASE_READONLY' ) ) {
 	 * during expression evaluation, ensuring that expressions can only read data
 	 * but cannot modify it.
 	 *
+	 * Defaults to false in WordPress Playground environments.
+	 *
 	 * @var bool
 	 */
-	define( 'EXPRESSION_LAB_DATABASE_READONLY', true );
+	define( 'EXPRESSION_LAB_DATABASE_READONLY', ! EXPRESSION_LAB_PLAYGROUND );
 }
 
 if ( ! defined( 'EXPRESSION_LAB_FILESYSTEM_READONLY' ) ) {
@@ -215,9 +235,11 @@ if ( ! defined( 'EXPRESSION_LAB_FILESYSTEM_READONLY' ) ) {
 	 * during expression evaluation, ensuring that expressions cannot create,
 	 * modify, or delete files.
 	 *
+	 * Defaults to false in WordPress Playground environments.
+	 *
 	 * @var bool
 	 */
-	define( 'EXPRESSION_LAB_FILESYSTEM_READONLY', true );
+	define( 'EXPRESSION_LAB_FILESYSTEM_READONLY', ! EXPRESSION_LAB_PLAYGROUND );
 }
 
 if ( ! defined( 'EXPRESSION_LAB_NETWORK_READONLY' ) ) {
@@ -228,9 +250,11 @@ if ( ! defined( 'EXPRESSION_LAB_NETWORK_READONLY' ) ) {
 	 * expression evaluation, ensuring that expressions cannot communicate with
 	 * external services or APIs.
 	 *
+	 * Defaults to false in WordPress Playground environments.
+	 *
 	 * @var bool
 	 */
-	define( 'EXPRESSION_LAB_NETWORK_READONLY', true );
+	define( 'EXPRESSION_LAB_NETWORK_READONLY', ! EXPRESSION_LAB_PLAYGROUND );
 }
 
 if ( ! defined( 'EXPRESSION_LAB_SIGNATURE_DURATION' ) ) {
