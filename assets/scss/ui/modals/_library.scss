@@ -565,6 +565,10 @@
 			margin: 0;
 			margin-left: 4px;
 
+			.library-fs-checkbox:disabled {
+				cursor: not-allowed;
+			}
+
 			.library-fs-text {
 				white-space: nowrap;
 				overflow: hidden;
@@ -572,10 +576,34 @@
 				font-size: 14px;
 			}
 
-			&:hover {
+			.library-fs-badge {
+				display: inline-flex;
+				align-items: center;
+				padding: 2px 8px;
+				border-radius: 10px;
+				font-size: 12px;
+
+				&.not-available {
+					color: $wp-text-muted;
+					border: 1px solid $border-color;
+				}
+			}
+
+			&:hover:not(.is-disabled) {
 				.library-fs-text {
 					color: black;
 				}
+			}
+
+			&.is-disabled {
+				cursor: not-allowed;
+
+				// stylelint-disable no-descending-specificity
+				.library-fs-checkbox,
+				.library-fs-text {
+					opacity: 0.65;
+				}
+				// stylelint-enable no-descending-specificity
 			}
 		}
 

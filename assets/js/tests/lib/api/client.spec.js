@@ -1,6 +1,6 @@
 import { setActivePinia, createPinia } from 'pinia';
 import { useUiStore } from '../../../stores/ui.js';
-import { handleFetch, requestChallenge, handleLocalStorage, handleDownload, handleClipboardCopy, handleOpenUrl, handleOpenTab } from '../../../lib/api/client.js';
+import { handleFetch, requestChallenge, handleLocalStorage, handleDownload, handleClipboardCopy, handleOpenUrl, handleOpenTab, handleOpenFilePicker, isLocalFsSupported } from '../../../lib/api/client.js';
 
 describe('lib/api/client.js', () => {
   let originalFetch;
@@ -333,5 +333,208 @@ describe('lib/api/client.js', () => {
       postMessageSpy.mockRestore();
     });
   });
-});
 
+  describe('handleOpenFilePicker', () => {
+    let originalShowOpenFilePicker;
+
+    beforeEach(() => {
+      originalShowOpenFilePicker = window.showOpenFilePicker;
+    });
+
+    afterEach(() => {
+      window.showOpenFilePicker = originalShowOpenFilePicker;
+    });
+
+    it('reads file content using native window.showOpenFilePicker when available in direct mode', async () => {
+      const mockFile = {
+        name: 'snippets.json',
+        text: jest.fn().mockResolvedValue('{"snippets": [{"id": 1}]}'),
+      };
+      const mockFileHandle = {
+        getFile: jest.fn().mockResolvedValue(mockFile),
+      };
+      window.showOpenFilePicker = jest.fn().mockResolvedValue([mockFileHandle]);
+
+      const result = await handleOpenFilePicker();
+
+      expect(window.showOpenFilePicker).toHaveBeenCalledTimes(1);
+      expect(result).toEqual({
+        success: true,
+        content: '{"snippets": [{"id": 1}]}',
+        filename: 'snippets.json',
+      });
+    });
+
+    it('returns cancelled: true when user aborts native window.showOpenFilePicker', async () => {
+      const abortError = new DOMException('The user aborted a request.', 'AbortError');
+      window.showOpenFilePicker = jest.fn().mockRejectedValue(abortError);
+
+      const result = await handleOpenFilePicker();
+
+      expect(result).toEqual({ cancelled: true });
+    });
+
+    it('returns error when native window.showOpenFilePicker throws an unhandled error', async () => {
+      const genericError = new DOMException('Operation failed', 'UnknownError');
+      window.showOpenFilePicker = jest.fn().mockRejectedValue(genericError);
+
+      const result = await handleOpenFilePicker();
+
+      expect(result).toEqual({
+        error: 'UnknownError',
+        message: 'Operation failed',
+      });
+    });
+
+    it('falls back to input[type=file] when native showOpenFilePicker throws SecurityError (Playground / cross-origin iframe)', async () => {
+      const securityError = new DOMException(
+        'Failed to execute \'showOpenFilePicker\' on \'Window\': Cross origin sub frames aren\'t allowed to show a file picker.',
+        'SecurityError'
+      );
+      window.showOpenFilePicker = jest.fn().mockRejectedValue(securityError);
+
+      const origCreateElement = document.createElement.bind(document);
+      jest.spyOn(document, 'createElement').mockImplementation((tag) => {
+        const el = origCreateElement(tag);
+        if (tag === 'input') {
+          el.click = jest.fn().mockImplementation(() => {
+            const mockFile = new Blob(['{"imported": true}'], { type: 'application/json' });
+            mockFile.name = 'imported.json';
+            Object.defineProperty(el, 'files', {
+              value: [mockFile],
+              configurable: true,
+            });
+            if (typeof el.onchange === 'function') {
+              el.onchange({ target: el });
+            }
+          });
+        }
+        return el;
+      });
+
+      const result = await handleOpenFilePicker();
+
+      expect(window.showOpenFilePicker).toHaveBeenCalledTimes(1);
+      expect(result.success).toBe(true);
+      expect(result.content).toBe('{"imported": true}');
+      expect(result.filename).toBe('imported.json');
+
+      document.createElement.mockRestore();
+    });
+
+    it('falls back to input[type=file] when native showOpenFilePicker throws NotAllowedError', async () => {
+      const notAllowedError = new DOMException('Permission denied', 'NotAllowedError');
+      window.showOpenFilePicker = jest.fn().mockRejectedValue(notAllowedError);
+
+      const origCreateElement = document.createElement.bind(document);
+      jest.spyOn(document, 'createElement').mockImplementation((tag) => {
+        const el = origCreateElement(tag);
+        if (tag === 'input') {
+          el.click = jest.fn().mockImplementation(() => {
+            if (typeof el.oncancel === 'function') {
+              el.oncancel();
+            }
+          });
+        }
+        return el;
+      });
+
+      const result = await handleOpenFilePicker();
+
+      expect(window.showOpenFilePicker).toHaveBeenCalledTimes(1);
+      expect(result).toEqual({ cancelled: true });
+
+      document.createElement.mockRestore();
+    });
+
+    it('uses input[type=file] directly when window.showOpenFilePicker is undefined (e.g. Firefox/Safari)', async () => {
+      delete window.showOpenFilePicker;
+
+      const origCreateElement = document.createElement.bind(document);
+      jest.spyOn(document, 'createElement').mockImplementation((tag) => {
+        const el = origCreateElement(tag);
+        if (tag === 'input') {
+          el.click = jest.fn().mockImplementation(() => {
+            const mockFile = new Blob(['{"browser": "safari"}'], { type: 'application/json' });
+            mockFile.name = 'safari-export.json';
+            Object.defineProperty(el, 'files', {
+              value: [mockFile],
+              configurable: true,
+            });
+            if (typeof el.onchange === 'function') {
+              el.onchange({ target: el });
+            }
+          });
+        }
+        return el;
+      });
+
+      const result = await handleOpenFilePicker();
+
+      expect(result.success).toBe(true);
+      expect(result.content).toBe('{"browser": "safari"}');
+      expect(result.filename).toBe('safari-export.json');
+
+      document.createElement.mockRestore();
+    });
+
+    it('sends postMessage to window.parent when sandbox is enabled', async () => {
+      window.el_settings.settings.enable_sandbox = true;
+      window.el_settings.settings.debug_mode = false;
+
+      const postMessageSpy = jest.spyOn(window.parent, 'postMessage').mockImplementation(() => {});
+
+      handleOpenFilePicker();
+
+      expect(postMessageSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'fs_import_file',
+          message_id: expect.any(String),
+        }),
+        'http://example.com'
+      );
+
+      postMessageSpy.mockRestore();
+    });
+  });
+
+  describe('isLocalFsSupported', () => {
+    let originalShowDirectoryPicker;
+
+    beforeEach(() => {
+      originalShowDirectoryPicker = window.showDirectoryPicker;
+    });
+
+    afterEach(() => {
+      window.showDirectoryPicker = originalShowDirectoryPicker;
+      if (window.el_settings?.settings) {
+        delete window.el_settings.settings.is_playground;
+      }
+      if (window.el_settings?.server) {
+        delete window.el_settings.server.is_playground;
+      }
+    });
+
+    it('returns true when direct mode, top-level window, not in playground, and showDirectoryPicker exists', () => {
+      window.showDirectoryPicker = jest.fn();
+      expect(isLocalFsSupported()).toBe(true);
+    });
+
+    it('returns false when in WordPress Playground via settings flag', () => {
+      window.showDirectoryPicker = jest.fn();
+      window.el_settings.settings.is_playground = true;
+      expect(isLocalFsSupported()).toBe(false);
+    });
+
+    it('returns false when in WordPress Playground via server flag', () => {
+      window.showDirectoryPicker = jest.fn();
+      window.el_settings.server = { is_playground: true };
+      expect(isLocalFsSupported()).toBe(false);
+    });
+
+    it('returns false when showDirectoryPicker is undefined (Firefox / Safari)', () => {
+      delete window.showDirectoryPicker;
+      expect(isLocalFsSupported()).toBe(false);
+    });
+  });
+});

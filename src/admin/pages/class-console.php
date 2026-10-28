@@ -429,6 +429,8 @@ class Console extends AdminPage {
 			'No snippets found.'                         => __( 'No snippets found.', 'expression-lab' ),
 			'Store snippets in a local folder using native File System API' => __( 'Store snippets in a local folder using native File System API', 'expression-lab' ),
 			'Use local file system'                      => __( 'Use local file system', 'expression-lab' ),
+			'Not available'                              => __( 'Not available', 'expression-lab' ),
+			'Local file system access is not available in this environment' => __( 'Local file system access is not available in this environment', 'expression-lab' ),
 			'Import or export snippets'                  => __( 'Import or export snippets', 'expression-lab' ),
 			'Import/Export'                              => __( 'Import/Export', 'expression-lab' ),
 			'Import JSON'                                => __( 'Import JSON', 'expression-lab' ),

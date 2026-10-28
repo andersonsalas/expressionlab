@@ -21,7 +21,8 @@ import {
   handleOpenFilePicker,
   handleGetLocalFsStatus,
   handleDisconnectLocalFs,
-  handleRequestFsPermission
+  handleRequestFsPermission,
+  isLocalFsSupported
 } from '../../lib/api/client.js';
 import { getUniqueSnippetName, normalizeSnippet, debugLog, __, sprintf } from '../../lib/helpers.js';
 import TagInput from '../ui/TagInput.vue';
@@ -186,6 +187,7 @@ const fsPermissionPending = ref(false);
 const fsDirName = ref('');
 const showImportExportMenu = ref(false);
 const libraryListRef = ref(null);
+const isFsSupported = computed(() => isLocalFsSupported());
 
 const deduplicateSnippets = (list) => {
   const existingNames = new Set();
@@ -201,13 +203,14 @@ const deduplicateSnippets = (list) => {
 };
 
 const loadSnippets = async () => {
-  const savedUseFs = await handleLocalStorage('getItem', USE_LOCAL_FS_KEY);
-  if (savedUseFs === 'true') {
-    useLocalFileSystem.value = true;
-    const result = await handleReadLocalSnippets();
-    if (result && result.success && Array.isArray(result.snippets)) {
-      fsPermissionPending.value = false;
-      fsDirName.value = result.dirName || '';
+  if (isFsSupported.value) {
+    const savedUseFs = await handleLocalStorage('getItem', USE_LOCAL_FS_KEY);
+    if (savedUseFs === 'true') {
+      useLocalFileSystem.value = true;
+      const result = await handleReadLocalSnippets();
+      if (result && result.success && Array.isArray(result.snippets)) {
+        fsPermissionPending.value = false;
+        fsDirName.value = result.dirName || '';
       snippets.value = deduplicateSnippets(result.snippets);
       if (snippets.value.length > 0) {
         if (!activeSnippet.value) {
@@ -241,6 +244,7 @@ const loadSnippets = async () => {
       return;
     }
   }
+}
 
   // Fallback / standard localStorage loading
   useLocalFileSystem.value = false;
@@ -317,6 +321,10 @@ const persistSnippets = async () => {
 };
 
 const handleToggleLocalFs = async () => {
+  if (!isFsSupported.value) {
+    useLocalFileSystem.value = false;
+    return;
+  }
   debugLog('LibraryModal: handleToggleLocalFs triggered', { useLocalFileSystem: useLocalFileSystem.value });
   if (useLocalFileSystem.value) {
     const status = await handleGetLocalFsStatus();
@@ -1174,15 +1182,21 @@ defineExpose({
         <div class="library-fs-container">
           <label
             class="library-fs-checkbox-label"
-            :title="__('Store snippets in a local folder using native File System API')"
+            :class="{ 'is-disabled': !isFsSupported }"
+            :title="isFsSupported ? __('Store snippets in a local folder using native File System API') : __('Local file system access is not available in this environment')"
           >
             <input
               v-model="useLocalFileSystem"
               type="checkbox"
               class="library-fs-checkbox"
+              :disabled="!isFsSupported"
               @change="handleToggleLocalFs"
             >
             <span class="library-fs-text">{{ __('Use local file system') }}</span>
+            <span
+              v-if="!isFsSupported"
+              class="library-fs-badge not-available"
+            >{{ __('Not available') }}</span>
           </label>
         </div>
         <div class="modal-footer-actions">
