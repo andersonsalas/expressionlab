@@ -527,6 +527,39 @@ const removeDirHandleFromDB = async () => {
 };
 
 /**
+ * Check if the File System Access API (directory selection) is supported in the current environment.
+ * Evaluates to false in:
+ * - WordPress Playground (runs inside a cross-origin iframe where showDirectoryPicker throws SecurityError)
+ * - Browsers without showDirectoryPicker support (Firefox, Safari)
+ * - Subframes / iframes in direct mode without permission delegation
+ * @returns {boolean}
+ */
+export function isLocalFsSupported() {
+  if (typeof window === 'undefined') return false;
+
+  const isPlayground = Boolean(
+    window.el_settings?.settings?.is_playground ||
+    window.el_settings?.server?.is_playground
+  );
+  if (isPlayground) return false;
+
+  const isDirect = !isSandboxEnabled();
+  if (isDirect) {
+    if (typeof window.showDirectoryPicker !== 'function') return false;
+    try {
+      if (window.self !== window.top) {
+        return false;
+      }
+    } catch (e) {
+      return false;
+    }
+    return true;
+  }
+
+  return typeof window.showDirectoryPicker === 'function';
+}
+
+/**
  * Handle File System directory selection.
  * Prompts user to pick a folder, initializes/reads snippets.json.
  * @returns {Promise<{ success?: boolean, snippets?: Array, dirName?: string, cancelled?: boolean, error?: string, message?: string }>}
@@ -535,16 +568,23 @@ export async function handleSelectDirectory() {
   const isDirect = !isSandboxEnabled();
   debugLog('handleSelectDirectory invoked', { route: isDirect ? 'direct' : 'sandbox-postMessage' });
   if (isDirect) {
-    if (typeof window.showDirectoryPicker !== 'function') {
+    if (!isLocalFsSupported()) {
+      const isPlayground = Boolean(
+        window.el_settings?.settings?.is_playground ||
+        window.el_settings?.server?.is_playground
+      );
+      const msg = isPlayground
+        ? 'Local file system access is not available in WordPress Playground.'
+        : 'File System Access API is not supported in this browser or environment.';
       const unsupportedErr = {
         error: 'unsupported',
-        message: 'File System Access API is not supported in this browser.',
+        message: msg,
         details: {
           userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
-          hasShowDirectoryPicker: false,
+          hasShowDirectoryPicker: typeof window.showDirectoryPicker === 'function',
         },
       };
-      debugLog('File System Access API (showDirectoryPicker) is not supported in this browser.', unsupportedErr, 'warn');
+      debugLog('File System Access API (showDirectoryPicker) is not supported in this environment.', unsupportedErr, 'warn');
       return unsupportedErr;
     }
     try {
@@ -855,6 +895,58 @@ export async function handleWriteLocalSnippets(snippets) {
 }
 
 /**
+ * Fallback to standard HTML file input element when File System Access API
+ * is unavailable or blocked (e.g. cross-origin subframes like WordPress Playground).
+ * @returns {Promise<{ success?: boolean, content?: string, filename?: string, cancelled?: boolean, error?: string, message?: string }>}
+ */
+function openFileInputFallback() {
+  debugLog('Direct FS: Using input[type=file] fallback');
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+
+    const cleanup = () => {
+      if (input.parentNode) {
+        input.parentNode.removeChild(input);
+      }
+    };
+
+    input.oncancel = () => {
+      cleanup();
+      debugLog('Direct FS: input[type=file] cancelled');
+      resolve({ cancelled: true });
+    };
+
+    input.onchange = (e) => {
+      const file = e.target.files?.[0];
+      if (!file) {
+        cleanup();
+        debugLog('Direct FS: input[type=file] cancelled');
+        resolve({ cancelled: true });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        cleanup();
+        debugLog('Direct FS: input[type=file] read file successfully:', { filename: file.name });
+        resolve({ success: true, content: event.target.result, filename: file.name });
+      };
+      reader.onerror = (err) => {
+        cleanup();
+        debugLog('Direct FS: input[type=file] read error:', err, 'error');
+        resolve({ error: 'read_error', message: err?.message || 'Failed to read file' });
+      };
+      reader.readAsText(file);
+    };
+
+    input.click();
+  });
+}
+
+/**
  * Handle opening native file picker to import JSON file.
  * @returns {Promise<{ success?: boolean, content?: string, filename?: string, cancelled?: boolean, error?: string, message?: string }>}
  */
@@ -885,42 +977,16 @@ export async function handleOpenFilePicker() {
           debugLog('Direct FS: File picker aborted by user');
           return { cancelled: true };
         }
+        if (err.name === 'SecurityError' || err.name === 'NotAllowedError') {
+          debugLog('Direct FS: showOpenFilePicker blocked by security/frame policy, falling back to input[type=file]:', { name: err.name, message: err.message }, 'warn');
+          return openFileInputFallback();
+        }
         debugLog('Direct FS: Error in showOpenFilePicker:', { name: err.name, message: err.message }, 'error');
         return { error: err.name || 'error', message: err.message };
       }
     } else {
       debugLog('Direct FS: showOpenFilePicker not supported, falling back to input[type=file]');
-      return new Promise((resolve) => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json,application/json';
-        input.style.display = 'none';
-        document.body.appendChild(input);
-
-        input.onchange = (e) => {
-          const file = e.target.files?.[0];
-          if (!file) {
-            document.body.removeChild(input);
-            debugLog('Direct FS: input[type=file] cancelled');
-            resolve({ cancelled: true });
-            return;
-          }
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            document.body.removeChild(input);
-            debugLog('Direct FS: input[type=file] read file successfully:', { filename: file.name });
-            resolve({ success: true, content: event.target.result, filename: file.name });
-          };
-          reader.onerror = (err) => {
-            document.body.removeChild(input);
-            debugLog('Direct FS: input[type=file] read error:', err, 'error');
-            resolve({ error: 'read_error', message: err.message || 'Failed to read file' });
-          };
-          reader.readAsText(file);
-        };
-
-        input.click();
-      });
+      return openFileInputFallback();
     }
   } else {
     debugLog('Sandbox FS: Sending fs_import_file postMessage...');

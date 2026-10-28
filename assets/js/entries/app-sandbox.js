@@ -565,6 +565,62 @@ document.addEventListener('DOMContentLoaded', function () {
    */
   const handleFsImportFile = async (msg) => {
     debugLog('Processing fs_import_file request from sandbox:', msg);
+
+    const fallbackFileInput = () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json,application/json';
+      input.style.display = 'none';
+      document.body.appendChild(input);
+
+      const cleanup = () => {
+        if (input.parentNode) {
+          input.parentNode.removeChild(input);
+        }
+      };
+
+      input.oncancel = () => {
+        cleanup();
+        sendToSandbox(iframe, 'response', {
+          response_to: msg.message_id,
+          cancelled: true,
+        });
+      };
+
+      input.onchange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) {
+          cleanup();
+          sendToSandbox(iframe, 'response', {
+            response_to: msg.message_id,
+            cancelled: true,
+          });
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          cleanup();
+          sendToSandbox(iframe, 'response', {
+            response_to: msg.message_id,
+            success: true,
+            content: event.target.result,
+            filename: file.name,
+          });
+        };
+        reader.onerror = (err) => {
+          cleanup();
+          sendToSandbox(iframe, 'response', {
+            response_to: msg.message_id,
+            error: 'read_error',
+            message: err?.message || 'Failed to read file',
+          });
+        };
+        reader.readAsText(file);
+      };
+
+      input.click();
+    };
+
     if (typeof window.showOpenFilePicker === 'function') {
       try {
         const [fileHandle] = await window.showOpenFilePicker({
@@ -592,6 +648,9 @@ document.addEventListener('DOMContentLoaded', function () {
             response_to: msg.message_id,
             cancelled: true,
           });
+        } else if (err.name === 'SecurityError' || err.name === 'NotAllowedError') {
+          debugLog('fs_import_file showOpenFilePicker blocked by frame policy, falling back to input[type=file]:', err, 'warn');
+          fallbackFileInput();
         } else {
           debugLog('fs_import_file error:', err, 'error');
           sendToSandbox(iframe, 'response', {
@@ -602,44 +661,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       }
     } else {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.json,application/json';
-      input.style.display = 'none';
-      document.body.appendChild(input);
-
-      input.onchange = (e) => {
-        const file = e.target.files?.[0];
-        if (!file) {
-          sendToSandbox(iframe, 'response', {
-            response_to: msg.message_id,
-            cancelled: true,
-          });
-          document.body.removeChild(input);
-          return;
-        }
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          sendToSandbox(iframe, 'response', {
-            response_to: msg.message_id,
-            success: true,
-            content: event.target.result,
-            filename: file.name,
-          });
-          document.body.removeChild(input);
-        };
-        reader.onerror = (err) => {
-          sendToSandbox(iframe, 'response', {
-            response_to: msg.message_id,
-            error: 'read_error',
-            message: err.message || 'Failed to read file',
-          });
-          document.body.removeChild(input);
-        };
-        reader.readAsText(file);
-      };
-
-      input.click();
+      fallbackFileInput();
     }
   };
 

@@ -678,7 +678,7 @@ class LanguageEngine {
 			);
 		}
 
-		if ( defined( 'EXPRESSION_LAB_SANDBOX_ENABLED' ) && false === EXPRESSION_LAB_SANDBOX_ENABLED ) {
+		if ( defined( 'EXPRESSION_LAB_SANDBOX_ENABLED' ) && false === EXPRESSION_LAB_SANDBOX_ENABLED && ! Helper::is_playground() ) {
 			$this->add_system_message(
 				'warning',
 				__( 'Security sandbox is disabled. Any actions performed without sandbox protection are AT YOUR OWN RISK.', 'expression-lab' )

@@ -108,6 +108,7 @@ jest.mock('../../../lib/api/client.js', () => ({
   handleGetLocalFsStatus: jest.fn(() => Promise.resolve({ connected: false, hasStoredHandle: false })),
   handleDisconnectLocalFs: jest.fn(() => Promise.resolve({ success: true })),
   handleRequestFsPermission: jest.fn(() => Promise.resolve({ success: true, snippets: [] })),
+  isLocalFsSupported: jest.fn(() => true),
 }));
 
 describe('LibraryModal.vue', () => {
@@ -319,6 +320,59 @@ describe('LibraryModal.vue', () => {
     await checkbox.setValue(false);
     await flushPromises();
     expect(handleDisconnectLocalFs).toHaveBeenCalled();
+  });
+
+  it('renders \'Not available\' badge and disables checkbox when local file system is not supported', async () => {
+    const { isLocalFsSupported } = require('../../../lib/api/client.js');
+    isLocalFsSupported.mockReturnValueOnce(false);
+
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'library' }
+      }
+    });
+
+    const wrapper = mount(LibraryModal, {
+      global: {
+        plugins: [pinia]
+      }
+    });
+
+    await flushPromises();
+
+    const badge = wrapper.find('.library-fs-badge.not-available');
+    expect(badge.exists()).toBe(true);
+    expect(badge.text()).toBe('Not available');
+
+    const checkbox = wrapper.find('.library-fs-checkbox');
+    expect(checkbox.attributes('disabled')).toBeDefined();
+    expect(wrapper.find('.library-fs-checkbox-label').classes()).toContain('is-disabled');
+  });
+
+  it('does not render \'Not available\' badge and keeps checkbox enabled when local file system is supported', async () => {
+    const { isLocalFsSupported } = require('../../../lib/api/client.js');
+    isLocalFsSupported.mockReturnValueOnce(true);
+
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'library' }
+      }
+    });
+
+    const wrapper = mount(LibraryModal, {
+      global: {
+        plugins: [pinia]
+      }
+    });
+
+    await flushPromises();
+
+    const badge = wrapper.find('.library-fs-badge.not-available');
+    expect(badge.exists()).toBe(false);
+
+    const checkbox = wrapper.find('.library-fs-checkbox');
+    expect(checkbox.attributes('disabled')).toBeUndefined();
+    expect(wrapper.find('.library-fs-checkbox-label').classes()).not.toContain('is-disabled');
   });
 
   it('restores local file system state and snippets automatically if previously enabled', async () => {
