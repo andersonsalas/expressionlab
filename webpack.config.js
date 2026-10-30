@@ -10,9 +10,13 @@ const addonDir = path.resolve(__dirname, 'assets/addons');
 const addonManifestPath = path.resolve(addonDir, 'addons.json');
 const addonIntegrityPath = path.resolve(addonDir, 'integrity.json');
 
+let addonManifest = null;
 if (withAddons) {
+  if (fs.existsSync(addonManifestPath)) {
+    addonManifest = JSON.parse(fs.readFileSync(addonManifestPath, 'utf8'));
+  }
   if (Encore.isProduction()) {
-    if (!fs.existsSync(addonManifestPath) || !fs.existsSync(addonIntegrityPath)) {
+    if (!addonManifest || !fs.existsSync(addonIntegrityPath)) {
       throw new Error('[Addon Error] withAddons is enabled, but addons.json or integrity.json was not found in assets/addons/.');
     }
     const integrityManifest = JSON.parse(fs.readFileSync(addonIntegrityPath, 'utf8'));
@@ -27,7 +31,7 @@ if (withAddons) {
       }
     }
   } else {
-    if (!fs.existsSync(addonManifestPath)) {
+    if (!addonManifest) {
       console.warn('[Addon Dev] withAddons is enabled, but assets/addons/addons.json is not present yet. Waiting for build...');
     }
   }
@@ -38,12 +42,19 @@ if (!Encore.isRuntimeEnvironmentConfigured()) {
 }
 
 const appEntries = ['./assets/js/entries/app.js'];
-const addonCssPath = path.resolve(addonDir, 'css/addon.min.css');
-if (withAddons && fs.existsSync(addonCssPath)) {
-  appEntries.push(addonCssPath);
+if (withAddons) {
+  const styleRels = Array.isArray(addonManifest?.styles) && addonManifest.styles.length > 0
+    ? addonManifest.styles
+    : ['css/addon.min.css'];
+  for (const styleRel of styleRels) {
+    const stylePath = path.resolve(addonDir, styleRel);
+    if (fs.existsSync(stylePath)) {
+      appEntries.push(stylePath);
+    }
+  }
 }
 
-const addonEntryPath = path.resolve(addonDir, 'js/addon.min.js');
+const addonEntryPath = path.resolve(addonDir, addonManifest?.entry || 'js/addon.min.js');
 
 Encore
   .setOutputPath('assets/build/')
@@ -80,6 +91,12 @@ Encore
     resourceQuery: /raw/,
     type: 'asset/source',
   })
+
+  .addRule({
+    test: /\.wasm$/,
+    type: 'asset/inline',
+  })
+
 
   .configureDevServerOptions(options => {
     options.allowedHosts = 'all';
@@ -245,7 +262,7 @@ if ( Encore.isProduction() ) {
           }
         });
         const outputPath = path.resolve(__dirname, 'assets/integrity.json');
-        fs.writeFileSync(outputPath, JSON.stringify(integrityManifest, null, 2));
+        fs.writeFileSync(outputPath, JSON.stringify(integrityManifest, null, 2) + '\n');
       });
     }
   }
