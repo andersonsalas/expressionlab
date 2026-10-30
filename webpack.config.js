@@ -4,23 +4,77 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+const withAddons = process.argv.includes('--with-addons') || process.env.EXPRESSION_LAB_WITH_ADDONS === '1';
+
+const addonDir = path.resolve(__dirname, 'assets/addons');
+const addonManifestPath = path.resolve(addonDir, 'addons.json');
+const addonIntegrityPath = path.resolve(addonDir, 'integrity.json');
+
+if (withAddons) {
+  if (Encore.isProduction()) {
+    if (!fs.existsSync(addonManifestPath) || !fs.existsSync(addonIntegrityPath)) {
+      throw new Error('[Addon Error] withAddons is enabled, but addons.json or integrity.json was not found in assets/addons/.');
+    }
+    const integrityManifest = JSON.parse(fs.readFileSync(addonIntegrityPath, 'utf8'));
+    for (const [fileRel, expectedHash] of Object.entries(integrityManifest)) {
+      const fullPath = path.resolve(addonDir, fileRel);
+      if (!fs.existsSync(fullPath)) {
+        throw new Error(`[Addon Error] Missing addon file: ${fileRel}`);
+      }
+      const actualHash = crypto.createHash('sha256').update(fs.readFileSync(fullPath)).digest('hex');
+      if (actualHash !== expectedHash) {
+        throw new Error(`[Addon Error] Integrity mismatch for ${fileRel}: expected ${expectedHash}, got ${actualHash}`);
+      }
+    }
+  } else {
+    if (!fs.existsSync(addonManifestPath)) {
+      console.warn('[Addon Dev] withAddons is enabled, but assets/addons/addons.json is not present yet. Waiting for build...');
+    }
+  }
+}
+
 if (!Encore.isRuntimeEnvironmentConfigured()) {
   Encore.configureRuntimeEnvironment(process.env.NODE_ENV || 'dev');
 }
+
+const appEntries = ['./assets/js/entries/app.js'];
+const addonCssPath = path.resolve(addonDir, 'css/addon.min.css');
+if (withAddons && fs.existsSync(addonCssPath)) {
+  appEntries.push(addonCssPath);
+}
+
+const addonEntryPath = path.resolve(addonDir, 'js/addon.min.js');
 
 Encore
   .setOutputPath('assets/build/')
   .setPublicPath('/assets/build')
 
   .addEntry('expressionlab-onboard', './assets/js/entries/onboard.js')
-  .addEntry('expressionlab-app', './assets/js/entries/app.js')
+  .addEntry('expressionlab-app', appEntries)
   .addEntry('expressionlab-app-sandbox', './assets/js/entries/app-sandbox.js')
 
   .disableSingleRuntimeChunk()
   .cleanupOutputBeforeBuild()
   .enableSourceMaps(!Encore.isProduction())
 
-  .configureBabel(null)
+  .configureBabel(null, {
+    exclude: /(node_modules|assets[\\/]addons)/,
+  })
+
+  .addAliases({
+    '@addon': withAddons ? addonEntryPath : false,
+    'vue$': path.resolve(__dirname, 'node_modules/vue/dist/vue.esm-bundler.js'),
+    'pinia$': path.resolve(__dirname, 'node_modules/pinia'),
+    'vue-router$': path.resolve(__dirname, 'node_modules/vue-router'),
+  })
+
+  .configureDefinePlugin(options => {
+    options['__WITH_ADDONS__'] = JSON.stringify(withAddons);
+    if (Encore.isProduction()) {
+      options['__VUE_PROD_DEVTOOLS__'] = 'false';
+      options['__USE_DEVTOOLS__'] = 'false';
+    }
+  })
 
   .addRule({
     resourceQuery: /raw/,
@@ -49,7 +103,8 @@ Encore
       '**/vendor/**',
       '**/wp-content/plugins/expressionlab/assets/build/**',
     ];
-    watchOptions.poll = 1000; 
+    watchOptions.poll = 1000;
+    watchOptions.aggregateTimeout = 300;
   })
 
   .enableSassLoader(function (config) {
@@ -199,10 +254,6 @@ if ( Encore.isProduction() ) {
     .addPlugin(new AssetIntegrityPlugin())
     .addAliases({
       '@vue/devtools-api': false
-    })
-    .configureDefinePlugin(options => {
-      options['__VUE_PROD_DEVTOOLS__'] = 'false';
-      options['__USE_DEVTOOLS__'] = 'false';
     })
   ;
 }

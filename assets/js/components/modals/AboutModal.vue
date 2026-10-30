@@ -2,7 +2,7 @@
 import { computed, watch, onUnmounted, nextTick } from 'vue';
 import { useUiStore } from '../../stores/ui';
 import ExpressionLabIcon from '../icons/ExpressionLabIcon.vue';
-import { __ } from '../../lib/helpers.js';
+import { __, hasAddons } from '../../lib/helpers.js';
 import { handleOpenUrl } from '../../lib/api/client.js';
 
 const props = defineProps({
@@ -90,6 +90,12 @@ onUnmounted(() => {
           </div>
           <div class="about-app-version">
             {{ version }}
+          </div>
+          <div
+            v-if="hasAddons()"
+            class="about-addon-badge-wrapper"
+          >
+            <component :is="'AddonsBadge'" />
           </div>
           <div class="about-credits">
             {{ __('© Anderson Salas and contributors.') }}

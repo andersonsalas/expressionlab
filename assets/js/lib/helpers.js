@@ -312,3 +312,12 @@ export function normalizeSnippet(s) {
     tags
   };
 }
+
+/**
+ * Checks whether proprietary addons are compiled and enabled.
+ *
+ * @returns {boolean}
+ */
+export function hasAddons() {
+  return typeof __WITH_ADDONS__ !== 'undefined' ? Boolean(__WITH_ADDONS__) : false;
+}
