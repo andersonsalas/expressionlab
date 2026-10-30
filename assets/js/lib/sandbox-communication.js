@@ -27,16 +27,21 @@ function isValidOrigin(event) {
  * @param {HTMLIFrameElement} iframe - The sandbox iframe element.
  * @param {string} action - The command action name.
  * @param {*} [payload] - Optional payload to send.
+ * @param {Transferable[]} [transfer=[]] - Optional Transferable objects (e.g. ArrayBuffer).
  */
-export function sendToSandbox(iframe, action, payload) {
+export function sendToSandbox(iframe, action, payload, transfer = []) {
   debugLog('Sending message to sandbox:', { action, payload, iframe });
   if (!iframe || !iframe.contentWindow) {
     debugLog('Sandbox iframe not available. Cannot send message.', null, 'error');
     return;
   }
-  
+
   const message = { action, payload, ...(typeof payload === 'object' ? payload : {}) };
-  iframe.contentWindow.postMessage(message, '*');
+  if (Array.isArray(transfer) && transfer.length > 0) {
+    iframe.contentWindow.postMessage(message, '*', transfer);
+  } else {
+    iframe.contentWindow.postMessage(message, '*');
+  }
 }
 
 /**

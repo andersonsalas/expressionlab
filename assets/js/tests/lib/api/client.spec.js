@@ -1,6 +1,19 @@
 import { setActivePinia, createPinia } from 'pinia';
 import { useUiStore } from '../../../stores/ui.js';
-import { handleFetch, requestChallenge, handleLocalStorage, handleDownload, handleClipboardCopy, handleOpenUrl, handleOpenTab, handleOpenFilePicker, isLocalFsSupported } from '../../../lib/api/client.js';
+import {
+  handleFetch,
+  requestChallenge,
+  handleLocalStorage,
+  handleDownload,
+  handleClipboardCopy,
+  handleOpenUrl,
+  handleOpenTab,
+  handleOpenFilePicker,
+  handleOpenBinaryFilePicker,
+  handleSaveBinaryFile,
+  handleSaveBinaryFileAs,
+  isLocalFsSupported,
+} from '../../../lib/api/client.js';
 
 describe('lib/api/client.js', () => {
   let originalFetch;
@@ -535,6 +548,341 @@ describe('lib/api/client.js', () => {
     it('returns false when showDirectoryPicker is undefined (Firefox / Safari)', () => {
       delete window.showDirectoryPicker;
       expect(isLocalFsSupported()).toBe(false);
+    });
+  });
+
+  describe('Binary File Bridge Handlers (.elab)', () => {
+    const dispatchParentMessage = (data, origin = 'http://example.com') => {
+      const event = new Event('message');
+      Object.defineProperties(event, {
+        data: { value: data },
+        origin: { value: origin },
+        source: { value: window.parent },
+      });
+      window.dispatchEvent(event);
+    };
+
+    afterEach(() => {
+      delete window.showOpenFilePicker;
+      delete window.showSaveFilePicker;
+      document.querySelectorAll('input[type="file"]').forEach((el) => el.remove());
+    });
+
+    it('handleOpenBinaryFilePicker reads ArrayBuffer and registers handleId in direct mode', async () => {
+      const sampleBytes = new Uint8Array([0x45, 0x4c, 0x41, 0x42, 0x01]).buffer;
+      const mockFile = {
+        name: 'report.elab',
+        size: 5,
+        arrayBuffer: jest.fn().mockResolvedValue(sampleBytes),
+      };
+      const mockWritable = {
+        write: jest.fn().mockResolvedValue(undefined),
+        close: jest.fn().mockResolvedValue(undefined),
+      };
+      const mockFileHandle = {
+        name: 'report.elab',
+        getFile: jest.fn().mockResolvedValue(mockFile),
+        createWritable: jest.fn().mockResolvedValue(mockWritable),
+      };
+      window.showOpenFilePicker = jest.fn().mockResolvedValue([mockFileHandle]);
+
+      const opened = await handleOpenBinaryFilePicker({ description: 'ELAB Notebook' });
+
+      expect(opened.success).toBe(true);
+      expect(opened.filename).toBe('report.elab');
+      expect(opened.size).toBe(5);
+      expect(opened.fileHandleId).toBeTruthy();
+      expect(opened.buffer).toBe(sampleBytes);
+
+      const newBytes = new Uint8Array([0x45, 0x4c, 0x41, 0x42, 0x02]);
+      const saved = await handleSaveBinaryFile({
+        fileHandleId: opened.fileHandleId,
+        buffer: newBytes,
+      });
+
+      expect(saved).toEqual({
+        success: true,
+        fileHandleId: opened.fileHandleId,
+        filename: 'report.elab',
+      });
+      expect(mockFileHandle.createWritable).toHaveBeenCalledTimes(1);
+      expect(mockWritable.write).toHaveBeenCalledTimes(1);
+      expect(mockWritable.close).toHaveBeenCalledTimes(1);
+    });
+
+    it('handleSaveBinaryFileAs opens save picker and writes ArrayBuffer in direct mode', async () => {
+      const mockWritable = {
+        write: jest.fn().mockResolvedValue(undefined),
+        close: jest.fn().mockResolvedValue(undefined),
+      };
+      const mockFileHandle = {
+        name: 'saved-notebook.elab',
+        createWritable: jest.fn().mockResolvedValue(mockWritable),
+      };
+      window.showSaveFilePicker = jest.fn().mockResolvedValue(mockFileHandle);
+
+      const payload = new Uint8Array([1, 2, 3, 4]).buffer;
+      const result = await handleSaveBinaryFileAs({
+        buffer: payload,
+        suggestedName: 'saved-notebook.elab',
+      });
+
+      expect(window.showSaveFilePicker).toHaveBeenCalledTimes(1);
+      expect(result.success).toBe(true);
+      expect(result.filename).toBe('saved-notebook.elab');
+      expect(result.fileHandleId).toBeTruthy();
+      expect(mockWritable.write).toHaveBeenCalledWith(payload);
+      expect(mockWritable.close).toHaveBeenCalledTimes(1);
+    });
+
+    it('transfers ArrayBuffer via postMessage when sandbox is enabled', async () => {
+      window.el_settings.settings.enable_sandbox = true;
+      window.el_settings.settings.debug_mode = false;
+
+      const postMessageSpy = jest.spyOn(window.parent, 'postMessage').mockImplementation(() => {});
+      const rawBuffer = new Uint8Array([10, 20, 30, 40]).buffer;
+
+      const pending = handleSaveBinaryFile({ fileHandleId: 'bin_handle_1', buffer: rawBuffer });
+
+      expect(postMessageSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'fs_save_file_binary',
+          payload: expect.objectContaining({
+            fileHandleId: 'bin_handle_1',
+            buffer: rawBuffer,
+          }),
+          message_id: expect.any(String),
+        }),
+        'http://example.com',
+        [rawBuffer]
+      );
+
+      const messageId = postMessageSpy.mock.calls[0][0].message_id;
+      dispatchParentMessage({ response_to: messageId, success: true, fileHandleId: 'bin_handle_1', filename: 'a.elab' });
+
+      await expect(pending).resolves.toEqual(expect.objectContaining({ success: true, fileHandleId: 'bin_handle_1' }));
+      postMessageSpy.mockRestore();
+    });
+
+    it('ignores bridge responses from a foreign origin or with a different message id', async () => {
+      jest.useFakeTimers();
+      window.el_settings.settings.enable_sandbox = true;
+      window.el_settings.settings.debug_mode = false;
+
+      const postMessageSpy = jest.spyOn(window.parent, 'postMessage').mockImplementation(() => {});
+      const pending = handleSaveBinaryFileAs({ buffer: new Uint8Array([1]).buffer });
+      const messageId = postMessageSpy.mock.calls[0][0].message_id;
+
+      dispatchParentMessage({ response_to: messageId, success: true }, 'http://evil.example');
+      dispatchParentMessage({ response_to: 'other_id', success: true });
+      jest.advanceTimersByTime(120000);
+
+      await expect(pending).resolves.toEqual({ error: 'timeout', message: 'Binary file save timed out' });
+      postMessageSpy.mockRestore();
+      jest.useRealTimers();
+    });
+
+    it('opens binary files through the parent bridge without a transfer list in sandbox mode', async () => {
+      window.el_settings.settings.enable_sandbox = true;
+      window.el_settings.settings.debug_mode = false;
+
+      const postMessageSpy = jest.spyOn(window.parent, 'postMessage').mockImplementation(() => {});
+      const pending = handleOpenBinaryFilePicker({ extensions: ['.elab', '.exe'] });
+
+      const [message, origin, transfer] = postMessageSpy.mock.calls[0];
+      expect(message.type).toBe('fs_open_file_binary');
+      expect(message.payload.extensions).toEqual(['.elab']);
+      expect(origin).toBe('http://example.com');
+      expect(transfer).toEqual([]);
+
+      const received = new Uint8Array([7, 8, 9]).buffer;
+      dispatchParentMessage({ response_to: message.message_id, success: true, buffer: received, filename: 'n.elab', fileHandleId: 'elab_fh_1' });
+
+      const opened = await pending;
+      expect(opened.success).toBe(true);
+      expect(opened.buffer).toBe(received);
+      expect(opened.fileHandleId).toBe('elab_fh_1');
+      postMessageSpy.mockRestore();
+    });
+
+    it('copies only the viewed bytes of a partial TypedArray before transferring in sandbox mode', () => {
+      window.el_settings.settings.enable_sandbox = true;
+      window.el_settings.settings.debug_mode = false;
+
+      const postMessageSpy = jest.spyOn(window.parent, 'postMessage').mockImplementation(() => {});
+      const backing = new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7]);
+      const view = backing.subarray(2, 5);
+
+      handleSaveBinaryFileAs({ buffer: view, suggestedName: '../../etc/report.exe' });
+
+      const [message, , transfer] = postMessageSpy.mock.calls[0];
+      expect(message.type).toBe('fs_save_file_as_binary');
+      expect(message.payload.suggestedName).toBe('report.exe.elab');
+      expect(transfer).toHaveLength(1);
+      expect(transfer[0]).toBe(message.payload.buffer);
+      expect(transfer[0]).not.toBe(backing.buffer);
+      expect(Array.from(new Uint8Array(transfer[0]))).toEqual([2, 3, 4]);
+      expect(backing.byteLength).toBe(8);
+      postMessageSpy.mockRestore();
+    });
+
+    it('resolves with an error and cleans up when postMessage throws a DataCloneError', async () => {
+      window.el_settings.settings.enable_sandbox = true;
+      window.el_settings.settings.debug_mode = false;
+
+      const cloneError = new Error('ArrayBuffer is not detachable');
+      cloneError.name = 'DataCloneError';
+      const postMessageSpy = jest.spyOn(window.parent, 'postMessage').mockImplementation(() => {
+        throw cloneError;
+      });
+      const removeSpy = jest.spyOn(window, 'removeEventListener');
+
+      const result = await handleSaveBinaryFile({ buffer: new Uint8Array([1, 2]).buffer });
+
+      expect(result).toEqual({ error: 'DataCloneError', message: 'ArrayBuffer is not detachable' });
+      expect(removeSpy).toHaveBeenCalledWith('message', expect.any(Function));
+      postMessageSpy.mockRestore();
+      removeSpy.mockRestore();
+    });
+
+    it.each([
+      ['missing buffer', undefined],
+      ['string payload', 'not-a-buffer'],
+      ['plain object', { byteLength: 4 }],
+    ])('rejects invalid buffers (%s) without prompting', async (_label, buffer) => {
+      window.showSaveFilePicker = jest.fn();
+
+      await expect(handleSaveBinaryFile({ buffer })).resolves.toEqual({
+        error: 'invalid_buffer',
+        message: 'Binary buffer is required to save file.',
+      });
+      await expect(handleSaveBinaryFileAs({ buffer })).resolves.toEqual({
+        error: 'invalid_buffer',
+        message: 'Binary buffer is required to save file.',
+      });
+      expect(window.showSaveFilePicker).not.toHaveBeenCalled();
+    });
+
+    it('rejects detached buffers instead of failing inside postMessage', async () => {
+      const detached = new ArrayBuffer(4);
+      Object.defineProperty(detached, 'detached', { value: true });
+
+      await expect(handleSaveBinaryFileAs({ buffer: detached })).resolves.toEqual({
+        error: 'invalid_buffer',
+        message: 'Binary buffer is required to save file.',
+      });
+    });
+
+    it('returns cancelled when the open picker is dismissed (AbortError)', async () => {
+      const abort = new Error('The user aborted a request.');
+      abort.name = 'AbortError';
+      window.showOpenFilePicker = jest.fn().mockRejectedValue(abort);
+
+      await expect(handleOpenBinaryFilePicker()).resolves.toEqual({ cancelled: true });
+    });
+
+    it('returns cancelled when the save picker is dismissed (AbortError)', async () => {
+      const abort = new Error('The user aborted a request.');
+      abort.name = 'AbortError';
+      window.showSaveFilePicker = jest.fn().mockRejectedValue(abort);
+
+      await expect(handleSaveBinaryFileAs({ buffer: new Uint8Array([1]).buffer })).resolves.toEqual({ cancelled: true });
+    });
+
+    it('falls back to <input type="file"> when showOpenFilePicker raises SecurityError', async () => {
+      const securityError = new Error('Cross origin sub frames are not allowed');
+      securityError.name = 'SecurityError';
+      window.showOpenFilePicker = jest.fn().mockRejectedValue(securityError);
+
+      const pending = handleOpenBinaryFilePicker();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const input = document.querySelector('input[type="file"]');
+      expect(input).not.toBeNull();
+      expect(input.accept).toBe('.elab');
+
+      const bytes = new Uint8Array([1, 2, 3]).buffer;
+      const file = { name: 'fallback.elab', arrayBuffer: jest.fn().mockResolvedValue(bytes) };
+      Object.defineProperty(input, 'files', { value: [file] });
+      await input.onchange({ target: input });
+
+      await expect(pending).resolves.toEqual({
+        success: true,
+        buffer: bytes,
+        size: 3,
+        filename: 'fallback.elab',
+        fileHandleId: null,
+      });
+      expect(document.querySelector('input[type="file"]')).toBeNull();
+    });
+
+    it('falls back to a sanitized blob download when showSaveFilePicker raises SecurityError', async () => {
+      const securityError = new Error('Blocked');
+      securityError.name = 'SecurityError';
+      window.showSaveFilePicker = jest.fn().mockRejectedValue(securityError);
+
+      const origCreateObjectURL = URL.createObjectURL;
+      URL.createObjectURL = jest.fn(() => 'blob:http://example.com/elab-uuid');
+      const clickMock = jest.fn();
+      const origCreateElement = document.createElement.bind(document);
+      let anchor = null;
+      jest.spyOn(document, 'createElement').mockImplementation((tag) => {
+        const el = origCreateElement(tag);
+        if (tag === 'a') {
+          el.click = clickMock;
+          anchor = el;
+        }
+        return el;
+      });
+
+      const result = await handleSaveBinaryFileAs({ buffer: new Uint8Array([1]).buffer, suggestedName: 'evil.html' });
+
+      expect(result).toEqual({ success: true, filename: 'evil.html.elab', fileHandleId: null, fallbackDownload: true });
+      expect(clickMock).toHaveBeenCalled();
+      expect(anchor.getAttribute('download')).toBe('evil.html.elab');
+
+      URL.createObjectURL = origCreateObjectURL;
+      document.createElement.mockRestore();
+    });
+
+    it('evicts a stale handle and falls back to Save As when the direct write fails', async () => {
+      const opened = { name: 'stale.elab', arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(1)) };
+      const staleHandle = {
+        name: 'stale.elab',
+        getFile: jest.fn().mockResolvedValue(opened),
+        createWritable: jest.fn().mockRejectedValue(Object.assign(new Error('Revoked'), { name: 'NotAllowedError' })),
+      };
+      window.showOpenFilePicker = jest.fn().mockResolvedValue([staleHandle]);
+      const { fileHandleId } = await handleOpenBinaryFilePicker();
+
+      const saveWritable = { write: jest.fn().mockResolvedValue(undefined), close: jest.fn().mockResolvedValue(undefined) };
+      const newHandle = { name: 'renamed.elab', createWritable: jest.fn().mockResolvedValue(saveWritable) };
+      window.showSaveFilePicker = jest.fn().mockResolvedValue(newHandle);
+
+      const first = await handleSaveBinaryFile({ fileHandleId, buffer: new Uint8Array([1]).buffer });
+      expect(first.success).toBe(true);
+      expect(first.filename).toBe('renamed.elab');
+      expect(first.fileHandleId).not.toBe(fileHandleId);
+
+      await handleSaveBinaryFile({ fileHandleId, buffer: new Uint8Array([2]).buffer });
+      expect(staleHandle.createWritable).toHaveBeenCalledTimes(1);
+      expect(window.showSaveFilePicker).toHaveBeenCalledTimes(2);
+    });
+
+    it('aborts the writable stream when writing fails', async () => {
+      const writeError = Object.assign(new Error('Disk full'), { name: 'QuotaExceededError' });
+      const writable = {
+        write: jest.fn().mockRejectedValue(writeError),
+        close: jest.fn(),
+        abort: jest.fn().mockResolvedValue(undefined),
+      };
+      window.showSaveFilePicker = jest.fn().mockResolvedValue({ name: 'x.elab', createWritable: jest.fn().mockResolvedValue(writable) });
+
+      const result = await handleSaveBinaryFileAs({ buffer: new Uint8Array([1]).buffer });
+
+      expect(result).toEqual({ error: 'QuotaExceededError', message: 'Disk full' });
+      expect(writable.abort).toHaveBeenCalledTimes(1);
+      expect(writable.close).not.toHaveBeenCalled();
     });
   });
 });

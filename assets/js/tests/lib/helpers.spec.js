@@ -1,4 +1,4 @@
-import { arrayBufferToBase64, base64ToArrayBuffer, deriveKey, getUniqueSnippetName, normalizeSnippet, sanitizeSvg, __, sprintf } from '../../lib/helpers.js';
+import { arrayBufferToBase64, base64ToArrayBuffer, deriveKey, getUniqueSnippetName, normalizeSnippet, sanitizeSvg, __, sprintf, sanitizeBinaryFilename, resolveBinaryExtensions } from '../../lib/helpers.js';
 
 import { ed25519 } from '@noble/curves/ed25519.js';
 
@@ -207,3 +207,33 @@ describe('Helpers - SVG Sanitization', () => {
   });
 });
 
+
+describe('Helpers - Binary file bridge', () => {
+  test('resolveBinaryExtensions keeps only allow-listed extensions', () => {
+    expect(resolveBinaryExtensions(['.ELAB', '.exe', '.elab', 42])).toEqual(['.elab']);
+    expect(resolveBinaryExtensions(['.exe', '.html'])).toEqual(['.elab']);
+    expect(resolveBinaryExtensions(undefined)).toEqual(['.elab']);
+  });
+
+  test.each([
+    ['report.elab', 'report.elab'],
+    ['Report.ELAB', 'Report.ELAB'],
+    ['../../etc/passwd', 'passwd.elab'],
+    ['C:\\Users\\me\\notes.elab', 'notes.elab'],
+    ['evil.html', 'evil.html.elab'],
+    ['payload.svg', 'payload.svg.elab'],
+    ['script.ps1', 'script.ps1.elab'],
+    ['.htaccess', 'htaccess.elab'],
+    ['.elab', 'elab.elab'],
+    ['..', 'notebook.elab'],
+    ['', 'notebook.elab'],
+    [null, 'notebook.elab'],
+    ['my notebook (v2).elab', 'my_notebook__v2_.elab'],
+  ])('sanitizeBinaryFilename(%p) -> %p', (input, expected) => {
+    expect(sanitizeBinaryFilename(input)).toBe(expected);
+  });
+
+  test('sanitizeBinaryFilename ignores non allow-listed extensions supplied by callers', () => {
+    expect(sanitizeBinaryFilename('tool.exe', ['.exe'])).toBe('tool.exe.elab');
+  });
+});

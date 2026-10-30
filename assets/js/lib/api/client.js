@@ -1,6 +1,6 @@
 import { useUiStore } from '../../stores/ui';
 import { ed25519 } from '@noble/curves/ed25519.js';
-import { arrayBufferToBase64, debugLog } from '../helpers.js';
+import { arrayBufferToBase64, debugLog, BINARY_FILE_EXTENSIONS, resolveBinaryExtensions, sanitizeBinaryFilename } from '../helpers.js';
 import { sendToSandbox, requestFromSandbox } from '../sandbox-communication.js';
 
 let activeChallengeRequest = null;
@@ -1128,3 +1128,395 @@ export async function handleDisconnectLocalFs() {
   }
 }
 
+/**
+ * Maximum number of binary file handles retained in the direct-mode registry.
+ */
+const MAX_DIRECT_BINARY_FILE_HANDLES = 32;
+
+/**
+ * Timeout (ms) for binary file bridge requests that wait on a native file picker.
+ */
+const BINARY_BRIDGE_TIMEOUT_MS = 120000;
+
+/**
+ * Direct-mode registry of FileSystemFileHandle objects for binary files (.elab).
+ */
+const directBinaryFileHandles = new Map();
+let directBinaryHandleCounter = 0;
+
+function registerDirectBinaryHandle(fileHandle) {
+  directBinaryHandleCounter += 1;
+  const handleId = `direct_elab_fh_${Date.now()}_${directBinaryHandleCounter}`;
+  directBinaryFileHandles.set(handleId, fileHandle);
+  while (directBinaryFileHandles.size > MAX_DIRECT_BINARY_FILE_HANDLES) {
+    directBinaryFileHandles.delete(directBinaryFileHandles.keys().next().value);
+  }
+  return handleId;
+}
+
+/**
+ * Writes a buffer to a file handle, aborting the writable stream on failure so no
+ * partially written swap file or lock is left behind.
+ *
+ * @param {FileSystemFileHandle} fileHandle
+ * @param {ArrayBuffer} buffer
+ * @returns {Promise<void>}
+ */
+async function writeBinaryToHandle(fileHandle, buffer) {
+  const writable = await fileHandle.createWritable();
+  try {
+    await writable.write(buffer);
+    await writable.close();
+  } catch (err) {
+    if (typeof writable.abort === 'function') {
+      await writable.abort().catch(() => {});
+    }
+    throw err;
+  }
+}
+
+/**
+ * Normalizes a binary input (ArrayBuffer or TypedArray/Uint8Array) into an ArrayBuffer
+ * suitable for zero-copy Transferable postMessage.
+ *
+ * A full-length view returns its underlying buffer (which is detached once transferred),
+ * while a partial view is copied so bytes outside the view are never transferred.
+ * Detached buffers are rejected because transferring them throws a DataCloneError.
+ *
+ * @param {ArrayBuffer|ArrayBufferView} data
+ * @returns {ArrayBuffer|null}
+ */
+function toTransferableArrayBuffer(data) {
+  if (!data) return null;
+  if (data instanceof ArrayBuffer || Object.prototype.toString.call(data) === '[object ArrayBuffer]') {
+    return data.detached === true ? null : data;
+  }
+  if (ArrayBuffer.isView(data)) {
+    if (data.buffer.detached === true) {
+      return null;
+    }
+    if (data.byteOffset === 0 && data.byteLength === data.buffer.byteLength) {
+      return data.buffer;
+    }
+    return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+  }
+  return null;
+}
+
+/**
+ * Sends a binary bridge request to the parent window and resolves with its response.
+ *
+ * @param {string} type
+ * @param {object} payload
+ * @param {Transferable[]} transfer
+ * @param {string} timeoutMessage
+ * @returns {Promise<object>}
+ */
+function postBinaryBridgeRequest(type, payload, transfer, timeoutMessage) {
+  return new Promise((resolve) => {
+    const messageId = generateMessageId();
+    const wpOrigin = getWpOrigin();
+    let timeout = null;
+
+    const listener = (event) => {
+      if (event.source !== window.parent) return;
+      if (event.origin !== wpOrigin) return;
+      if (event.data && event.data.response_to === messageId) {
+        clearTimeout(timeout);
+        window.removeEventListener('message', listener);
+        resolve(event.data);
+      }
+    };
+
+    timeout = setTimeout(() => {
+      window.removeEventListener('message', listener);
+      resolve({ error: 'timeout', message: timeoutMessage });
+    }, BINARY_BRIDGE_TIMEOUT_MS);
+
+    window.addEventListener('message', listener);
+
+    try {
+      window.parent.postMessage({ message_id: messageId, type, payload }, wpOrigin, transfer);
+    } catch (err) {
+      clearTimeout(timeout);
+      window.removeEventListener('message', listener);
+      resolve({ error: err?.name || 'post_message_failed', message: err?.message || 'Failed to send binary request.' });
+    }
+  });
+}
+
+function openBinaryFileInputFallback(extensions = BINARY_FILE_EXTENSIONS) {
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = extensions.join(',');
+    input.style.display = 'none';
+    document.body.appendChild(input);
+
+    const cleanup = () => {
+      if (input.parentNode) {
+        input.parentNode.removeChild(input);
+      }
+    };
+
+    input.oncancel = () => {
+      cleanup();
+      resolve({ cancelled: true });
+    };
+
+    input.onchange = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) {
+        cleanup();
+        resolve({ cancelled: true });
+        return;
+      }
+      try {
+        const buffer = typeof file.arrayBuffer === 'function'
+          ? await file.arrayBuffer()
+          : await new Promise((res, rej) => {
+              const reader = new FileReader();
+              reader.onload = (ev) => res(ev.target.result);
+              reader.onerror = (err) => rej(err);
+              reader.readAsArrayBuffer(file);
+            });
+        cleanup();
+        resolve({
+          success: true,
+          buffer,
+          size: buffer ? buffer.byteLength : 0,
+          filename: file.name,
+          fileHandleId: null,
+        });
+      } catch (err) {
+        cleanup();
+        resolve({
+          error: 'read_error',
+          message: err?.message || 'Failed to read binary file',
+        });
+      }
+    };
+
+    input.click();
+  });
+}
+
+/**
+ * Open a binary file (e.g. `.elab` Notebook) and return its `ArrayBuffer`.
+ * Uses Transferable Objects (`postMessage(msg, origin, [buffer])`) when sandboxed.
+ *
+ * @param {object} [options={}]
+ * @param {string} [options.description='Expression Lab Notebook (.elab)']
+ * @param {string[]} [options.extensions=['.elab']]
+ * @param {string} [options.mimeType='application/octet-stream']
+ * @returns {Promise<{ success?: boolean, buffer?: ArrayBuffer, size?: number, filename?: string, fileHandleId?: string|null, cancelled?: boolean, error?: string, message?: string }>}
+ */
+export async function handleOpenBinaryFilePicker(options = {}) {
+  const {
+    description = 'Expression Lab Notebook (.elab)',
+    mimeType = 'application/octet-stream',
+  } = options;
+  const extensions = resolveBinaryExtensions(options.extensions);
+  const isDirect = !isSandboxEnabled();
+  debugLog('handleOpenBinaryFilePicker invoked', { route: isDirect ? 'direct' : 'sandbox-postMessage' });
+
+  if (isDirect) {
+    if (typeof window.showOpenFilePicker === 'function') {
+      try {
+        const [fileHandle] = await window.showOpenFilePicker({
+          types: [
+            {
+              description,
+              accept: {
+                [mimeType]: extensions,
+              },
+            },
+          ],
+          multiple: false,
+        });
+        const file = await fileHandle.getFile();
+        const buffer = await file.arrayBuffer();
+        const fileHandleId = registerDirectBinaryHandle(fileHandle);
+        return {
+          success: true,
+          buffer,
+          size: buffer ? buffer.byteLength : 0,
+          filename: file.name,
+          fileHandleId,
+        };
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          return { cancelled: true };
+        }
+        if (err.name === 'SecurityError' || err.name === 'NotAllowedError') {
+          return openBinaryFileInputFallback(extensions);
+        }
+        return { error: err.name || 'error', message: err.message };
+      }
+    }
+    return openBinaryFileInputFallback(extensions);
+  }
+
+  return postBinaryBridgeRequest(
+    'fs_open_file_binary',
+    { description, extensions, mimeType },
+    [],
+    'Binary file open timed out'
+  );
+}
+
+/**
+ * Save a binary file (e.g. `.elab` Notebook) via "Save As" picker or fallback download,
+ * transferring the `ArrayBuffer` zero-copy when sandboxed.
+ *
+ * Ownership contract: in sandbox mode the buffer (or the full-length view's underlying
+ * buffer) is transferred to the parent window and becomes detached (`byteLength === 0`)
+ * regardless of the outcome, so callers must re-serialize instead of reusing it.
+ *
+ * @param {object} options
+ * @param {ArrayBuffer|Uint8Array} options.buffer
+ * @param {string} [options.suggestedName='notebook.elab']
+ * @param {string} [options.description='Expression Lab Notebook (.elab)']
+ * @param {string[]} [options.extensions=['.elab']]
+ * @param {string} [options.mimeType='application/octet-stream']
+ * @returns {Promise<{ success?: boolean, filename?: string, fileHandleId?: string|null, fallbackDownload?: boolean, cancelled?: boolean, error?: string, message?: string }>}
+ */
+export async function handleSaveBinaryFileAs(options = {}) {
+  const {
+    buffer,
+    description = 'Expression Lab Notebook (.elab)',
+    mimeType = 'application/octet-stream',
+  } = options;
+  const extensions = resolveBinaryExtensions(options.extensions);
+  const suggestedName = sanitizeBinaryFilename(options.suggestedName || 'notebook.elab', extensions);
+
+  const transferBuffer = toTransferableArrayBuffer(buffer);
+  if (!transferBuffer) {
+    return { error: 'invalid_buffer', message: 'Binary buffer is required to save file.' };
+  }
+
+  const isDirect = !isSandboxEnabled();
+  debugLog('handleSaveBinaryFileAs invoked', { route: isDirect ? 'direct' : 'sandbox-postMessage' });
+
+  if (isDirect) {
+    if (typeof window.showSaveFilePicker === 'function') {
+      try {
+        const fileHandle = await window.showSaveFilePicker({
+          suggestedName,
+          types: [
+            {
+              description,
+              accept: {
+                [mimeType]: extensions,
+              },
+            },
+          ],
+        });
+        await writeBinaryToHandle(fileHandle, transferBuffer);
+        const fileHandleId = registerDirectBinaryHandle(fileHandle);
+        return {
+          success: true,
+          filename: fileHandle.name || suggestedName,
+          fileHandleId,
+        };
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          return { cancelled: true };
+        }
+        if (err.name === 'SecurityError' || err.name === 'NotAllowedError') {
+          handleDownload(transferBuffer, suggestedName, 'application/octet-stream');
+          return { success: true, filename: suggestedName, fileHandleId: null, fallbackDownload: true };
+        }
+        return { error: err.name || 'error', message: err.message };
+      }
+    }
+    handleDownload(transferBuffer, suggestedName, 'application/octet-stream');
+    return { success: true, filename: suggestedName, fileHandleId: null, fallbackDownload: true };
+  }
+
+  return postBinaryBridgeRequest(
+    'fs_save_file_as_binary',
+    {
+      buffer: transferBuffer,
+      suggestedName,
+      description,
+      extensions,
+      mimeType,
+    },
+    [transferBuffer],
+    'Binary file save timed out'
+  );
+}
+
+/**
+ * Save a binary file (e.g. `.elab` Notebook) directly to its existing handle if available,
+ * or prompt "Save As" otherwise. Uses Transferable Objects when sandboxed.
+ *
+ * Ownership contract: identical to `handleSaveBinaryFileAs()`; the buffer is detached
+ * after a sandboxed call.
+ *
+ * @param {object} options
+ * @param {ArrayBuffer|Uint8Array} options.buffer
+ * @param {string|null} [options.fileHandleId=null]
+ * @param {string} [options.suggestedName='notebook.elab']
+ * @param {string} [options.description='Expression Lab Notebook (.elab)']
+ * @param {string[]} [options.extensions=['.elab']]
+ * @param {string} [options.mimeType='application/octet-stream']
+ * @returns {Promise<{ success?: boolean, filename?: string, fileHandleId?: string|null, fallbackDownload?: boolean, cancelled?: boolean, error?: string, message?: string }>}
+ */
+export async function handleSaveBinaryFile(options = {}) {
+  const {
+    buffer,
+    fileHandleId = null,
+    description = 'Expression Lab Notebook (.elab)',
+    mimeType = 'application/octet-stream',
+  } = options;
+  const extensions = resolveBinaryExtensions(options.extensions);
+  const suggestedName = sanitizeBinaryFilename(options.suggestedName || 'notebook.elab', extensions);
+
+  const transferBuffer = toTransferableArrayBuffer(buffer);
+  if (!transferBuffer) {
+    return { error: 'invalid_buffer', message: 'Binary buffer is required to save file.' };
+  }
+
+  const isDirect = !isSandboxEnabled();
+  debugLog('handleSaveBinaryFile invoked', { route: isDirect ? 'direct' : 'sandbox-postMessage', fileHandleId });
+
+  if (isDirect) {
+    if (fileHandleId && directBinaryFileHandles.has(fileHandleId)) {
+      const fileHandle = directBinaryFileHandles.get(fileHandleId);
+      try {
+        await writeBinaryToHandle(fileHandle, transferBuffer);
+        return {
+          success: true,
+          filename: fileHandle.name || suggestedName,
+          fileHandleId,
+        };
+      } catch (err) {
+        directBinaryFileHandles.delete(fileHandleId);
+        debugLog('Direct FS: handleSaveBinaryFile direct write failed, falling back to Save As:', err, 'warn');
+      }
+    }
+    return handleSaveBinaryFileAs({
+      buffer: transferBuffer,
+      suggestedName,
+      description,
+      extensions,
+      mimeType,
+    });
+  }
+
+  return postBinaryBridgeRequest(
+    'fs_save_file_binary',
+    {
+      buffer: transferBuffer,
+      fileHandleId,
+      suggestedName,
+      description,
+      extensions,
+      mimeType,
+    },
+    [transferBuffer],
+    'Binary file save timed out'
+  );
+}

@@ -22,8 +22,30 @@ BUILD_DIR="$ROOT_DIR/build"
 STAGING_DIR="$BUILD_DIR/staging"
 DIST_DIR="$BUILD_DIR/dist/expressionlab"
 
+WITH_ADDONS="${EXPRESSION_LAB_WITH_ADDONS:-0}"
+POSITIONAL_ARGS=()
+for arg in "$@"; do
+	case "$arg" in
+		--with-addons|--with-addon)
+			WITH_ADDONS=1
+			;;
+		-*)
+			echo "ERROR: Unknown option '$arg'. Usage: build-plugin.sh [--with-addons] [VERSION]" >&2
+			exit 1
+			;;
+		*)
+			POSITIONAL_ARGS+=("$arg")
+			;;
+	esac
+done
+
+if [ "${#POSITIONAL_ARGS[@]}" -gt 1 ]; then
+	echo "ERROR: Too many positional arguments. Usage: build-plugin.sh [--with-addons] [VERSION]" >&2
+	exit 1
+fi
+
 # Extract version from expressionlab.php or use argument if provided.
-VERSION="${1:-$(grep -m1 "Version:" "$ROOT_DIR/expressionlab.php" | awk -F: '{print $2}' | tr -d ' \r\n')}"
+VERSION="${POSITIONAL_ARGS[0]:-$(grep -m1 "Version:" "$ROOT_DIR/expressionlab.php" | awk -F: '{print $2}' | tr -d ' \r\n')}"
 if [ -z "$VERSION" ]; then
     echo "ERROR: Could not determine plugin version from expressionlab.php." >&2
     exit 1
@@ -51,12 +73,26 @@ ZIP_NAME="expressionlab-${VERSION}.zip"
 ZIP_FILE="$BUILD_DIR/$ZIP_NAME"
 MANIFEST_FILE="$BUILD_DIR/update.json"
 
-echo "Compiling frontend assets with Webpack Encore..."
-(
-	unset EXPRESSION_LAB_SIGNING_KEY
-	unset SIGNING_KEY
-	pnpm --dir "$ROOT_DIR" run build
-)
+if [ "$WITH_ADDONS" = "1" ]; then
+	if [ ! -f "$ROOT_DIR/assets/addons/addons.json" ] || [ ! -f "$ROOT_DIR/assets/addons/integrity.json" ]; then
+		echo "ERROR: --with-addons is enabled, but assets/addons/addons.json or assets/addons/integrity.json is missing." >&2
+		exit 1
+	fi
+	echo "Compiling frontend assets with Webpack Encore (with proprietary addons)..."
+	(
+		unset EXPRESSION_LAB_SIGNING_KEY
+		unset SIGNING_KEY
+		EXPRESSION_LAB_WITH_ADDONS=1 pnpm --dir "$ROOT_DIR" run build
+	)
+else
+	echo "Compiling frontend assets with Webpack Encore..."
+	(
+		unset EXPRESSION_LAB_SIGNING_KEY
+		unset SIGNING_KEY
+		unset EXPRESSION_LAB_WITH_ADDONS
+		pnpm --dir "$ROOT_DIR" run build
+	)
+fi
 
 echo "Preparing staging environment with production dependencies..."
 rm -rf "$BUILD_DIR"
@@ -106,6 +142,14 @@ fi
 echo "Copying plugin source files and prefixing vendor references..."
 cp "$ROOT_DIR/expressionlab.php" "$DIST_DIR/expressionlab.php"
 cp -r "$ROOT_DIR/src" "$DIST_DIR/src"
+
+if [ "$WITH_ADDONS" = "1" ]; then
+	sed -i "s/define( 'EXPRESSION_LAB_ADDON_ENABLED', false );/define( 'EXPRESSION_LAB_ADDON_ENABLED', true );/" "$DIST_DIR/expressionlab.php"
+	if ! grep -q "define( 'EXPRESSION_LAB_ADDON_ENABLED', true );" "$DIST_DIR/expressionlab.php"; then
+		echo "ERROR: Failed to inject EXPRESSION_LAB_ADDON_ENABLED=true into expressionlab.php." >&2
+		exit 1
+	fi
+fi
 
 (
 	unset EXPRESSION_LAB_SIGNING_KEY
@@ -168,6 +212,11 @@ done
 
 # Remove development definition files from the final package
 rm -f "$DIST_DIR/composer.json" "$DIST_DIR/composer.lock"
+
+if [ -e "$DIST_DIR/assets/addons" ]; then
+	echo "ERROR: assets/addons/ must never be shipped inside the release package." >&2
+	exit 1
+fi
 
 echo "Packaging final ZIP ($ZIP_NAME)..."
 rm -f "$ZIP_FILE"

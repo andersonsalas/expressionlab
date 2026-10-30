@@ -45,6 +45,15 @@ class Console extends AdminPage {
 	public const NONCE_ACTION = 'fpw_nonce';
 
 	/**
+	 * Maximum length of a client-supplied cell identifier in batch evaluations.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 * @var int
+	 */
+	public const MAX_BATCH_CELL_ID_LENGTH = 64;
+
+	/**
 	 * Determines whether the console page should load.
 	 *
 	 * @since 0.0.1
@@ -228,6 +237,7 @@ class Console extends AdminPage {
 				'enable_sandbox'      => EXPRESSION_LAB_SANDBOX_ENABLED,
 				'is_playground'       => Helper::is_playground(),
 				'hooks_enabled'       => defined( 'EXPRESSION_LAB_HOOKS_ENABLED' ) && EXPRESSION_LAB_HOOKS_ENABLED,
+				'addon_enabled'       => defined( 'EXPRESSION_LAB_ADDON_ENABLED' ) && EXPRESSION_LAB_ADDON_ENABLED,
 				'enable_cache'        => EXPRESSION_LAB_CACHE,
 				'debug_mode'          => EXPRESSION_LAB_DEBUG_MODE,
 				'browser_log'         => EXPRESSION_LAB_BROWSER_LOG,
@@ -845,7 +855,313 @@ class Console extends AdminPage {
 	}
 
 	/**
-	 * Evaluates an expression string sent via AJAX and returns the output.
+	 * Formats an exception thrown during expression evaluation into a user-facing message.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param \Throwable $e          The caught exception or error.
+	 * @param string     $expression The expression that triggered the exception.
+	 * @return string Formatted error message.
+	 */
+	private function format_evaluation_error( \Throwable $e, string $expression ): string {
+		if ( $e instanceof \Symfony\Component\ExpressionLanguage\SyntaxError ) {
+			$msg = $e->getMessage();
+			// Symfony converts newlines to spaces during lexing. We restore the original multiline expression and remove trailing dot.
+			if ( preg_match( '/^(.*?\baround position \d+)(?: for expression `.*`)?(\.?\s*Did you mean "[^"]*"\??)?[.?\s]*$/s', $msg, $matches ) ) {
+				$suggestion = ! empty( $matches[2] ) ? '. ' . ltrim( str_replace( '`', '\`', $matches[2] ), '. ' ) : '';
+				$details    = str_replace( '`', '\`', $matches[1] );
+				/* translators: 1: syntax error details, 2: expression code span, 3: suggestion */
+				return sprintf( __( 'Syntax error: %1$s for expression %2$s%3$s', 'expression-lab' ), $details, Helper::format_markdown_code_span( $expression ), $suggestion );
+			}
+
+			/* translators: %s: syntax error details */
+			return sprintf( __( 'Syntax error: %s', 'expression-lab' ), rtrim( str_replace( '`', '\`', $msg ), '.' ) );
+		}
+
+		if ( ! empty( $e->getMessage() ) ) {
+			return $e->getMessage();
+		}
+
+		/* translators: %s: exception class name */
+		return sprintf( __( 'Expression error: %s', 'expression-lab' ), get_class( $e ) );
+	}
+
+	/**
+	 * Formats an evaluated result value and captured PHP output for JSON serialization.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param mixed       $result Evaluated expression result.
+	 * @param string|null $output Captured stdout buffer.
+	 * @param array       $errors Captured non-fatal PHP notices/warnings.
+	 * @return array{result: mixed, captured_output: string|null} Formatted result and output.
+	 */
+	private function format_evaluation_output( $result, ?string $output, array $errors ): array {
+		$wp_debug_enabled     = defined( 'WP_DEBUG' ) && WP_DEBUG;
+		$full_captured_output = null;
+
+		if ( $wp_debug_enabled ) {
+			$full_captured_output = $output;
+			if ( ! empty( $errors ) ) {
+				$full_captured_output .= ( $full_captured_output ? "\n" : '' ) . implode( "\n", $errors );
+			}
+		}
+
+		if ( is_string( $result ) && ! is_numeric( $result ) ) {
+			if ( false !== strpos( $result, '\'' ) && false === strpos( $result, '"' ) ) {
+				$result = '"' . $result . '"';
+			} elseif ( false !== strpos( $result, '\'' ) && false !== strpos( $result, '"' ) ) {
+				$result = '"' . addcslashes( $result, '"\\' ) . '"';
+			} else {
+				$result = '\'' . $result . '\'';
+			}
+		}
+
+		if ( is_float( $result ) && ( is_nan( $result ) || is_infinite( $result ) ) ) {
+			$result = (string) $result; // Prevent JSON encoding issues.
+		}
+
+		return array(
+			'result'          => $result,
+			'captured_output' => $full_captured_output,
+		);
+	}
+
+	/**
+	 * Evaluates a sequential batch of expressions sent via AJAX and returns per-cell outputs.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param mixed    $raw_expressions Raw `expressions` POST parameter (JSON string or array).
+	 * @param int      $actor_id        Authenticated user ID.
+	 * @param int|null $user_id         Execution-context user ID.
+	 * @param int|null $site_id         Execution-context site ID.
+	 * @param string   $challenge_nonce Challenge nonce from request.
+	 * @param string   $timestamp       Challenge timestamp from request.
+	 * @param float    $start_time      Request start timestamp.
+	 * @return void
+	 */
+	private function evaluate_batch( $raw_expressions, int $actor_id, ?int $user_id, ?int $site_id, string $challenge_nonce, string $timestamp, float $start_time ): void {
+		$decoded = is_string( $raw_expressions ) ? json_decode( $raw_expressions, true ) : $raw_expressions;
+
+		if ( ! is_array( $decoded ) || empty( $decoded ) ) {
+			wp_send_json_error( array( 'message' => __( 'No expressions provided', 'expression-lab' ) ), 400 );
+			return;
+		}
+
+		if ( array_values( $decoded ) !== $decoded ) {
+			wp_send_json_error( array( 'message' => __( 'Expressions must be provided as a sequential list.', 'expression-lab' ) ), 400 );
+			return;
+		}
+
+		if ( count( $decoded ) > LanguageEngine::MAX_BATCH_EXPRESSIONS ) {
+			wp_send_json_error(
+				array(
+					'message' => sprintf(
+						/* translators: %d: maximum number of expressions per batch */
+						__( 'Batch size exceeds the maximum limit of %d expressions.', 'expression-lab' ),
+						LanguageEngine::MAX_BATCH_EXPRESSIONS
+					),
+				),
+				400
+			);
+			return;
+		}
+
+		$normalized_items   = array();
+		$audit_concat_parts = array();
+
+		foreach ( $decoded as $index => $item ) {
+			$cell_id   = 'cell_' . ( $index + 1 );
+			$cell_expr = '';
+
+			if ( is_string( $item ) ) {
+				$cell_expr = $item;
+			} elseif ( is_array( $item ) ) {
+				if ( isset( $item['id'] ) && is_scalar( $item['id'] ) ) {
+					$sanitized_id = substr( sanitize_text_field( (string) $item['id'] ), 0, self::MAX_BATCH_CELL_ID_LENGTH );
+					if ( '' !== $sanitized_id ) {
+						$cell_id = $sanitized_id;
+					}
+				}
+				if ( isset( $item['expression'] ) && is_string( $item['expression'] ) ) {
+					$cell_expr = $item['expression'];
+				}
+			}
+
+			if ( 0 === strlen( $cell_expr ) ) {
+				wp_send_json_error( array( 'message' => __( 'No expression provided', 'expression-lab' ) ), 400 );
+				return;
+			}
+
+			$normalized_items[]   = array(
+				'id'         => $cell_id,
+				'expression' => $cell_expr,
+			);
+			$audit_concat_parts[] = $cell_expr;
+		}
+
+		$new_challenge = $this->verify_and_rotate_challenge( $challenge_nonce, $timestamp );
+		if ( ! $new_challenge ) {
+			wp_send_json_error(
+				array(
+					'code'    => 'challenge_required',
+					'message' => __( 'Invalid or expired challenge.', 'expression-lab' ),
+				),
+				403
+			);
+			return;
+		}
+
+		$record_audit = self::create_audit_recorder( implode( "\n", $audit_concat_parts ), $actor_id, $user_id, $site_id, $start_time );
+		register_shutdown_function( $record_audit, 'aborted' );
+
+		$engine = LanguageEngine::get()
+			->set_user_id( $user_id )
+			->set_site_id( $site_id );
+
+		$results            = array();
+		$had_errors         = false;
+		$total              = count( $normalized_items );
+		$batch_binary_bytes = 0;
+
+		try {
+			for ( $i = 0; $i < $total; $i++ ) {
+				$cell_id   = $normalized_items[ $i ]['id'];
+				$cell_expr = $normalized_items[ $i ]['expression'];
+
+				if ( function_exists( 'set_time_limit' ) ) {
+					// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged
+					@set_time_limit( (int) EXPRESSION_LAB_MAX_EXECUTION_LIMIT + 5 );
+				}
+
+				// The embedded binary budget spans the whole batch response, not each cell.
+				$engine->set_binary_bytes_baseline( $batch_binary_bytes );
+				$cell_start = microtime( true );
+
+				try {
+					$evaluation          = $engine->evaluate( $cell_expr );
+					$batch_binary_bytes += $engine->get_accumulated_binary_bytes();
+					$duration_ms         = (int) round( ( microtime( true ) - $cell_start ) * 1000 );
+					$formatted           = $this->format_evaluation_output(
+						$evaluation['result'],
+						$evaluation['output'],
+						$evaluation['errors']
+					);
+
+					$results[] = array(
+						'id'              => $cell_id,
+						'status'          => 'success',
+						'duration_ms'     => $duration_ms,
+						'result'          => $formatted['result'],
+						'object_type'     => $evaluation['object_type'],
+						'captured_output' => $formatted['captured_output'],
+						'messages'        => $evaluation['messages'],
+						'visualizations'  => $evaluation['visualizations'],
+					);
+				} catch ( \Throwable $e ) {
+					$duration_ms = (int) round( ( microtime( true ) - $cell_start ) * 1000 );
+					$had_errors  = true;
+
+					$results[] = array(
+						'id'          => $cell_id,
+						'status'      => 'error',
+						'duration_ms' => $duration_ms,
+						'message'     => $this->format_evaluation_error( $e, $cell_expr ),
+						'messages'    => $engine->get_messages(),
+					);
+
+					// Mark remaining cells as skipped (fail-fast preserving previous results).
+					for ( $j = $i + 1; $j < $total; $j++ ) {
+						$results[] = array(
+							'id'     => $normalized_items[ $j ]['id'],
+							'status' => 'skipped',
+						);
+					}
+					break;
+				}
+			}
+		} finally {
+			$engine->set_binary_bytes_baseline( 0 );
+		}
+
+		$record_audit( $had_errors ? 'error' : 'success' );
+
+		$response = $this->enforce_batch_payload_limit(
+			array(
+				'format'    => 'batch_json',
+				'challenge' => $new_challenge,
+				'results'   => $results,
+			)
+		);
+
+		wp_send_json_success( $response );
+	}
+
+	/**
+	 * Drops visualizations from the heaviest cells until the batch response fits the payload ceiling.
+	 *
+	 * Cells are trimmed in descending order of their encoded visualization size, so lightweight
+	 * visualizations of other cells survive whenever a single heavy cell causes the overflow.
+	 *
+	 * @since 0.3.0
+	 * @internal
+	 *
+	 * @param array $response Batch response data (`format`, `challenge`, `results`).
+	 * @return array Batch response data with oversized visualizations removed.
+	 */
+	private function enforce_batch_payload_limit( array $response ): array {
+		$encoded = wp_json_encode(
+			array(
+				'success' => true,
+				'data'    => $response,
+			)
+		);
+
+		if ( false !== $encoded && strlen( $encoded ) <= LanguageEngine::MAX_PAYLOAD_BYTES ) {
+			return $response;
+		}
+
+		$warning_msg = false === $encoded
+			? 'Response visualizations omitted: payload could not be JSON-encoded.'
+			: 'Response visualizations omitted: total JSON payload exceeded the 5 MB limit.';
+
+		$weights = array();
+		foreach ( $response['results'] as $index => $cell_res ) {
+			if ( ! empty( $cell_res['visualizations'] ) ) {
+				$cell_json         = wp_json_encode( $cell_res['visualizations'] );
+				$weights[ $index ] = false === $cell_json ? PHP_INT_MAX : strlen( $cell_json );
+			}
+		}
+		arsort( $weights );
+
+		foreach ( array_keys( $weights ) as $index ) {
+			$response['results'][ $index ]['visualizations'] = array();
+			$response['results'][ $index ]['messages'][]     = array(
+				'type' => 'warning',
+				'text' => $warning_msg,
+			);
+
+			$encoded = wp_json_encode(
+				array(
+					'success' => true,
+					'data'    => $response,
+				)
+			);
+
+			if ( false !== $encoded && strlen( $encoded ) <= LanguageEngine::MAX_PAYLOAD_BYTES ) {
+				break;
+			}
+		}
+
+		return $response;
+	}
+
+	/**
+	 * Evaluates an expression string (or sequential batch of expressions) sent via AJAX and returns the output.
 	 *
 	 * @since 0.0.1
 	 * @internal
@@ -863,6 +1179,7 @@ class Console extends AdminPage {
 
 		$actor_id        = get_current_user_id();
 		$expression      = isset( $_POST['expression'] ) ? wp_unslash( $_POST['expression'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$expressions     = isset( $_POST['expressions'] ) ? wp_unslash( $_POST['expressions'] ) : null; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$challenge_nonce = isset( $_POST['challenge_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['challenge_nonce'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$timestamp       = isset( $_POST['timestamp'] ) ? sanitize_text_field( wp_unslash( $_POST['timestamp'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$user_id         = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : null; // phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -874,6 +1191,11 @@ class Console extends AdminPage {
 
 		if ( is_multisite() && null === $site_id ) {
 			$site_id = get_current_blog_id();
+		}
+
+		if ( null !== $expressions ) {
+			$this->evaluate_batch( $expressions, $actor_id, $user_id, $site_id, $challenge_nonce, $timestamp, $start_time );
+			return;
 		}
 
 		if ( 0 === strlen( $expression ?? '' ) ) {
@@ -913,62 +1235,20 @@ class Console extends AdminPage {
 			// The exception message is deliberately never logged: Symfony embeds the raw expression in it.
 			$record_audit( 'error' );
 
-			$error_message = '';
-
-			if ( $e instanceof \Symfony\Component\ExpressionLanguage\SyntaxError ) {
-				$msg = $e->getMessage();
-				// Symfony converts newlines to spaces during lexing. We restore the original multiline expression and remove trailing dot.
-				if ( preg_match( '/^(.*?\baround position \d+)(?: for expression `.*`)?(\.?\s*Did you mean "[^"]*"\??)?[.?\s]*$/s', $msg, $matches ) ) {
-					$suggestion = ! empty( $matches[2] ) ? '. ' . ltrim( str_replace( '`', '\`', $matches[2] ), '. ' ) : '';
-					$details    = str_replace( '`', '\`', $matches[1] );
-					/* translators: 1: syntax error details, 2: expression code span, 3: suggestion */
-					$error_message = sprintf( __( 'Syntax error: %1$s for expression %2$s%3$s', 'expression-lab' ), $details, Helper::format_markdown_code_span( $expression ), $suggestion );
-				} else {
-					/* translators: %s: syntax error details */
-					$error_message = sprintf( __( 'Syntax error: %s', 'expression-lab' ), rtrim( str_replace( '`', '\`', $msg ), '.' ) );
-				}
-			} elseif ( ! empty( $e->getMessage() ) ) {
-				$error_message = $e->getMessage();
-			} else {
-				/* translators: %s: exception class name */
-				$error_message = sprintf( __( 'Expression error: %s', 'expression-lab' ), get_class( $e ) );
-			}
+			$error_message = $this->format_evaluation_error( $e, $expression );
 
 			wp_send_json_error( array( 'message' => $error_message ), 400 );
 			return;
 		}
 
-		// Formatting result...
-		$wp_debug_enabled     = defined( 'WP_DEBUG' ) && WP_DEBUG;
-		$full_captured_output = null;
-
-		if ( $wp_debug_enabled ) {
-			$full_captured_output = $output;
-			if ( ! empty( $errors ) ) {
-				$full_captured_output .= ( $full_captured_output ? "\n" : '' ) . implode( "\n", $errors );
-			}
-		}
-
-		if ( is_string( $result ) && ! is_numeric( $result ) ) {
-			if ( false !== strpos( $result, '\'' ) && false === strpos( $result, '"' ) ) {
-				$result = '"' . $result . '"';
-			} elseif ( false !== strpos( $result, '\'' ) && false !== strpos( $result, '"' ) ) {
-				$result = '"' . addcslashes( $result, '"\\' ) . '"';
-			} else {
-				$result = '\'' . $result . '\'';
-			}
-		}
-
-		if ( is_float( $result ) && ( is_nan( $result ) || is_infinite( $result ) ) ) {
-			$result = (string) $result; // Prevent JSON encoding issues.
-		}
+		$formatted = $this->format_evaluation_output( $result, $output, $errors );
 
 		$response = array(
 			'format'          => 'json',
 			'challenge'       => $new_challenge,
-			'result'          => $result,
+			'result'          => $formatted['result'],
 			'object_type'     => $object_type,
-			'captured_output' => $full_captured_output,
+			'captured_output' => $formatted['captured_output'],
 			'messages'        => LanguageEngine::get()->get_messages(),
 			'visualizations'  => LanguageEngine::get()->get_visualizations(),
 		);

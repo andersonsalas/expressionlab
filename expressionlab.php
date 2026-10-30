@@ -359,6 +359,16 @@ if ( ! defined( 'EXPRESSION_LAB_AUDIT_LOG_ENABLED' ) ) {
 	define( 'EXPRESSION_LAB_AUDIT_LOG_ENABLED', true );
 }
 
+if ( ! defined( 'EXPRESSION_LAB_ADDON_ENABLED' ) ) {
+	/**
+	 * Proprietary addon layer status.
+	 *
+	 * @internal
+	 * @var bool
+	 */
+	define( 'EXPRESSION_LAB_ADDON_ENABLED', false );
+}
+
 if ( file_exists( __DIR__ . '/vendor/scoper-autoload.php' ) ) {
 	require_once __DIR__ . '/vendor/scoper-autoload.php';
 } else {

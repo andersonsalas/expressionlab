@@ -321,3 +321,50 @@ export function normalizeSnippet(s) {
 export function hasAddons() {
   return typeof __WITH_ADDONS__ !== 'undefined' ? Boolean(__WITH_ADDONS__) : false;
 }
+
+/**
+ * Extensions accepted by the binary file bridge (open, save and fallback downloads).
+ *
+ * @type {string[]}
+ */
+export const BINARY_FILE_EXTENSIONS = ['.elab'];
+
+/**
+ * Restricts requested binary file extensions to the bridge allow-list.
+ *
+ * @param {string[]} [extensions]
+ * @returns {string[]} Allowed, lower-cased extensions (never empty).
+ */
+export function resolveBinaryExtensions(extensions) {
+  const requested = Array.isArray(extensions) ? extensions : [];
+  const allowed = requested
+    .filter((ext) => typeof ext === 'string')
+    .map((ext) => ext.toLowerCase())
+    .filter((ext) => BINARY_FILE_EXTENSIONS.includes(ext));
+  return allowed.length > 0 ? Array.from(new Set(allowed)) : [...BINARY_FILE_EXTENSIONS];
+}
+
+/**
+ * Sanitizes a binary file name: strips directories, unsafe characters and leading dots,
+ * and enforces an allow-listed extension instead of neutralizing a deny-list.
+ *
+ * @param {string} filename
+ * @param {string[]} [extensions]
+ * @returns {string}
+ */
+export function sanitizeBinaryFilename(filename, extensions = BINARY_FILE_EXTENSIONS) {
+  const allowed = resolveBinaryExtensions(extensions);
+  const safeName = String(filename || '')
+    .replace(/^.*[\\/]/, '')
+    .replace(/[^a-zA-Z0-9._-]/g, '_')
+    .replace(/^\.+/, '');
+
+  if (!safeName) {
+    return `notebook${allowed[0]}`;
+  }
+
+  const lowerName = safeName.toLowerCase();
+  return allowed.some((ext) => lowerName.endsWith(ext) && lowerName.length > ext.length)
+    ? safeName
+    : `${safeName}${allowed[0]}`;
+}
