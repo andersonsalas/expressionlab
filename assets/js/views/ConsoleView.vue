@@ -63,6 +63,30 @@ const getActiveSession = () => {
   return sessionRefs.value[tabsStore.activeTabId] ?? null;
 };
 
+const isMac =
+  typeof navigator !== 'undefined' &&
+  Boolean(
+    navigator.userAgentData?.platform
+      ? /mac/i.test(navigator.userAgentData.platform)
+      : /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent || '')
+  );
+const modKey = isMac ? '⌘' : 'Ctrl';
+
+const canUndoCellAction = computed(() => isNotebook.value && Boolean(activeTab.value?.canUndoCell));
+const canRedoCellAction = computed(() => isNotebook.value && Boolean(activeTab.value?.canRedoCell));
+
+const handleUndoCellAction = () => {
+  if (!canUndoCellAction.value) return;
+  getActiveSession()?.undoCellAction?.();
+  isFileDropdownOpen.value = false;
+};
+
+const handleRedoCellAction = () => {
+  if (!canRedoCellAction.value) return;
+  getActiveSession()?.redoCellAction?.();
+  isFileDropdownOpen.value = false;
+};
+
 const updateSignatureTime = () => {
   if (uiStore.currentChallenge && uiStore.challengeFetchedAt) {
     const elapsed = Math.floor((Date.now() - uiStore.challengeFetchedAt) / 1000);
@@ -699,6 +723,27 @@ onUnmounted(() => {
       class="console-tab-context-menu console-file-dropdown-menu"
       :style="fileDropdownStyle"
     >
+      <div
+        class="tab-menu-item"
+        :class="{ disabled: !canUndoCellAction }"
+        @click="handleUndoCellAction"
+      >
+        <span class="codicon codicon-discard" />
+        <span>{{ __('Undo cell action') }}</span>
+        <span class="menu-shortcut">{{ modKey }}+Z</span>
+      </div>
+      <div
+        class="tab-menu-item"
+        :class="{ disabled: !canRedoCellAction }"
+        @click="handleRedoCellAction"
+      >
+        <span class="codicon codicon-redo" />
+        <span>{{ __('Redo cell action') }}</span>
+        <span class="menu-shortcut">{{ modKey }}+Shift+Z</span>
+      </div>
+
+      <div class="tab-menu-separator" />
+
       <div
         class="tab-menu-item"
         @click="handleOpenFileSettings"

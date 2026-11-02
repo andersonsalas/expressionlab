@@ -297,11 +297,20 @@
 			color: #888;
 		}
 
+		.menu-shortcut {
+			margin-left: auto;
+			font-size: 11px;
+			color: #888;
+			font-family: inherit;
+			padding-left: 12px;
+		}
+
 		&:hover:not(.disabled, .empty) {
 			background: $wordpress-primary;
 			color: white;
 
-			.codicon {
+			.codicon,
+			.menu-shortcut {
 				color: white;
 			}
 		}
@@ -352,6 +361,10 @@
 
 .console-tab-context-menu {
 	min-width: 220px;
+
+	&.console-file-dropdown-menu {
+		min-width: 245px;
+	}
 }
 
 .console-tab-item .tab-close-btn {

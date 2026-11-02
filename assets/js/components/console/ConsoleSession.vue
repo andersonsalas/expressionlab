@@ -179,6 +179,14 @@ const openNotebookFile = () => {
   return notebookWorkspaceRef.value?.openNotebookFile?.();
 };
 
+const undoCellAction = () => {
+  return notebookWorkspaceRef.value?.undo?.();
+};
+
+const redoCellAction = () => {
+  return notebookWorkspaceRef.value?.redo?.();
+};
+
 const handleHistoryNav = (direction) => {
   const history = tab.value.history || [];
   if (history.length === 0) return;
@@ -704,6 +712,8 @@ defineExpose({
   runPrimaryAction,
   savePrimaryAction,
   openNotebookFile,
+  undoCellAction,
+  redoCellAction,
   clearSession,
   formatCode,
   insertSnippet,

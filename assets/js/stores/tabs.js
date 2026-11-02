@@ -598,6 +598,8 @@ export const useTabsStore = defineStore('tabs', {
       }
       if (patch.notebookDirty !== undefined) tab.notebookDirty = Boolean(patch.notebookDirty);
       if (patch.notebookPayload !== undefined) tab.notebookPayload = patch.notebookPayload;
+      if (patch.canUndoCell !== undefined) tab.canUndoCell = Boolean(patch.canUndoCell);
+      if (patch.canRedoCell !== undefined) tab.canRedoCell = Boolean(patch.canRedoCell);
     },
 
     /**

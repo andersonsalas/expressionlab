@@ -152,21 +152,25 @@ describe('ConsoleView.vue Toolbar', () => {
     expect(fileMenu.exists()).toBe(true);
 
     const items = fileMenu.findAll('.tab-menu-item');
-    expect(items.length).toBe(2);
-    expect(items[0].text()).toContain('Settings');
-    expect(items[0].find('.codicon-settings-gear').exists()).toBe(true);
-    expect(items[1].text()).toContain('About');
-    expect(items[1].find('.codicon-info').exists()).toBe(true);
+    expect(items.length).toBe(4);
+    expect(items[0].text()).toContain('Undo cell action');
+    expect(items[0].find('.codicon-discard').exists()).toBe(true);
+    expect(items[1].text()).toContain('Redo cell action');
+    expect(items[1].find('.codicon-redo').exists()).toBe(true);
+    expect(items[2].text()).toContain('Settings');
+    expect(items[2].find('.codicon-settings-gear').exists()).toBe(true);
+    expect(items[3].text()).toContain('About');
+    expect(items[3].find('.codicon-info').exists()).toBe(true);
 
     // Click Settings
-    await items[0].trigger('click');
+    await items[2].trigger('click');
     expect(uiStore.openModal).toHaveBeenCalledWith('settings');
     expect(wrapper.find('.console-file-dropdown-menu').exists()).toBe(false);
 
     // Open File dropdown again and click About
     await fileDropdownBtn.trigger('click');
     const itemsAgain = wrapper.findAll('.console-file-dropdown-menu .tab-menu-item');
-    await itemsAgain[1].trigger('click');
+    await itemsAgain[3].trigger('click');
     expect(uiStore.openModal).toHaveBeenCalledWith('about');
     expect(wrapper.find('.console-file-dropdown-menu').exists()).toBe(false);
   });
