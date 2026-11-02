@@ -7,6 +7,74 @@
 	display: flex;
 	flex-direction: column;
 
+	.sidebar-tabbar {
+		display: flex;
+		height: 40px;
+		min-height: 40px;
+		box-sizing: border-box;
+		border-bottom: solid 1px $border-color;
+		background: #ededed;
+		padding: 0;
+		user-select: none;
+		width: 100%;
+		flex-shrink: 0;
+
+		.sidebar-tab-item {
+			width: 50%;
+			flex: 1 1 50%;
+			height: 40px;
+			box-sizing: border-box;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			padding: 0 12px;
+			background-color: transparent;
+			background-clip: padding-box;
+			border: none;
+			border-bottom: solid 2px transparent;
+			border-radius: 0;
+			cursor: pointer;
+			font-size: 14px;
+			color: #333;
+			white-space: nowrap;
+			position: relative;
+			box-shadow: 1px 0 0 0 $border-color;
+
+			&:last-child {
+				box-shadow: -1px 0 0 0 $border-color;
+			}
+
+			&:active {
+				border-bottom-color: $wordpress-primary;
+			}
+
+			&:hover:not(.active) {
+				background-color: #e5e5e5;
+				border-bottom-color: black;
+			}
+
+			&.active {
+				background-color: #fff;
+				border-bottom: solid 2px $wordpress-primary;
+				color: #000;
+				z-index: 2;
+
+				&:active {
+					border-bottom-color: $wordpress-primary;
+				}
+			}
+		}
+	}
+
+	.sidebar-section {
+		display: flex;
+		flex-direction: column;
+		flex: 1 1 auto;
+		min-height: 0;
+		height: 100%;
+		overflow: hidden;
+	}
+
 	// TODO: Move this to a separate file.
 	#sidebar-outline {
 		display: flex;
@@ -135,7 +203,21 @@
 			}
 
 			.outline-method-list {
-				&>.outline-item.method {
+				position: relative;
+
+				&::before {
+					content: '';
+					position: absolute;
+					top: 0;
+					bottom: 0;
+					left: 16px;
+					width: 1px;
+					background-color: #e5e5e5;
+					pointer-events: none;
+					z-index: 1;
+				}
+
+				& > .outline-item.method {
 					padding-left: 28px;
 				}
 
@@ -143,8 +225,16 @@
 					padding-left: 28px;
 				}
 
-				.outline-method-list li {
-					padding-left: 48px !important;
+				.outline-method-list {
+					position: relative;
+
+					&::before {
+						left: 36px;
+					}
+
+					li {
+						padding-left: 48px !important;
+					}
 				}
 			}
 
@@ -189,6 +279,116 @@
 				// stylelint-disable-next-line no-descending-specificity
 				&.property .codicon {
 					color: #414141;
+				}
+			}
+		}
+	}
+
+	#sidebar-notebook-outline {
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+
+		.section-content {
+			flex-grow: 1;
+			overflow: hidden auto;
+			padding: 1px;
+			min-height: 0;
+
+			&.outline-empty {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+
+				p {
+					margin: 0;
+					padding: 0;
+				}
+
+				// stylelint-disable-next-line no-descending-specificity
+				.codicon {
+					font-size: 48px;
+					color: #888;
+				}
+			}
+		}
+
+		.outline-list.notebook-outline-tree {
+			list-style: none;
+			margin: 0;
+			padding: 0;
+
+			.outline-tree-item,
+			.outline-tree-children {
+				list-style: none;
+				margin: 0;
+				padding: 0;
+			}
+
+			.outline-tree-children {
+				position: relative;
+
+				&::before {
+					content: '';
+					position: absolute;
+					top: 0;
+					bottom: 0;
+					left: var(--guide-left, 16px);
+					width: 1px;
+					background-color: #e5e5e5;
+					pointer-events: none;
+					z-index: 1;
+				}
+			}
+
+			// stylelint-disable-next-line no-descending-specificity
+			li {
+				margin-bottom: 0 !important;
+			}
+
+			.outline-item.heading-item {
+				cursor: pointer;
+				padding: 4px 8px;
+				margin: 0;
+				display: flex;
+				align-items: flex-start;
+
+				&:hover {
+					background: #f0f0f0;
+				}
+
+				.chevron-icon {
+					margin-right: 4px;
+					flex-shrink: 0;
+					font-size: 16px;
+					color: #6a6a6a;
+					cursor: pointer;
+					margin-top: 1px;
+				}
+
+				.codicon-spacer {
+					display: inline-block;
+					width: 16px;
+					margin-right: 4px;
+					flex-shrink: 0;
+				}
+
+				.heading-icon {
+					margin-right: 5px;
+					flex-shrink: 0;
+					color: $wordpress-primary;
+					font-size: 16px;
+					margin-top: 1px;
+				}
+
+				.heading-label {
+					white-space: normal;
+					overflow-wrap: break-word;
+					flex: 1;
+					font-size: 13px;
+					line-height: 1.35;
+					color: #333;
 				}
 			}
 		}
@@ -416,5 +616,19 @@
 		.hljs-attr {
 			color: #2271b1;
 		}
+	}
+}
+
+.outline-cell-targeted {
+	animation: outline-cell-highlight 1.2s ease-out;
+}
+
+@keyframes outline-cell-highlight {
+	0% {
+		box-shadow: 0 0 0 1px $wordpress-primary;
+	}
+
+	100% {
+		box-shadow: none;
 	}
 }

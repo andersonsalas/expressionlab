@@ -1,5 +1,7 @@
 import { mount } from '@vue/test-utils';
+import { createPinia, setActivePinia } from 'pinia';
 import ConsoleSidebar from '../../../components/console/ConsoleSidebar.vue';
+import { useTabsStore } from '../../../stores/tabs.js';
 
 describe('ConsoleSidebar.vue', () => {
   const mockOutlineTree = [
@@ -227,5 +229,240 @@ describe('ConsoleSidebar.vue', () => {
     expect(document.querySelector('.console-sidebar-tooltip')).toBeNull();
 
     wrapper.unmount();
+  });
+
+  describe('Tabs and Notebook Outline (Pro Addon integration)', () => {
+    let pinia;
+    let tabsStore;
+    const prevAddons = global.__WITH_ADDONS__;
+
+    beforeEach(() => {
+      pinia = createPinia();
+      setActivePinia(pinia);
+      tabsStore = useTabsStore();
+    });
+
+    afterEach(() => {
+      global.__WITH_ADDONS__ = prevAddons;
+    });
+
+    it('does not render sidebar tabs when Pro Addon is not included', () => {
+      global.__WITH_ADDONS__ = false;
+
+      const wrapper = mount(ConsoleSidebar, {
+        props: {
+          outlineTree: mockOutlineTree,
+          loading: false,
+        },
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      expect(wrapper.find('.sidebar-tabbar').exists()).toBe(false);
+      expect(wrapper.find('#sidebar-outline').isVisible()).toBe(true);
+    });
+
+    it('renders two tabs distributed 50%-50% when Pro Addon is included', () => {
+      global.__WITH_ADDONS__ = true;
+
+      const wrapper = mount(ConsoleSidebar, {
+        props: {
+          outlineTree: mockOutlineTree,
+          loading: false,
+        },
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      const tabbar = wrapper.find('.sidebar-tabbar');
+      expect(tabbar.exists()).toBe(true);
+
+      const tabs = wrapper.findAll('.sidebar-tab-item');
+      expect(tabs).toHaveLength(2);
+      expect(tabs[0].text()).toContain('Symbols');
+      expect(tabs[1].text()).toContain('Outline');
+
+      // Symbols is active by default
+      expect(tabs[0].classes()).toContain('active');
+      expect(tabs[1].classes()).not.toContain('active');
+    });
+
+    it('switches to Outline tab and shows empty state when no notebook is open', async () => {
+      global.__WITH_ADDONS__ = true;
+
+      // Active tab is REPL
+      tabsStore.createTab({ mode: 'repl' });
+
+      const wrapper = mount(ConsoleSidebar, {
+        props: {
+          outlineTree: mockOutlineTree,
+          loading: false,
+        },
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      const tabs = wrapper.findAll('.sidebar-tab-item');
+      await tabs[1].trigger('click');
+
+      expect(tabs[1].classes()).toContain('active');
+      const outlineSection = wrapper.find('#sidebar-notebook-outline');
+      expect(outlineSection.exists()).toBe(true);
+      expect(outlineSection.text()).toContain('No outline available');
+    });
+
+    it('renders hierarchical outline tree with codicon-bookmark when a notebook is open', async () => {
+      global.__WITH_ADDONS__ = true;
+
+      const tab = tabsStore.createTab({ mode: 'notebook' });
+      tabsStore.updateTabNotebook(tab.id, {
+        notebookMeta: {
+          cells: [
+            {
+              id: 'c1',
+              type: 'markdown',
+              source: '# Introduction\nSome text\n## Prerequisites',
+            },
+            {
+              id: 'c2',
+              type: 'code',
+              source: 'return 1;',
+            },
+            {
+              id: 'c3',
+              type: 'markdown',
+              source: '# Conclusion',
+            },
+          ],
+        },
+      });
+
+      const wrapper = mount(ConsoleSidebar, {
+        props: {
+          outlineTree: mockOutlineTree,
+          loading: false,
+        },
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      // Switch to Outline tab
+      const tabButtons = wrapper.findAll('.sidebar-tab-item');
+      await tabButtons[1].trigger('click');
+
+      const outlineSection = wrapper.find('#sidebar-notebook-outline');
+      expect(outlineSection.exists()).toBe(true);
+
+      // Verify headings
+      expect(outlineSection.text()).toContain('Introduction');
+      expect(outlineSection.text()).toContain('Prerequisites');
+      expect(outlineSection.text()).toContain('Conclusion');
+
+      // Verify bookmark icons
+      const bookmarkIcons = outlineSection.findAll('.codicon-bookmark');
+      expect(bookmarkIcons.length).toBe(3);
+    });
+
+    it('scrolls smoothly to cell when a heading item is clicked', async () => {
+      global.__WITH_ADDONS__ = true;
+
+      const tab = tabsStore.createTab({ mode: 'notebook' });
+      tabsStore.updateTabNotebook(tab.id, {
+        notebookMeta: {
+          cells: [
+            {
+              id: 'cell-md-target',
+              type: 'markdown',
+              source: '# Target Heading',
+            },
+          ],
+        },
+      });
+
+      const targetCellEl = document.createElement('div');
+      targetCellEl.id = 'notebook-cell-cell-md-target';
+      targetCellEl.className = 'notebook-cell';
+      targetCellEl.scrollIntoView = jest.fn();
+      document.body.appendChild(targetCellEl);
+
+      const wrapper = mount(ConsoleSidebar, {
+        props: {
+          outlineTree: mockOutlineTree,
+          loading: false,
+        },
+        global: {
+          plugins: [pinia],
+        },
+        attachTo: document.body,
+      });
+
+      const tabButtons = wrapper.findAll('.sidebar-tab-item');
+      await tabButtons[1].trigger('click');
+
+      const headingItem = wrapper.find('.heading-item');
+      expect(headingItem.exists()).toBe(true);
+
+      await headingItem.trigger('click');
+
+      expect(targetCellEl.scrollIntoView).toHaveBeenCalledWith(
+        expect.objectContaining({ behavior: 'smooth' })
+      );
+
+      document.body.removeChild(targetCellEl);
+      wrapper.unmount();
+    });
+
+    it('automatically updates outline tree when markdown cells update', async () => {
+      global.__WITH_ADDONS__ = true;
+
+      const tab = tabsStore.createTab({ mode: 'notebook' });
+      tabsStore.updateTabNotebook(tab.id, {
+        notebookMeta: {
+          cells: [
+            {
+              id: 'c1',
+              type: 'markdown',
+              source: '# Original Title',
+            },
+          ],
+        },
+      });
+
+      const wrapper = mount(ConsoleSidebar, {
+        props: {
+          outlineTree: mockOutlineTree,
+          loading: false,
+        },
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      const tabButtons = wrapper.findAll('.sidebar-tab-item');
+      await tabButtons[1].trigger('click');
+
+      expect(wrapper.find('#sidebar-notebook-outline').text()).toContain('Original Title');
+
+      // Simulate saving markdown cell and switching to preview
+      tabsStore.updateTabNotebook(tab.id, {
+        notebookMeta: {
+          cells: [
+            {
+              id: 'c1',
+              type: 'markdown',
+              source: '# Updated Title\n## New Subsection',
+            },
+          ],
+        },
+      });
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.find('#sidebar-notebook-outline').text()).toContain('Updated Title');
+      expect(wrapper.find('#sidebar-notebook-outline').text()).toContain('New Subsection');
+    });
   });
 });
