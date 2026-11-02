@@ -1,8 +1,8 @@
 <script setup>
-import { computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useUiStore } from '../../stores/ui';
 import { useSettingsStore } from '../../stores/settings';
-import { __ } from '../../lib/helpers.js';
+import { __, hasAddons } from '../../lib/helpers.js';
 
 const props = defineProps({
   closeOnOutsideClick: {
@@ -19,6 +19,19 @@ const uiStore = useUiStore();
 const settingsStore = useSettingsStore();
 
 const isOpen = computed(() => uiStore.activeModal === 'settings');
+
+const resolveInitialTab = () => {
+  const requested = uiStore.activeModalData?.tab || uiStore.activeModalData?.initialTab;
+  if (requested === 'license' && !hasAddons()) {
+    return 'general';
+  }
+  if (requested && ['general', 'data', 'license'].includes(requested)) {
+    return requested;
+  }
+  return 'general';
+};
+
+const activeTab = ref(resolveInitialTab());
 
 const selectedTabMode = computed({
   get: () => settingsStore.defaultTabMode,
@@ -65,6 +78,7 @@ const removeArbitraryListener = () => {
 
 watch(isOpen, async (newVal) => {
   if (newVal) {
+    activeTab.value = resolveInitialTab();
     await settingsStore.checkOutlineCache();
     await nextTick();
     attachArbitraryListener();
@@ -75,6 +89,7 @@ watch(isOpen, async (newVal) => {
 
 onMounted(async () => {
   if (isOpen.value) {
+    activeTab.value = resolveInitialTab();
     await settingsStore.checkOutlineCache();
   }
 });
@@ -91,8 +106,14 @@ onUnmounted(() => {
     class="modal-overlay"
     @mousedown.self="handleOutsideClick"
   >
-    <div class="modal-container settings-modal-container">
+    <div
+      class="modal-container settings-modal-container"
+      role="dialog"
+      aria-modal="true"
+      :aria-label="__('Settings')"
+    >
       <button
+        type="button"
         class="modal-close"
         :title="__('Close')"
         @click="closeModal"
@@ -104,100 +125,168 @@ onUnmounted(() => {
         <h2>{{ __('Settings') }}</h2>
       </div>
 
-      <div class="modal-content settings-modal-content">
-        <!-- Default New Tab Layout Section -->
-        <div class="settings-section">
-          <div class="settings-section-title">
-            {{ __('Default new tab layout') }}
-          </div>
-          <div class="settings-section-desc">
-            {{ __('Choose the default layout for newly created tabs. This also affects the action of the New Tab button in the tab bar.') }}
-          </div>
+      <!-- Tabs Header -->
+      <div class="settings-tabs-header">
+        <button
+          type="button"
+          class="builder-tab-btn"
+          :class="{ active: activeTab === 'general' }"
+          @click="activeTab = 'general'"
+        >
+          <span>{{ __('General') }}</span>
+        </button>
 
-          <div
-            class="settings-options-group"
-            role="radiogroup"
-            :aria-label="__('Default new tab layout')"
-          >
-            <!-- Console Option -->
-            <label
-              class="settings-option"
-              :class="{ selected: selectedTabMode === 'console' }"
+        <button
+          type="button"
+          class="builder-tab-btn"
+          :class="{ active: activeTab === 'data' }"
+          @click="activeTab = 'data'"
+        >
+          <span>{{ __('Data') }}</span>
+        </button>
+
+        <button
+          v-if="hasAddons()"
+          type="button"
+          class="builder-tab-btn"
+          :class="{ active: activeTab === 'license' }"
+          @click="activeTab = 'license'"
+        >
+          <span>{{ __('License') }}</span>
+        </button>
+      </div>
+
+      <div class="modal-content settings-modal-content">
+        <!-- 1. General Tab -->
+        <div
+          v-show="activeTab === 'general'"
+          class="settings-tab-panel tab-general"
+        >
+          <div class="settings-section">
+            <div class="panel-section-header">
+              <h4>{{ __('Default new tab layout') }}</h4>
+            </div>
+            <p class="form-help">
+              {{ __('Choose the default layout for newly created tabs. This also affects the action of the New Tab button in the tab bar.') }}
+            </p>
+
+            <div
+              class="presets-grid"
+              role="radiogroup"
+              :aria-label="__('Default new tab layout')"
             >
-              <div class="settings-radio-wrapper">
+              <!-- Console Option -->
+              <label
+                class="preset-card"
+                :class="{ active: selectedTabMode === 'console' }"
+                :title="__('Single expression evaluation with instant output.')"
+              >
                 <input
                   v-model="selectedTabMode"
                   type="radio"
                   name="defaultTabMode"
                   value="console"
-                  class="settings-radio"
                 >
-              </div>
-              <div class="settings-option-icon">
-                <span class="codicon codicon-terminal" />
-              </div>
-              <div class="settings-option-body">
-                <div class="settings-option-title">
-                  {{ __('Console') }}
-                </div>
-                <div class="settings-option-desc">
-                  {{ __('Interactive single-expression evaluation with immediate output.') }}
-                </div>
-              </div>
-            </label>
+                <span class="preset-type-icon codicon codicon-terminal" />
+                <span>
+                  <strong>{{ __('Console') }}</strong>
+                  <small>
+                    {{ __('Single expression evaluation with instant output.') }}
+                  </small>
+                </span>
+              </label>
 
-            <!-- Scratchpad Option -->
-            <label
-              class="settings-option"
-              :class="{ selected: selectedTabMode === 'scratchpad' }"
-            >
-              <div class="settings-radio-wrapper">
+              <!-- Scratchpad Option -->
+              <label
+                class="preset-card"
+                :class="{ active: selectedTabMode === 'scratchpad' }"
+                :title="__('Multi-line script editor with dedicated output.')"
+              >
                 <input
                   v-model="selectedTabMode"
                   type="radio"
                   name="defaultTabMode"
                   value="scratchpad"
-                  class="settings-radio"
                 >
-              </div>
-              <div class="settings-option-icon">
-                <span class="codicon codicon-notebook" />
-              </div>
-              <div class="settings-option-body">
-                <div class="settings-option-title">
-                  {{ __('Scratchpad') }}
-                </div>
-                <div class="settings-option-desc">
-                  {{ __('Multi-line script editor with dedicated execution and output inspection panels.') }}
-                </div>
-              </div>
-            </label>
+                <span class="preset-type-icon codicon codicon-new-session" />
+                <span>
+                  <strong>{{ __('Scratchpad') }}</strong>
+                  <small>
+                    {{ __('Multi-line script editor with dedicated output.') }}
+                  </small>
+                </span>
+              </label>
+
+              <!-- Notebook Option -->
+              <label
+                v-if="hasAddons()"
+                class="preset-card"
+                :class="{ active: selectedTabMode === 'notebook' }"
+                :title="__('Interactive cells with Markdown and code blocks.')"
+              >
+                <input
+                  v-model="selectedTabMode"
+                  type="radio"
+                  name="defaultTabMode"
+                  value="notebook"
+                >
+                <span class="preset-type-icon codicon codicon-notebook" />
+                <span>
+                  <strong>{{ __('Notebook') }}</strong>
+                  <small>
+                    {{ __('Interactive cells with Markdown and code blocks.') }}
+                  </small>
+                </span>
+              </label>
+            </div>
           </div>
         </div>
 
-        <hr class="settings-divider">
+        <!-- 2. Data Tab -->
+        <div
+          v-show="activeTab === 'data'"
+          class="settings-tab-panel tab-data"
+        >
+          <div class="settings-section">
+            <div class="panel-section-header">
+              <h4>{{ __('Browser cache') }}</h4>
+            </div>
+            <p class="form-help">
+              {{ __('Clear cached WordPress functions, classes, and outline symbols stored in your browser.') }}
+            </p>
 
-        <!-- Browser Cache Section -->
-        <div class="settings-section">
-          <div class="settings-section-title">
-            {{ __('Browser cache') }}
-          </div>
-          <div class="settings-section-desc">
-            {{ __('Clear cached WordPress functions, classes, and outline symbols stored in your browser.') }}
-          </div>
-
-          <div class="settings-cache-actions">
-            <button
-              type="button"
-              class="btn btn-default"
-              :disabled="!hasOutlineCache || isClearingCache"
-              @click="handleClearCache"
-            >
-              <div class="codicon codicon-trash" />
-              {{ isClearingCache ? __('Clearing...') : __('Clear cache') }}
-            </button>
+            <div class="settings-cache-actions">
+              <button
+                type="button"
+                class="btn btn-default"
+                :disabled="!hasOutlineCache || isClearingCache"
+                @click="handleClearCache"
+              >
+                {{ isClearingCache ? __('Clearing...') : __('Clear cache') }}
+              </button>
+            </div>
           </div>
         </div>
+
+        <!-- 3. License Tab (Solo addon) -->
+        <div
+          v-if="hasAddons()"
+          v-show="activeTab === 'license'"
+          class="settings-tab-panel tab-license"
+        >
+          <component :is="'ProLicenseSettings'" />
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-default"
+          @click="closeModal"
+        >
+          {{ __('Close') }}
+        </button>
       </div>
     </div>
   </div>

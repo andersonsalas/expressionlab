@@ -1144,7 +1144,18 @@ const BINARY_BRIDGE_TIMEOUT_MS = 120000;
 const directBinaryFileHandles = new Map();
 let directBinaryHandleCounter = 0;
 
-function registerDirectBinaryHandle(fileHandle) {
+async function registerDirectBinaryHandle(fileHandle) {
+  if (fileHandle && typeof fileHandle.isSameEntry === 'function') {
+    for (const [existingId, existingHandle] of directBinaryFileHandles.entries()) {
+      try {
+        if (await existingHandle.isSameEntry(fileHandle)) {
+          return existingId;
+        }
+      } catch {
+        // Ignore stale handle comparison errors
+      }
+    }
+  }
   directBinaryHandleCounter += 1;
   const handleId = `direct_elab_fh_${Date.now()}_${directBinaryHandleCounter}`;
   directBinaryFileHandles.set(handleId, fileHandle);
@@ -1336,7 +1347,7 @@ export async function handleOpenBinaryFilePicker(options = {}) {
         });
         const file = await fileHandle.getFile();
         const buffer = await file.arrayBuffer();
-        const fileHandleId = registerDirectBinaryHandle(fileHandle);
+        const fileHandleId = await registerDirectBinaryHandle(fileHandle);
         return {
           success: true,
           buffer,
@@ -1413,7 +1424,7 @@ export async function handleSaveBinaryFileAs(options = {}) {
           ],
         });
         await writeBinaryToHandle(fileHandle, transferBuffer);
-        const fileHandleId = registerDirectBinaryHandle(fileHandle);
+        const fileHandleId = await registerDirectBinaryHandle(fileHandle);
         return {
           success: true,
           filename: fileHandle.name || suggestedName,

@@ -1,6 +1,7 @@
 import { setActivePinia, createPinia } from 'pinia';
 import { useTabsStore, MAX_TABS } from '../../stores/tabs.js';
 import { useSettingsStore } from '../../stores/settings.js';
+import { useUiStore } from '../../stores/ui.js';
 
 describe('stores/tabs.js - Tabs Management Store', () => {
   beforeEach(() => {
@@ -9,6 +10,10 @@ describe('stores/tabs.js - Tabs Management Store', () => {
       multisite: true,
       site: {
         sites: [{ id: 10, name: 'Main Site' }, { id: 20, name: 'Sub Site' }],
+      },
+      settings: {
+        enable_sandbox: false,
+        debug_mode: false,
       },
       banner: 'Welcome to Expression Lab',
     };
@@ -551,6 +556,110 @@ describe('stores/tabs.js - Tabs Management Store', () => {
 
       expect(newTab.mode).toBe('scratchpad');
       expect(newTab.title).toBe('Scratchpad');
+    });
+
+    it('supports notebook mode creation, updateTabNotebook, and isTabCleanAndEmpty checks', () => {
+      setActivePinia(createPinia());
+      const store = useTabsStore();
+
+      // Fresh repl tab is clean and empty
+      expect(store.isTabCleanAndEmpty(store.activeTab)).toBe(true);
+
+      // Creating a notebook tab
+      const nbTab = store.createTab({ mode: 'notebook' });
+      expect(nbTab.mode).toBe('notebook');
+      expect(nbTab.title).toBe('Untitled.elab');
+      expect(nbTab.notebookDirty).toBe(false);
+      expect(store.isTabCleanAndEmpty(nbTab)).toBe(true);
+
+      // Creating a second notebook tab increments numbering
+      const nbTab2 = store.createTab({ mode: 'notebook' });
+      expect(nbTab2.title).toBe('Untitled-2.elab');
+
+      // Renaming without extension auto-appends .elab
+      store.setTabTitle(nbTab2.id, 'my-analysis');
+      expect(nbTab2.title).toBe('my-analysis.elab');
+
+      // Renaming with extension preserves it
+      store.setTabTitle(nbTab2.id, 'custom.elab');
+      expect(nbTab2.title).toBe('custom.elab');
+
+      // Updating notebook state marks it non-empty when dirty or multi-cell
+      store.updateTabNotebook(nbTab.id, {
+        notebookDocHandle: 1,
+        notebookFileName: 'report.elab',
+        notebookDirty: true,
+      });
+      expect(nbTab.notebookDocHandle).toBe(1);
+      expect(nbTab.notebookFileName).toBe('report.elab');
+      expect(nbTab.notebookDirty).toBe(true);
+      expect(store.isTabCleanAndEmpty(nbTab)).toBe(false);
+    });
+
+    it('prompts confirmation before closing dirty notebook tabs and cancels when user declines', async () => {
+      setActivePinia(createPinia());
+      const store = useTabsStore();
+      const uiStore = useUiStore();
+
+      const nbTab = store.createTab({
+        mode: 'notebook',
+        title: 'My Audit',
+        notebookDirty: true,
+      });
+
+      expect(store.tabCount).toBe(2);
+
+      // Decline closing dirty notebook
+      const closePromise1 = store.requestCloseTab(nbTab.id);
+      expect(uiStore.activeDialog).toBe('dialog');
+      expect(uiStore.activeDialogData.type).toBe('confirm');
+      expect(uiStore.activeDialogData.message).toContain('My Audit');
+      uiStore.activeDialogData.onCancel();
+
+      const closed1 = await closePromise1;
+      expect(closed1).toBe(false);
+      expect(store.tabCount).toBe(2);
+
+      // Confirm closing dirty notebook
+      const closePromise2 = store.requestCloseTab(nbTab.id);
+      expect(uiStore.activeDialog).toBe('dialog');
+      uiStore.activeDialogData.onConfirm();
+
+      const closed2 = await closePromise2;
+      expect(closed2).toBe(true);
+      expect(store.tabCount).toBe(1);
+    });
+
+    it('prompts confirmation for requestCloseAllTabs, requestCloseOtherTabs, and requestCloseTabsToTheRight when dirty notebooks exist', async () => {
+      setActivePinia(createPinia());
+      const store = useTabsStore();
+      const uiStore = useUiStore();
+
+      const tab1 = store.activeTab;
+      const nb1 = store.createTab({ mode: 'notebook', title: 'NB 1', notebookDirty: true });
+      const nb2 = store.createTab({ mode: 'notebook', title: 'NB 2', notebookDirty: true });
+
+      // Cancel requestCloseAllTabs
+      const allPromise = store.requestCloseAllTabs();
+      expect(uiStore.activeDialog).toBe('dialog');
+      uiStore.activeDialogData.onCancel();
+      expect(await allPromise).toBe(false);
+      expect(store.tabCount).toBe(3);
+
+      // Confirm requestCloseTabsToTheRight from nb1 (closes nb2)
+      const rightPromise = store.requestCloseTabsToTheRight(nb1.id);
+      expect(uiStore.activeDialog).toBe('dialog');
+      uiStore.activeDialogData.onConfirm();
+      expect(await rightPromise).toBe(true);
+      expect(store.tabCount).toBe(2);
+
+      // Confirm requestCloseOtherTabs keeping tab1 (closes nb1)
+      const otherPromise = store.requestCloseOtherTabs(tab1.id);
+      expect(uiStore.activeDialog).toBe('dialog');
+      uiStore.activeDialogData.onConfirm();
+      expect(await otherPromise).toBe(true);
+      expect(store.tabCount).toBe(1);
+      expect(store.activeTabId).toBe(tab1.id);
     });
   });
 });

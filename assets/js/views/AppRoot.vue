@@ -4,6 +4,7 @@ import { useUiStore } from '../stores/ui';
 import { useSettingsStore } from '../stores/settings.js';
 import { useTabsStore } from '../stores/tabs.js';
 import { handleUnlock } from '../lib/unlock-handler.js';
+import { hasAddons } from '../lib/helpers.js';
 import { setupCodeActionListeners, removeCodeActionListeners } from '../lib/code-actions.js';
 import AboutModal from '../components/modals/AboutModal.vue';
 import SettingsModal from '../components/modals/SettingsModal.vue';
@@ -25,10 +26,10 @@ onMounted(async () => {
   await settingsStore.loadSettings();
 
   // If in sandbox mode where settings are loaded asynchronously:
-  if (settingsStore.defaultTabMode === 'scratchpad' && tabsStore.tabs.length === 1) {
+  if ((settingsStore.defaultTabMode === 'scratchpad' || (settingsStore.defaultTabMode === 'notebook' && hasAddons())) && tabsStore.tabs.length === 1) {
     const firstTab = tabsStore.tabs[0];
     if (firstTab.mode === 'repl' && !firstTab.isCustomTitle && firstTab.history.length <= 1 && !firstTab.scratchpadCode && !firstTab.replDraft) {
-      tabsStore.setTabMode(firstTab.id, 'scratchpad');
+      tabsStore.setTabMode(firstTab.id, settingsStore.defaultTabMode);
     }
   }
 });
@@ -71,6 +72,10 @@ onUnmounted(() => {
     />
     <FilesystemInspectorModal
       :close-on-outside-click="false"
+    />
+    <component
+      :is="'ProNagModal'"
+      v-if="hasAddons()"
     />
     <!-- /Base Modals -->
 

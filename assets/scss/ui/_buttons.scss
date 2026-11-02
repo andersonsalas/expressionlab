@@ -3,7 +3,7 @@
 	display: flex;
 	align-items: center;
 	padding: 6px 10px;
-	margin-right: 8px;
+	margin-right: 6px;
 	border: solid 1px transparent;
 	background: transparent;
 	cursor: pointer;
@@ -108,7 +108,14 @@
 	color: white;
 	border: none;
 
-	&:hover {
+	&:disabled,
+	&.disabled {
+		opacity: 0.55;
+		cursor: not-allowed !important;
+		box-shadow: none !important;
+	}
+
+	&:hover:not(:disabled, .disabled) {
 		background: $wordpress-primary-600;
 	}
 }

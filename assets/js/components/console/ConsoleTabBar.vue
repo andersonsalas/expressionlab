@@ -1,11 +1,21 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { getActivePinia } from 'pinia';
 import { useTabsStore } from '../../stores/tabs.js';
 import { useSettingsStore } from '../../stores/settings.js';
-import { __ } from '../../lib/helpers.js';
+import { __, hasAddons } from '../../lib/helpers.js';
 
 const tabsStore = useTabsStore();
 const settingsStore = useSettingsStore();
+
+const isProLicenseValid = computed(() => {
+  const pinia = getActivePinia();
+  return Boolean(pinia?.state?.value?.pro?.license?.valid);
+});
+
+const isEvaluationNotebook = (tab) => {
+  return Boolean(tab && tab.mode === 'notebook' && hasAddons() && !isProLicenseValid.value);
+};
 
 const scrollContainerRef = ref(null);
 const renameInputRef = ref(null);
@@ -177,10 +187,12 @@ const handleCreateTab = (mode = 'repl') => {
 };
 
 const defaultAddTabMode = computed(() => {
+  if (settingsStore.defaultTabMode === 'notebook' && hasAddons()) return 'notebook';
   return settingsStore.defaultTabMode === 'scratchpad' ? 'scratchpad' : 'repl';
 });
 
 const defaultAddTabTitle = computed(() => {
+  if (defaultAddTabMode.value === 'notebook') return __('New Notebook tab');
   return defaultAddTabMode.value === 'scratchpad'
     ? __('New Scratchpad tab')
     : __('New Console tab');
@@ -214,25 +226,25 @@ const handleContextMenu = (tab, event) => {
   });
 };
 
-const handleCloseAllTabs = () => {
+const handleCloseAllTabs = async () => {
   isContextMenuOpen.value = false;
-  tabsStore.closeAllTabs();
+  await tabsStore.requestCloseAllTabs();
   nextTick(checkOverflow);
 };
 
-const handleCloseOtherTabs = () => {
+const handleCloseOtherTabs = async () => {
   if (!canCloseOtherTabs.value || !contextMenuTab.value) return;
   const tabId = contextMenuTab.value.id;
   isContextMenuOpen.value = false;
-  tabsStore.closeOtherTabs(tabId);
+  await tabsStore.requestCloseOtherTabs(tabId);
   nextTick(checkOverflow);
 };
 
-const handleCloseTabsToTheRight = () => {
+const handleCloseTabsToTheRight = async () => {
   if (!canCloseTabsToTheRight.value || !contextMenuTab.value) return;
   const tabId = contextMenuTab.value.id;
   isContextMenuOpen.value = false;
-  tabsStore.closeTabsToTheRight(tabId);
+  await tabsStore.requestCloseTabsToTheRight(tabId);
   nextTick(checkOverflow);
 };
 
@@ -274,13 +286,24 @@ const handleKeydown = (event) => {
   }
 };
 
-const handleCloseTab = (tabId) => {
-  tabsStore.closeTab(tabId);
+const handleCloseTab = async (tabId) => {
+  await tabsStore.requestCloseTab(tabId);
   nextTick(checkOverflow);
 };
 
+const isTabRenamable = (tab) => {
+  if (!tab) return false;
+  if (
+    tab.mode === 'notebook' &&
+    (tab.notebookFileName || tab.notebookFileHandleId || tab.notebookFileHandle)
+  ) {
+    return false;
+  }
+  return true;
+};
+
 const startRename = (tab) => {
-  if (!tab) return;
+  if (!tab || !isTabRenamable(tab)) return;
   tabsStore.setActiveTab(tab.id);
   editingTabId.value = tab.id;
   editingTitle.value = tab.title;
@@ -432,9 +455,22 @@ onBeforeUnmount(() => {
         <span
           v-else
           class="tab-title"
+          :class="{ 'has-subtitle': isEvaluationNotebook(tab) }"
           :title="tab.title"
         >
-          {{ tab.title }}
+          <span class="tab-title-line">
+            <span class="tab-title-text">{{ tab.title }}</span>
+            <span
+              v-if="tab.mode === 'notebook' && tab.notebookDirty"
+              class="tab-dirty-indicator"
+            />
+          </span>
+          <span
+            v-if="isEvaluationNotebook(tab)"
+            class="tab-subtitle-eval"
+          >
+            {{ __('Evaluation') }}
+          </span>
         </span>
 
         <!-- Evaluating Spinner -->
@@ -497,8 +533,16 @@ onBeforeUnmount(() => {
           class="tab-add-menu-item"
           @click="handleCreateTab('scratchpad')"
         >
-          <span class="codicon codicon-notebook" />
+          <span class="codicon codicon-new-session" />
           <span>{{ __('Scratchpad') }}</span>
+        </div>
+        <div
+          v-if="hasAddons()"
+          class="tab-add-menu-item"
+          @click="handleCreateTab('notebook')"
+        >
+          <span class="codicon codicon-notebook" />
+          <span>{{ __('Notebook') }}</span>
         </div>
       </div>
     </Teleport>
@@ -540,18 +584,20 @@ onBeforeUnmount(() => {
           <span class="codicon codicon-arrow-right" />
           <span>{{ __('Close all to the right') }}</span>
         </div>
-        <div
-          class="tab-menu-separator"
-          role="separator"
-        />
-        <div
-          class="tab-menu-item btn-rename"
-          role="menuitem"
-          @click="handleRenameFromMenu"
-        >
-          <span class="codicon codicon-edit" />
-          <span>{{ __('Rename') }}</span>
-        </div>
+        <template v-if="isTabRenamable(contextMenuTab)">
+          <div
+            class="tab-menu-separator"
+            role="separator"
+          />
+          <div
+            class="tab-menu-item btn-rename"
+            role="menuitem"
+            @click="handleRenameFromMenu"
+          >
+            <span class="codicon codicon-edit" />
+            <span>{{ __('Rename') }}</span>
+          </div>
+        </template>
       </div>
     </Teleport>
 

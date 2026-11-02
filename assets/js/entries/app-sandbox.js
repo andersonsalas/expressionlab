@@ -739,7 +739,18 @@ document.addEventListener('DOMContentLoaded', function () {
   const binaryFileHandles = new Map();
   let binaryHandleCounter = 0;
 
-  const registerBinaryFileHandle = (fileHandle) => {
+  const registerBinaryFileHandle = async (fileHandle) => {
+    if (fileHandle && typeof fileHandle.isSameEntry === 'function') {
+      for (const [existingId, existingHandle] of binaryFileHandles.entries()) {
+        try {
+          if (await existingHandle.isSameEntry(fileHandle)) {
+            return existingId;
+          }
+        } catch {
+          // Ignore stale handle comparison errors
+        }
+      }
+    }
     binaryHandleCounter += 1;
     const handleId = `elab_fh_${Date.now()}_${binaryHandleCounter}`;
     binaryFileHandles.set(handleId, fileHandle);
@@ -875,7 +886,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         const file = await fileHandle.getFile();
         const buffer = await file.arrayBuffer();
-        const fileHandleId = registerBinaryFileHandle(fileHandle);
+        const fileHandleId = await registerBinaryFileHandle(fileHandle);
 
         sendToSandbox(
           iframe,
@@ -951,7 +962,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         await writeBinaryToHandle(fileHandle, buffer);
 
-        const fileHandleId = registerBinaryFileHandle(fileHandle);
+        const fileHandleId = await registerBinaryFileHandle(fileHandle);
         sendToSandbox(iframe, 'response', {
           response_to: msg.message_id,
           success: true,

@@ -80,6 +80,10 @@
 		&:active {
 			border-bottom-color: $wordpress-primary;
 		}
+
+		.tab-subtitle-eval {
+			color: #646970;
+		}
 	}
 
 	&.is-dragging {
@@ -95,10 +99,55 @@
 		flex: 1;
 		min-width: 0;
 		max-width: 180px;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
 		line-height: 36px;
+
+		.tab-title-line {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			min-width: 0;
+			max-width: 100%;
+			line-height: inherit;
+
+			.tab-title-text {
+				min-width: 0;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+		}
+
+		&.has-subtitle {
+			flex-direction: column;
+			align-items: flex-start;
+			justify-content: center;
+			gap: 1px;
+			line-height: normal;
+
+			.tab-title-line {
+				line-height: 1.2;
+			}
+
+			.tab-subtitle-eval {
+				font-size: 11px;
+				line-height: 1;
+				color: #555;
+				white-space: nowrap;
+				user-select: none;
+				letter-spacing: 0.2px;
+			}
+		}
+	}
+
+	.tab-dirty-indicator {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: $wordpress-primary;
+		flex-shrink: 0;
 	}
 
 	.tab-title-input {

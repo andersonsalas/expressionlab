@@ -62,13 +62,10 @@
 	}
 
 	.about-license {
-		font-size: 11px;
-		color: #50575e;
 		line-height: 1.4;
 		text-align: left;
-		background-color: #f6f7f7;
-		border: 1px solid #dcdcde;
-		border-radius: 3px;
+		border: 1px solid $border-color;
+		border-radius: 0;
 		padding: 8px 10px;
 		max-height: 115px;
 		overflow-y: auto;
@@ -76,18 +73,12 @@
 
 		p {
 			margin: 0 0 8px;
+			font-size: 13px;
 
 			&:last-child {
 				margin-bottom: 0;
 			}
 		}
-	}
-
-	.about-divider {
-		border: 0;
-		border-top: 1px solid #d4d4d4;
-		margin: 0 0 16px;
-		opacity: 1;
 	}
 
 	.about-links {

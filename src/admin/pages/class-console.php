@@ -312,6 +312,13 @@ class Console extends AdminPage {
 			'Scroll tabs right'                          => __( 'Scroll tabs right', 'expression-lab' ),
 			'Console'                                    => __( 'Console', 'expression-lab' ),
 			'Scratchpad'                                 => __( 'Scratchpad', 'expression-lab' ),
+			'Unsaved Notebook'                           => __( 'Unsaved Notebook', 'expression-lab' ),
+			'Unsaved Notebooks'                          => __( 'Unsaved Notebooks', 'expression-lab' ),
+			/* translators: %s: notebook title */
+			'The notebook "%s" has unsaved changes. Are you sure you want to close it without saving?' => __( 'The notebook "%s" has unsaved changes. Are you sure you want to close it without saving?', 'expression-lab' ),
+			/* translators: %d: number of unsaved notebooks */
+			'You have %d notebooks with unsaved changes. Are you sure you want to close them without saving?' => __( 'You have %d notebooks with unsaved changes. Are you sure you want to close them without saving?', 'expression-lab' ),
+			'Discard'                                    => __( 'Discard', 'expression-lab' ),
 
 			// Scratchpad & Execution.
 			'Run (Ctrl+Enter / Cmd+Enter / Ctrl+R)'      => __( 'Run (Ctrl+Enter / Cmd+Enter / Ctrl+R)', 'expression-lab' ),

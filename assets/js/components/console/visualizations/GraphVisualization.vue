@@ -155,21 +155,31 @@ const drawChart = async () => {
         const result = await embed(chartRef.value, spec, options);
         viewCleanup = result.finalize; 
         isPending.value = false;
-        await nextTick();
-        emit('rendered');
 
-        // Custom action interceptor for Vega Embed menu
+        // Custom action interceptor for Vega Embed menu.
+        // Replace each <a> with a clean clone to strip vega-embed's own internal
+        // click/mousedown listeners and href/target/download attributes so actions
+        // never execute twice.
         const vegaActions = chartRef.value.querySelector('.vega-actions');
         if (vegaActions) {
             const links = vegaActions.querySelectorAll('a');
-            links.forEach(link => {
-                const text = link.textContent.trim();
-                
+            links.forEach((origLink) => {
+                const text = origLink.textContent.trim();
+
                 if (text === 'Save as SVG' || text === 'Save as PNG' || text === 'View Compiled Vega') {
+                    const link = origLink.cloneNode(true);
+                    link.removeAttribute('href');
+                    link.removeAttribute('target');
+                    link.removeAttribute('download');
+                    link.style.cursor = 'pointer';
+                    origLink.replaceWith(link);
+
                     link.addEventListener('click', async (e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        
+                        e.stopImmediatePropagation();
+                        link.closest('details')?.removeAttribute('open');
+
                         if (text === 'Save as SVG') {
                             const svg = await result.view.toSVG();
                             handleDownload(sanitizeSvg(svg), 'visualization.svg', 'image/svg+xml');
@@ -186,6 +196,9 @@ const drawChart = async () => {
                 }
             });
         }
+
+        await nextTick();
+        emit('rendered');
     } catch (error) {
         console.error('Vega-Lite error:', error);
         isPending.value = false;

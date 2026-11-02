@@ -74,8 +74,8 @@ ZIP_FILE="$BUILD_DIR/$ZIP_NAME"
 MANIFEST_FILE="$BUILD_DIR/update.json"
 
 if [ "$WITH_ADDONS" = "1" ]; then
-	if [ ! -f "$ROOT_DIR/assets/addons/addons.json" ] || [ ! -f "$ROOT_DIR/assets/addons/integrity.json" ]; then
-		echo "ERROR: --with-addons is enabled, but assets/addons/addons.json or assets/addons/integrity.json is missing." >&2
+	if [ ! -f "$ROOT_DIR/assets/addons/addons.json" ] || [ ! -f "$ROOT_DIR/assets/addons/integrity.json" ] || [ ! -f "$ROOT_DIR/assets/addons/signature.json" ]; then
+		echo "ERROR: --with-addons is enabled, but assets/addons/addons.json, integrity.json or signature.json is missing." >&2
 		exit 1
 	fi
 	echo "Compiling frontend assets with Webpack Encore (with proprietary addons)..."

@@ -192,7 +192,19 @@
 			}
 		}
 
-		&.group-tools {
+		&.group-file {
+			.console-toolbar-button {
+				padding: 4px;
+
+				& > span {
+					font-weight: bold !important;
+				}
+			}
+		}
+
+		&.group-tools,
+		&.group-tools-library,
+		&.group-file {
 			.console-toolbar-button {
 				display: inline-flex;
 				align-items: center;
@@ -224,7 +236,9 @@
 	// Responsive Container Queries
 	@container toolbar (max-width: 1200px) {
 		.group-actions,
-		.group-library {
+		.group-library,
+		.group-tools-library,
+		.group-file {
 			.console-toolbar-button {
 				@include toolbar-button-compact;
 			}
@@ -260,6 +274,7 @@
 	}
 }
 
-.console-tools-dropdown-menu {
+.console-tools-dropdown-menu,
+.console-file-dropdown-menu {
 	min-width: 195px;
 }

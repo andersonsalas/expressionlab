@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { handleLocalStorage, isSandboxEnabled } from '../lib/api/client.js';
-import { debugLog } from '../lib/helpers.js';
+import { debugLog, hasAddons } from '../lib/helpers.js';
 import { FILESYSTEM_CACHE_KEY, useFilesystemStore } from './filesystem.js';
 
 export const USER_SETTINGS_STORAGE_KEY = 'el_user_settings';
@@ -29,7 +29,7 @@ export const getSafeLocalStorage = () => {
 /**
  * Synchronously retrieves stored default tab mode from localStorage if available.
  *
- * @returns {'console'|'scratchpad'}
+ * @returns {'console'|'scratchpad'|'notebook'}
  */
 export const getStoredDefaultTabMode = () => {
   try {
@@ -40,6 +40,9 @@ export const getStoredDefaultTabMode = () => {
         const parsed = JSON.parse(stored);
         if (parsed?.defaultTabMode === 'scratchpad') {
           return 'scratchpad';
+        }
+        if (parsed?.defaultTabMode === 'notebook' && hasAddons()) {
+          return 'notebook';
         }
       }
     }
@@ -91,7 +94,11 @@ export const useSettingsStore = defineStore('settings', {
         if (raw) {
           const parsed = JSON.parse(raw);
           if (parsed && typeof parsed === 'object') {
-            if (parsed.defaultTabMode === 'scratchpad' || parsed.defaultTabMode === 'console') {
+            if (
+              parsed.defaultTabMode === 'scratchpad' ||
+              parsed.defaultTabMode === 'console' ||
+              (parsed.defaultTabMode === 'notebook' && hasAddons())
+            ) {
               this.defaultTabMode = parsed.defaultTabMode;
             }
             if (typeof parsed.isSidebarVisible === 'boolean') {
@@ -124,10 +131,15 @@ export const useSettingsStore = defineStore('settings', {
     /**
      * Updates and persists the default tab mode.
      *
-     * @param {'console'|'scratchpad'} mode
+     * @param {'console'|'scratchpad'|'notebook'} mode
      */
     async setDefaultTabMode(mode) {
-      const validMode = mode === 'scratchpad' ? 'scratchpad' : 'console';
+      let validMode = 'console';
+      if (mode === 'scratchpad') {
+        validMode = 'scratchpad';
+      } else if (mode === 'notebook' && hasAddons()) {
+        validMode = 'notebook';
+      }
       this.defaultTabMode = validMode;
 
       try {

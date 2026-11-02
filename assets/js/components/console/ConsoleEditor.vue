@@ -29,12 +29,16 @@ const props = defineProps({
     default: null
   },
   mode: {
-    type: String, // 'repl' | 'scratchpad'
+    type: String, // 'repl' | 'scratchpad' | 'notebook'
     default: 'repl'
+  },
+  initialValue: {
+    type: String,
+    default: ''
   }
 });
 
-const emit = defineEmits(['execute', 'history-up', 'history-down', 'clear']);
+const emit = defineEmits(['execute', 'history-up', 'history-down', 'clear', 'change', 'focus']);
 
 const editorContainer = ref(null);
 const hasSyntaxErrors = ref(false);
@@ -199,12 +203,16 @@ const cmCompletionSource = createCompletionSource(
 
 onMounted(() => {
     const isScratchpad = props.mode === 'scratchpad';
+    const isNotebook = props.mode === 'notebook';
+    const isMultiline = isScratchpad || isNotebook;
 
-    const enterKeymap = isScratchpad
+    const enterKeymap = isMultiline
       ? [
           {
             key: 'Shift-Enter',
-            run: insertNewlineAndIndent
+            run: isNotebook
+              ? () => { handleScratchpadExecute(); return true; }
+              : insertNewlineAndIndent
           },
           {
             key: 'Enter',
@@ -235,7 +243,7 @@ onMounted(() => {
           }
         ];
 
-    const upDownHistoryKeymap = isScratchpad
+    const upDownHistoryKeymap = isMultiline
       ? []
       : [
           {
@@ -260,6 +268,10 @@ onMounted(() => {
     const syntaxUpdateListener = EditorView.updateListener.of((update) => {
       if (update.docChanged) {
         checkSyntax(update.state);
+        emit('change', update.state.doc.toString());
+      }
+      if (update.focusChanged && update.view.hasFocus) {
+        emit('focus');
       }
     });
 
@@ -287,7 +299,7 @@ onMounted(() => {
       syntaxUpdateListener,
     ];
 
-    if (isScratchpad) {
+    if (isMultiline) {
       extensions.unshift(
         lineNumbers(),
         foldGutter({
@@ -308,12 +320,17 @@ onMounted(() => {
     editorExtensions = extensions;
 
     const state = EditorState.create({
-      doc: '',
+      doc: props.initialValue || '',
       extensions
     });
 
     view = new EditorView({ state, parent: editorContainer.value });
-    view.focus();
+    if (props.initialValue) {
+      checkSyntax(state);
+    }
+    if (!isNotebook) {
+      view.focus();
+    }
 });
 
 onBeforeUnmount(() => {
@@ -329,19 +346,29 @@ onBeforeUnmount(() => {
   <div
     class="entry editor-entry in active"
     :class="[
-      { loading: props.mode !== 'scratchpad' && loading, 'has-syntax-errors': hasSyntaxErrors },
+      { loading: props.mode === 'repl' && loading, 'has-syntax-errors': hasSyntaxErrors },
       `mode-${uiStore.consoleMode}`,
-      props.mode === 'scratchpad' ? 'scratchpad-editor' : 'repl-editor'
+      props.mode === 'scratchpad'
+        ? 'scratchpad-editor'
+        : props.mode === 'notebook'
+          ? 'notebook-code-editor'
+          : 'repl-editor'
     ]"
   >
     <div
-      v-show="props.mode === 'scratchpad' || !loading"
+      v-show="props.mode !== 'repl' || !loading"
       ref="editorContainer"
       class="code-editor-container cm-container cm-lang-elscript"
-      :style="props.mode === 'scratchpad' ? { width: '100%', height: '100%' } : { width: '100%', minHeight: '36px' }"
+      :style="
+        props.mode === 'scratchpad'
+          ? { width: '100%', height: '100%' }
+          : props.mode === 'notebook'
+            ? { width: '100%', minHeight: '56px' }
+            : { width: '100%', minHeight: '36px' }
+      "
     />
     <div
-      v-show="props.mode !== 'scratchpad' && loading"
+      v-show="props.mode === 'repl' && loading"
       class="metro-spinner"
     />
   </div>

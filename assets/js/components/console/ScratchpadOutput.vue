@@ -27,6 +27,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  showClose: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 const emit = defineEmits(['clear-output', 'close', 'tab-change', 'visualization-rendered']);
@@ -373,8 +377,9 @@ const openDataViewer = () => {
         </button>
 
         <button
+          v-if="showClose"
           type="button"
-          class="output-action-btn"
+          class="output-action-btn btn-hide-output"
           :title="__('Hide output panel')"
           @click="emit('close')"
         >

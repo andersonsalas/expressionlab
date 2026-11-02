@@ -4,35 +4,151 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const withAddons = process.argv.includes('--with-addons') || process.env.EXPRESSION_LAB_WITH_ADDONS === '1';
+const withProAddon = process.argv.includes('--with-addons') || process.env.EXPRESSION_LAB_WITH_ADDONS === '1';
 
 const addonDir = path.resolve(__dirname, 'assets/addons');
 const addonManifestPath = path.resolve(addonDir, 'addons.json');
 const addonIntegrityPath = path.resolve(addonDir, 'integrity.json');
+const addonSignaturePath = path.resolve(addonDir, 'signature.json');
 
 let addonManifest = null;
-if (withAddons) {
-  if (fs.existsSync(addonManifestPath)) {
-    addonManifest = JSON.parse(fs.readFileSync(addonManifestPath, 'utf8'));
-  }
+
+if (withProAddon) {
   if (Encore.isProduction()) {
-    if (!addonManifest || !fs.existsSync(addonIntegrityPath)) {
-      throw new Error('[Addon Error] withAddons is enabled, but addons.json or integrity.json was not found in assets/addons/.');
+    const expressionLabPublicKey = '38129953c6aabc40a5837e3b9ede6d7bb68b34ff78db004df1c9353b74e37afb';
+    console.info('[Info] Starting production build with Pro Addon...');
+
+    if (typeof expressionLabPublicKey !== 'string' || !/^[0-9a-fA-F]{64}$/.test(expressionLabPublicKey)) {
+      throw new Error('[Error] Public Key is invalid');
     }
-    const integrityManifest = JSON.parse(fs.readFileSync(addonIntegrityPath, 'utf8'));
-    for (const [fileRel, expectedHash] of Object.entries(integrityManifest)) {
-      const fullPath = path.resolve(addonDir, fileRel);
-      if (!fs.existsSync(fullPath)) {
-        throw new Error(`[Addon Error] Missing addon file: ${fileRel}`);
+
+    const pubKey = crypto.createPublicKey({
+      key: {
+        kty: 'OKP',
+        crv: 'Ed25519',
+        x: Buffer.from(expressionLabPublicKey, 'hex').toString('base64url'),
+      },
+      format: 'jwk',
+    });
+
+    if (!fs.existsSync(addonManifestPath)) {
+      throw new Error('[Error] addons.json was not found in assets/addons');
+    }
+    if (!fs.existsSync(addonIntegrityPath)) {
+      throw new Error('[Error] integrity.json was not found in assets/addons');
+    }
+    if (!fs.existsSync(addonSignaturePath)) {
+      throw new Error('[Error] signature.json was not found in assets/addons');
+    }
+
+    const integrityBuffer = fs.readFileSync(addonIntegrityPath);
+
+    let signatureManifest;
+    try {
+      signatureManifest = JSON.parse(fs.readFileSync(addonSignaturePath, 'utf8'));
+    } catch (err) {
+      throw new Error('[Error] Failed to parse assets/addons/signature.json');
+    }
+
+    let integrityManifest;
+    try {
+      integrityManifest = JSON.parse(integrityBuffer.toString('utf8'));
+    } catch (err) {
+      throw new Error('[Error] Failed to parse assets/addons/integrity.json');
+    }
+
+    const integritySig = signatureManifest?.['integrity.json'];
+    if (!integritySig || typeof integritySig !== 'string') {
+      throw new Error('[Error] Missing signature for integrity.json in assets/addons/signature.json');
+    }
+
+    let isIntegrityValid = false;
+    try {
+      isIntegrityValid = crypto.verify(null, integrityBuffer, pubKey, Buffer.from(integritySig, 'hex'));
+    } catch (err) {
+      throw new Error('[Error] Signature check failed for integrity.json');
+    }
+
+    if (!isIntegrityValid) {
+      throw new Error('[Error] Signature mismatch for integrity.json');
+    }
+
+    if (!integrityManifest?.['addons.json']) {
+      throw new Error('[Error] addons.json is not declared in assets/addons/integrity.json');
+    }
+    if (!signatureManifest?.['addons.json'] || typeof signatureManifest['addons.json'] !== 'string') {
+      throw new Error('[Error] Missing signature for addons.json in assets/addons/signature.json');
+    }
+
+    try {
+      addonManifest = JSON.parse(fs.readFileSync(addonManifestPath, 'utf8'));
+    } catch (err) {
+      throw new Error('[Error] Failed to parse assets/addons/addons.json');
+    }
+
+    if (!addonManifest || addonManifest.schema_version !== 1 || addonManifest.name !== 'expressionlab-addons') {
+      throw new Error('[Error] Invalid manifest.');
+    }
+
+    const normalizeRel = (p) => path.posix.normalize(String(p)).replace(/^(\.\/)+/, '');
+    const requiredFiles = new Set([
+      'addons.json',
+      normalizeRel(addonManifest.entry || 'js/addon.min.js'),
+      ...(Array.isArray(addonManifest.styles) ? addonManifest.styles.map(normalizeRel) : ['css/addon.min.css']),
+      ...(addonManifest.wasm ? Object.values(addonManifest.wasm).map(normalizeRel) : []),
+    ]);
+
+    for (const file of requiredFiles) {
+      if (!integrityManifest[file]) {
+        throw new Error(`[Error] Required build asset '${file}' is not declared in assets/addons/integrity.json`);
       }
-      const actualHash = crypto.createHash('sha256').update(fs.readFileSync(fullPath)).digest('hex');
-      if (actualHash !== expectedHash) {
-        throw new Error(`[Addon Error] Integrity mismatch for ${fileRel}: expected ${expectedHash}, got ${actualHash}`);
+      if (!signatureManifest[file] || typeof signatureManifest[file] !== 'string') {
+        throw new Error(`[Error] Missing signature for required build asset '${file}' in assets/addons/signature.json`);
+      }
+    }
+
+    const allFilesToVerify = new Set([...Object.keys(integrityManifest), ...requiredFiles]);
+
+    for (const fileRel of allFilesToVerify) {
+      const fullPath = path.resolve(addonDir, fileRel);
+      if (!fullPath.startsWith(addonDir + path.sep)) {
+        throw new Error(`[Error] Invalid path: ${fileRel}`);
+      }
+      if (!fs.existsSync(fullPath)) {
+        throw new Error(`[Error] Missing file: ${fileRel}`);
+      }
+
+      const fileBuffer = fs.readFileSync(fullPath);
+      const actualHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+      if (actualHash !== integrityManifest[fileRel]) {
+        throw new Error(`[Error] Integrity mismatch for ${fileRel}`);
+      }
+
+      const expectedSignature = signatureManifest?.[fileRel];
+      if (!expectedSignature || typeof expectedSignature !== 'string') {
+        throw new Error(`[Error] Missing signature for ${fileRel} in assets/addons/signature.json`);
+      }
+
+      let isSignatureValid = false;
+      try {
+        isSignatureValid = crypto.verify(null, fileBuffer, pubKey, Buffer.from(expectedSignature, 'hex'));
+      } catch (err) {
+        throw new Error(`[Error] Signature check failed for ${fileRel}`);
+      }
+
+      if (!isSignatureValid) {
+        throw new Error(`[Error] Signature mismatch for ${fileRel}`);
       }
     }
   } else {
-    if (!addonManifest) {
-      console.warn('[Addon Dev] withAddons is enabled, but assets/addons/addons.json is not present yet. Waiting for build...');
+    if (fs.existsSync(addonManifestPath)) {
+      try {
+        addonManifest = JSON.parse(fs.readFileSync(addonManifestPath, 'utf8'));
+      } catch (err) {
+        console.warn('[Warning] Failed to parse assets/addons/addons.json');
+      }
+    } else {
+      console.warn('[Warning] assets/addons/addons.json is not present yet. Waiting for build...');
     }
   }
 }
@@ -42,7 +158,7 @@ if (!Encore.isRuntimeEnvironmentConfigured()) {
 }
 
 const appEntries = ['./assets/js/entries/app.js'];
-if (withAddons) {
+if (withProAddon) {
   const styleRels = Array.isArray(addonManifest?.styles) && addonManifest.styles.length > 0
     ? addonManifest.styles
     : ['css/addon.min.css'];
@@ -73,14 +189,14 @@ Encore
   })
 
   .addAliases({
-    '@addon': withAddons ? addonEntryPath : false,
+    '@addon': withProAddon ? addonEntryPath : false,
     'vue$': path.resolve(__dirname, 'node_modules/vue/dist/vue.esm-bundler.js'),
     'pinia$': path.resolve(__dirname, 'node_modules/pinia'),
     'vue-router$': path.resolve(__dirname, 'node_modules/vue-router'),
   })
 
   .configureDefinePlugin(options => {
-    options['__WITH_ADDONS__'] = JSON.stringify(withAddons);
+    options['__WITH_ADDONS__'] = JSON.stringify(withProAddon);
     if (Encore.isProduction()) {
       options['__VUE_PROD_DEVTOOLS__'] = 'false';
       options['__USE_DEVTOOLS__'] = 'false';

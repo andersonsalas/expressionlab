@@ -17,6 +17,7 @@
     "build": "encore production --progress",
     "build:addons": "EXPRESSION_LAB_WITH_ADDONS=1 encore production --progress",
     "build:zip": "bash bin/build-plugin.sh",
+    "build:zip:addons": "EXPRESSION_LAB_WITH_ADDONS=1 bash bin/build-plugin.sh",
     "lint": "pnpm lint:js && pnpm lint:php && pnpm lint:css",
     "lint:js": "eslint",
     "lint:js:fix": "eslint --fix",

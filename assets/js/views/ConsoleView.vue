@@ -4,11 +4,12 @@ import { useUiStore } from '../stores/ui';
 import { useOutlineStore } from '../stores/outline.js';
 import { useTabsStore } from '../stores/tabs.js';
 import { useSettingsStore } from '../stores/settings.js';
-import { debugLog, __ } from '../lib/helpers.js';
+import { debugLog, __, hasAddons } from '../lib/helpers.js';
 import ConsoleTabBar from '../components/console/ConsoleTabBar.vue';
 import ConsoleSession from '../components/console/ConsoleSession.vue';
 import ConsoleSidebar from '../components/console/ConsoleSidebar.vue';
 import PaginatedSearchDropdown from '../components/ui/PaginatedSearchDropdown.vue';
+import ExpressionLabIcon from '../components/icons/ExpressionLabIcon.vue';
 
 let signatureInterval = null;
 
@@ -32,8 +33,21 @@ const sessionRefs = ref({});
 
 const activeTab = computed(() => tabsStore.activeTab);
 const isScratchpad = computed(() => activeTab.value?.mode === 'scratchpad');
+const isNotebook = computed(() => activeTab.value?.mode === 'notebook');
 const activeTabLoading = computed(() => Boolean(activeTab.value?.isEvaluating));
 const isScratchpadOutputVisible = computed(() => Boolean(activeTab.value?.isScratchpadOutputVisible));
+
+const runButtonTitle = computed(() => {
+  if (activeTabLoading.value) return __('Evaluating expression...');
+  if (isNotebook.value) return __('Run all cells (Ctrl+R)');
+  if (isScratchpad.value) return __('Run (Ctrl+Enter / Cmd+Enter / Ctrl+R)');
+  return __('Run expression (Enter)');
+});
+
+const saveButtonTitle = computed(() => {
+  if (isNotebook.value) return __('Save Notebook (.elab) (Ctrl+S / Cmd+S)');
+  return __('Save snippet to Library (Ctrl+S / Cmd+S)');
+});
 
 const activeUser = computed({
   get: () => activeTab.value?.selectedUser ?? null,
@@ -107,7 +121,32 @@ const handleCreateScratchpadTab = () => {
 };
 
 const handleExecuteActiveScratchpad = () => {
-  getActiveSession()?.executeScratchpad();
+  const session = getActiveSession();
+  if (typeof session?.runPrimaryAction === 'function') {
+    session.runPrimaryAction();
+  } else {
+    session?.executeScratchpad?.();
+  }
+};
+
+const handleSavePrimary = () => {
+  const session = getActiveSession();
+  if (typeof session?.savePrimaryAction === 'function') {
+    session.savePrimaryAction();
+  } else if (isScratchpad.value) {
+    handleSaveScratchpadSnippet(activeTab.value?.scratchpadCode || '');
+  }
+};
+
+const handleOpenFile = () => {
+  if (typeof window !== 'undefined' && typeof window.__elOpenNotebookFile === 'function') {
+    window.__elOpenNotebookFile({
+      tabsStore,
+      sessionRefs: sessionRefs.value,
+    });
+  } else {
+    getActiveSession()?.openNotebookFile?.();
+  }
 };
 
 const handleSaveScratchpadSnippet = (code) => {
@@ -138,6 +177,39 @@ const handleSidebarItemClick = (item) => {
   if (item?.insertText) {
     getActiveSession()?.insertSnippet(item.insertText);
   }
+};
+
+const isFileDropdownOpen = ref(false);
+const fileDropdownBtnRef = ref(null);
+const fileDropdownMenuRef = ref(null);
+const fileDropdownStyle = ref({});
+
+const updateFileDropdownPosition = () => {
+  if (!fileDropdownBtnRef.value) return;
+  const rect = fileDropdownBtnRef.value.getBoundingClientRect();
+  fileDropdownStyle.value = {
+    position: 'fixed',
+    top: `${rect.bottom + 2}px`,
+    left: `${rect.left}px`,
+    zIndex: 100000,
+  };
+};
+
+const toggleFileDropdown = () => {
+  isFileDropdownOpen.value = !isFileDropdownOpen.value;
+  if (isFileDropdownOpen.value) {
+    nextTick(updateFileDropdownPosition);
+  }
+};
+
+const handleOpenFileSettings = () => {
+  isFileDropdownOpen.value = false;
+  uiStore.openModal('settings');
+};
+
+const handleOpenFileAbout = () => {
+  isFileDropdownOpen.value = false;
+  uiStore.openModal('about');
 };
 
 const isToolsDropdownOpen = ref(false);
@@ -193,12 +265,40 @@ const handleWindowClick = (event) => {
   ) {
     isToolsDropdownOpen.value = false;
   }
+  if (
+    isFileDropdownOpen.value &&
+    fileDropdownMenuRef.value &&
+    !fileDropdownMenuRef.value.contains(event.target) &&
+    fileDropdownBtnRef.value &&
+    !fileDropdownBtnRef.value.contains(event.target)
+  ) {
+    isFileDropdownOpen.value = false;
+  }
 };
 
 const handleGlobalKeydown = (e) => {
-  if (e.key === 'Escape' && isToolsDropdownOpen.value) {
-    isToolsDropdownOpen.value = false;
-    return;
+  if (e.key === 'Escape') {
+    if (isFileDropdownOpen.value) {
+      isFileDropdownOpen.value = false;
+      return;
+    }
+    if (isToolsDropdownOpen.value) {
+      isToolsDropdownOpen.value = false;
+      return;
+    }
+  }
+
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
+    if (e.key === 's' || e.key === 'S') {
+      e.preventDefault();
+      handleSavePrimary();
+      return;
+    }
+    if ((e.key === 'o' || e.key === 'O') && hasAddons()) {
+      e.preventDefault();
+      handleOpenFile();
+      return;
+    }
   }
 
   if (!e.altKey || e.ctrlKey || e.metaKey) return;
@@ -211,7 +311,7 @@ const handleGlobalKeydown = (e) => {
 
   if (e.key === 'w' || e.key === 'W') {
     e.preventDefault();
-    tabsStore.closeTab(tabsStore.activeTabId);
+    tabsStore.requestCloseTab(tabsStore.activeTabId);
     return;
   }
 
@@ -242,6 +342,16 @@ const handleGlobalKeydown = (e) => {
   }
 };
 
+const handleBeforeUnload = (event) => {
+  const hasDirtyNotebook = tabsStore.tabs.some(
+    (t) => t && t.mode === 'notebook' && t.notebookDirty
+  );
+  if (hasDirtyNotebook) {
+    event.preventDefault();
+    event.returnValue = '';
+  }
+};
+
 onMounted(() => {
   signatureInterval = setInterval(updateSignatureTime, 1000);
   debugLog('Console component mounted', { enableSandbox, settings: window.el_settings });
@@ -251,10 +361,12 @@ onMounted(() => {
     window.addEventListener('keydown', handleGlobalKeydown);
     window.addEventListener('click', handleWindowClick);
     window.addEventListener('resize', updateToolsDropdownPosition);
+    window.addEventListener('resize', updateFileDropdownPosition);
+    window.addEventListener('beforeunload', handleBeforeUnload);
   }
 
   nextTick(() => {
-    getActiveSession()?.focus();
+    getActiveSession()?.focus?.();
   });
 });
 
@@ -264,6 +376,8 @@ onUnmounted(() => {
     window.removeEventListener('keydown', handleGlobalKeydown);
     window.removeEventListener('click', handleWindowClick);
     window.removeEventListener('resize', updateToolsDropdownPosition);
+    window.removeEventListener('resize', updateFileDropdownPosition);
+    window.removeEventListener('beforeunload', handleBeforeUnload);
   }
 });
 </script>
@@ -273,32 +387,49 @@ onUnmounted(() => {
     <div class="console-main">
       <!-- 1. Top Action Toolbar -->
       <div class="console-toolbar">
-        <div class="console-toolbar-group group-tools">
+        <div class="console-toolbar-group group-file">
           <div
-            ref="toolsDropdownBtnRef"
+            ref="fileDropdownBtnRef"
             class="console-toolbar-button menu-dropdown-btn"
-            :class="{ active: isToolsDropdownOpen }"
-            :title="__('Open tools')"
-            @click.stop="toggleToolsDropdown"
+            :class="{ active: isFileDropdownOpen }"
+            :title="__('Expression Lab')"
+            @click.stop="toggleFileDropdown"
           >
-            <div class="codicon codicon-tools" />
-            <span>{{ __('Tools') }}</span>
+            <ExpressionLabIcon style="width: 26px; height: 26px; flex-shrink: 0; margin-right:4px;" />
+            <span>{{ __('Expression Lab') }}</span>
             <div class="codicon codicon-chevron-down tools-chevron" />
           </div>
         </div>
 
-        <div
-          class="console-toolbar-group group-scratchpad-actions"
-          :class="{ disabled: !isScratchpad }"
-        >
+        <div class="console-toolbar-group group-file-actions">
+          <div
+            v-if="hasAddons()"
+            class="console-toolbar-button menu btn-open-notebook"
+            :title="__('Open Notebook (.elab)... (Ctrl+O / Cmd+O)')"
+            @click="handleOpenFile"
+          >
+            <div class="codicon codicon-folder-opened" />
+          </div>
+          <div
+            class="console-toolbar-button menu btn-scratchpad-save"
+            :title="saveButtonTitle"
+            @click="handleSavePrimary"
+          >
+            <div
+              class="codicon codicon-save"
+              style="color: #3858e9;"
+            />
+          </div>
+        </div>
+
+        <div class="console-toolbar-group group-scratchpad-actions">
           <div
             class="console-toolbar-button menu btn-scratchpad-run"
             :class="{
-              disabled: !isScratchpad,
               loading: activeTabLoading
             }"
-            :title="!isScratchpad ? __('Run expression (Scratchpad mode only)') : activeTabLoading ? __('Evaluating expression...') : __('Run (Ctrl+Enter / Cmd+Enter / Ctrl+R)')"
-            @click="isScratchpad && !activeTabLoading && handleExecuteActiveScratchpad()"
+            :title="runButtonTitle"
+            @click="!activeTabLoading && handleExecuteActiveScratchpad()"
           >
             <div
               v-if="activeTabLoading"
@@ -311,29 +442,15 @@ onUnmounted(() => {
             />
           </div>
           <div
-            class="console-toolbar-button menu btn-scratchpad-save"
-            :class="{ disabled: !isScratchpad }"
-            :title="isScratchpad ? __('Save snippet to Library') : __('Save snippet to Library (Scratchpad mode only)')"
-            @click="isScratchpad && handleSaveScratchpadSnippet(activeTab?.scratchpadCode || '')"
-          >
-            <div
-              class="codicon codicon-save"
-              style="color: #3858e9;"
-            />
-          </div>
-        </div>
-
-        <div class="console-toolbar-group group-actions">
-          <div
             class="console-toolbar-button menu"
-            :title="__('Clear session')"
+            :title="isNotebook ? __('Clear all cell outputs') : __('Clear session')"
             @click="handleClear"
           >
             <div class="codicon codicon-circle-slash" />
           </div>
           <div
             class="console-toolbar-button menu"
-            :title="__('Format code (Shift+Alt+F)')"
+            :title="isNotebook ? __('Format all code cells (Shift+Alt+F)') : __('Format code (Shift+Alt+F)')"
             @click="handleFormatCode"
           >
             <div class="codicon codicon-json" />
@@ -387,7 +504,18 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div class="console-toolbar-group group-library">
+        <div class="console-toolbar-group group-tools-library">
+          <div
+            ref="toolsDropdownBtnRef"
+            class="console-toolbar-button menu-dropdown-btn"
+            :class="{ active: isToolsDropdownOpen }"
+            :title="__('Open tools')"
+            @click.stop="toggleToolsDropdown"
+          >
+            <div class="codicon codicon-tools" />
+            <span>{{ __('Tools') }}</span>
+            <div class="codicon codicon-chevron-down tools-chevron" />
+          </div>
           <div
             class="console-toolbar-button"
             :title="__('Library')"
@@ -395,14 +523,6 @@ onUnmounted(() => {
           >
             <div class="codicon codicon-library" />
             <span>{{ __('Library') }}</span>
-          </div>
-          <div
-            class="console-toolbar-button"
-            :title="__('Settings')"
-            @click="uiStore.openModal('settings')"
-          >
-            <div class="codicon codicon-gear" />
-            <span>{{ __('Settings') }}</span>
           </div>
         </div>
 
@@ -426,13 +546,6 @@ onUnmounted(() => {
           >
             <div class="custom-icon custom-icon-panel-right" />
           </div>
-          <div
-            class="console-toolbar-button menu"
-            :title="__('About Expression Lab')"
-            @click="uiStore.openModal('about')"
-          >
-            <div class="codicon codicon-info" />
-          </div>
         </div>
       </div>
 
@@ -440,7 +553,8 @@ onUnmounted(() => {
       <div
         class="console-buffer"
         :class="{
-          'scratchpad-active': isScratchpad,
+          'scratchpad-active': isScratchpad || isNotebook,
+          'notebook-active': isNotebook,
           'sidebar-hidden': !isSidebarVisible
         }"
       >
@@ -576,6 +690,31 @@ onUnmounted(() => {
       </div>
     </div>
   </div>
+
+  <!-- File Dropdown Menu (Teleported to avoid clipping) -->
+  <Teleport to="body">
+    <div
+      v-if="isFileDropdownOpen"
+      ref="fileDropdownMenuRef"
+      class="console-tab-context-menu console-file-dropdown-menu"
+      :style="fileDropdownStyle"
+    >
+      <div
+        class="tab-menu-item"
+        @click="handleOpenFileSettings"
+      >
+        <span class="codicon codicon-settings-gear" />
+        <span>{{ __('Settings') }}</span>
+      </div>
+      <div
+        class="tab-menu-item"
+        @click="handleOpenFileAbout"
+      >
+        <span class="codicon codicon-info" />
+        <span>{{ __('About') }}</span>
+      </div>
+    </div>
+  </Teleport>
 
   <!-- Tools Dropdown Menu (Teleported to avoid clipping) -->
   <Teleport to="body">
