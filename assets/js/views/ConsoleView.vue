@@ -74,6 +74,10 @@ const modKey = isMac ? '⌘' : 'Ctrl';
 
 const canUndoCellAction = computed(() => isNotebook.value && Boolean(activeTab.value?.canUndoCell));
 const canRedoCellAction = computed(() => isNotebook.value && Boolean(activeTab.value?.canRedoCell));
+const canSearch = computed(() => {
+  const mode = activeTab.value?.mode;
+  return mode === 'scratchpad' || (mode === 'notebook' && hasAddons());
+});
 
 const handleUndoCellAction = () => {
   if (!canUndoCellAction.value) return;
@@ -85,6 +89,12 @@ const handleRedoCellAction = () => {
   if (!canRedoCellAction.value) return;
   getActiveSession()?.redoCellAction?.();
   isFileDropdownOpen.value = false;
+};
+
+const handleOpenFileSearch = (withReplace = false) => {
+  if (!canSearch.value) return;
+  isFileDropdownOpen.value = false;
+  getActiveSession()?.openSearch?.(withReplace);
 };
 
 const updateSignatureTime = () => {
@@ -322,6 +332,20 @@ const handleGlobalKeydown = (e) => {
       e.preventDefault();
       handleOpenFile();
       return;
+    }
+    if (e.key === 'f' || e.key === 'F') {
+      if (canSearch.value) {
+        e.preventDefault();
+        getActiveSession()?.openSearch?.(false);
+        return;
+      }
+    }
+    if (e.key === 'h' || e.key === 'H') {
+      if (canSearch.value) {
+        e.preventDefault();
+        getActiveSession()?.openSearch?.(true);
+        return;
+      }
     }
   }
 
@@ -724,6 +748,7 @@ onUnmounted(() => {
       :style="fileDropdownStyle"
     >
       <div
+        v-if="hasAddons()"
         class="tab-menu-item"
         :class="{ disabled: !canUndoCellAction }"
         @click="handleUndoCellAction"
@@ -733,6 +758,7 @@ onUnmounted(() => {
         <span class="menu-shortcut">{{ modKey }}+Z</span>
       </div>
       <div
+        v-if="hasAddons()"
         class="tab-menu-item"
         :class="{ disabled: !canRedoCellAction }"
         @click="handleRedoCellAction"
@@ -740,6 +766,30 @@ onUnmounted(() => {
         <span class="codicon codicon-redo" />
         <span>{{ __('Redo cell action') }}</span>
         <span class="menu-shortcut">{{ modKey }}+Shift+Z</span>
+      </div>
+
+      <div 
+        v-if="hasAddons()"
+        class="tab-menu-separator" 
+      />
+
+      <div
+        class="tab-menu-item"
+        :class="{ disabled: !canSearch }"
+        @click="handleOpenFileSearch(false)"
+      >
+        <span class="codicon codicon-search" />
+        <span>{{ __('Search') }}</span>
+        <span class="menu-shortcut">{{ modKey }}+F</span>
+      </div>
+      <div
+        class="tab-menu-item"
+        :class="{ disabled: !canSearch }"
+        @click="handleOpenFileSearch(true)"
+      >
+        <span class="codicon codicon-replace" />
+        <span>{{ __('Replace') }}</span>
+        <span class="menu-shortcut">{{ modKey }}+H</span>
       </div>
 
       <div class="tab-menu-separator" />

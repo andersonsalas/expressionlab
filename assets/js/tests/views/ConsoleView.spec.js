@@ -1,11 +1,16 @@
 import { mount } from '@vue/test-utils';
 import { createTestingPinia } from '@pinia/testing';
 
+const mockOpenSearch = jest.fn();
+
 jest.mock('../../components/console/ConsoleSession.vue', () => ({
   name: 'ConsoleSession',
   template: '<div class="console-session-stub" />',
   methods: {
     focus() {},
+    openSearch(...args) {
+      mockOpenSearch(...args);
+    },
   },
 }));
 jest.mock('../../components/console/ConsoleTabBar.vue', () => ({
@@ -42,8 +47,11 @@ describe('ConsoleView.vue Toolbar', () => {
     };
   });
 
+  afterEach(() => {
+    delete global.__WITH_ADDONS__;
+  });
+
   const mountConsoleView = (initialState = {}, withAddons = false) => {
-    const prevAddons = global.__WITH_ADDONS__;
     global.__WITH_ADDONS__ = withAddons;
 
     const pinia = createTestingPinia({
@@ -60,6 +68,7 @@ describe('ConsoleView.vue Toolbar', () => {
             { id: 'tab-1', mode: 'scratchpad', isEvaluating: false, isScratchpadOutputVisible: false },
           ],
           activeTabId: 'tab-1',
+          activeTab: { id: 'tab-1', mode: 'scratchpad' },
           ...initialState.tabs,
         },
         settings: {
@@ -79,7 +88,6 @@ describe('ConsoleView.vue Toolbar', () => {
         plugins: [pinia],
         stubs: {
           ConsoleTabBar: true,
-          ConsoleSession: true,
           ConsoleSidebar: true,
           PaginatedSearchDropdown: true,
           Teleport: true,
@@ -90,7 +98,6 @@ describe('ConsoleView.vue Toolbar', () => {
       },
     });
 
-    global.__WITH_ADDONS__ = prevAddons;
     return wrapper;
   };
 
@@ -153,10 +160,10 @@ describe('ConsoleView.vue Toolbar', () => {
 
     const items = fileMenu.findAll('.tab-menu-item');
     expect(items.length).toBe(4);
-    expect(items[0].text()).toContain('Undo cell action');
-    expect(items[0].find('.codicon-discard').exists()).toBe(true);
-    expect(items[1].text()).toContain('Redo cell action');
-    expect(items[1].find('.codicon-redo').exists()).toBe(true);
+    expect(items[0].text()).toContain('Search');
+    expect(items[0].find('.codicon-search').exists()).toBe(true);
+    expect(items[1].text()).toContain('Replace');
+    expect(items[1].find('.codicon-replace').exists()).toBe(true);
     expect(items[2].text()).toContain('Settings');
     expect(items[2].find('.codicon-settings-gear').exists()).toBe(true);
     expect(items[3].text()).toContain('About');
@@ -175,10 +182,53 @@ describe('ConsoleView.vue Toolbar', () => {
     expect(wrapper.find('.console-file-dropdown-menu').exists()).toBe(false);
   });
 
-  it('renders Open button in Group 2 when addons are enabled', () => {
+  it('triggers Search and Replace from File dropdown and global shortcuts', async () => {
+    mockOpenSearch.mockClear();
+    const wrapper = mountConsoleView();
+
+    const fileDropdownBtn = wrapper.find('.group-file .menu-dropdown-btn');
+    await fileDropdownBtn.trigger('click');
+
+    const items = wrapper.findAll('.console-file-dropdown-menu .tab-menu-item');
+    // Search item
+    await items[0].trigger('click');
+    expect(mockOpenSearch).toHaveBeenCalledWith(false);
+
+    // Replace item
+    await fileDropdownBtn.trigger('click');
+    const itemsAgain = wrapper.findAll('.console-file-dropdown-menu .tab-menu-item');
+    await itemsAgain[1].trigger('click');
+    expect(mockOpenSearch).toHaveBeenCalledWith(true);
+
+    // Global Ctrl+F
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', ctrlKey: true }));
+    expect(mockOpenSearch).toHaveBeenCalledWith(false);
+
+    // Global Ctrl+H
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'h', ctrlKey: true }));
+    expect(mockOpenSearch).toHaveBeenCalledWith(true);
+  });
+
+  it('renders Open button in Group 2 and Undo/Redo in File dropdown when addons are enabled', async () => {
     const wrapper = mountConsoleView({}, true);
     const group2 = wrapper.find('.group-file-actions');
     expect(group2.find('.btn-open-notebook').exists()).toBe(true);
     expect(group2.find('.btn-scratchpad-save').exists()).toBe(true);
+
+    const fileDropdownBtn = wrapper.find('.group-file .menu-dropdown-btn');
+    await fileDropdownBtn.trigger('click');
+    const fileMenu = wrapper.find('.console-file-dropdown-menu');
+    expect(fileMenu.exists()).toBe(true);
+
+    const items = fileMenu.findAll('.tab-menu-item');
+    expect(items.length).toBe(6);
+    expect(items[0].text()).toContain('Undo cell action');
+    expect(items[0].find('.codicon-discard').exists()).toBe(true);
+    expect(items[1].text()).toContain('Redo cell action');
+    expect(items[1].find('.codicon-redo').exists()).toBe(true);
+    expect(items[2].text()).toContain('Search');
+    expect(items[3].text()).toContain('Replace');
+    expect(items[4].text()).toContain('Settings');
+    expect(items[5].text()).toContain('About');
   });
 });

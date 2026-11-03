@@ -187,6 +187,14 @@ const redoCellAction = () => {
   return notebookWorkspaceRef.value?.redo?.();
 };
 
+const openSearch = (withReplace = false) => {
+  if (tab.value.mode === 'scratchpad') {
+    scratchpadEditorRef.value?.openSearch?.(withReplace);
+  } else if (tab.value.mode === 'notebook') {
+    notebookWorkspaceRef.value?.openSearch?.(withReplace);
+  }
+};
+
 const handleHistoryNav = (direction) => {
   const history = tab.value.history || [];
   if (history.length === 0) return;
@@ -714,6 +722,7 @@ defineExpose({
   openNotebookFile,
   undoCellAction,
   redoCellAction,
+  openSearch,
   clearSession,
   formatCode,
   insertSnippet,

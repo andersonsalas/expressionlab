@@ -36,7 +36,8 @@ jest.mock('@codemirror/view', () => {
             }
             return {};
           }),
-          selection: { main: { from: 0, to: 0 } },
+          selection: { main: { from: 0, to: 0, empty: true } },
+          sliceDoc: jest.fn((from, to) => currentDoc.slice(from, to)),
           replaceSelection: jest.fn((text) => {
             currentDoc = text;
             return {};
@@ -117,6 +118,29 @@ jest.mock('@codemirror/commands', () => ({
   historyKeymap: [],
   indentWithTab: {},
   insertNewlineAndIndent: jest.fn(),
+}));
+
+jest.mock('@codemirror/search', () => ({
+  search: jest.fn(() => []),
+  searchKeymap: [],
+  openSearchPanel: jest.fn(),
+  setSearchQuery: { of: jest.fn() },
+  SearchQuery: jest.fn().mockImplementation((config) => ({
+    ...config,
+    valid: true,
+    getCursor: jest.fn(() => ({
+      next: jest.fn().mockReturnValueOnce({ done: false, value: { from: 0, to: 4 } }).mockReturnValue({ done: true }),
+    })),
+  })),
+  findNext: jest.fn(),
+  findPrevious: jest.fn(),
+  replaceNext: jest.fn(),
+  replaceAll: jest.fn(),
+}));
+
+jest.mock('../../../lib/codemirror/search-highlight.js', () => ({
+  searchHighlightField: [],
+  setSearchHighlightEffect: { of: jest.fn() },
 }));
 
 jest.mock('@fsegurai/codemirror-theme-bundle', () => ({
@@ -336,5 +360,32 @@ describe('ConsoleEditor.vue', () => {
 
     // History up/down should not be bound in scratchpad mode
     expect(mockCapturedUpDownKeymap).toHaveLength(0);
+  });
+
+  it('opens and closes find widget in scratchpad mode', async () => {
+    const wrapper = mount(ConsoleEditor, {
+      global: {
+        plugins: [createTestingPinia()],
+      },
+      props: {
+        mode: 'scratchpad',
+      },
+    });
+
+    expect(wrapper.findComponent({ name: 'ConsoleFindWidget' }).exists()).toBe(false);
+
+    wrapper.vm.openSearch(false);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.findComponent({ name: 'ConsoleFindWidget' }).exists()).toBe(true);
+    expect(wrapper.vm.isReplaceOpen).toBe(false);
+
+    wrapper.vm.openSearch(true);
+    await wrapper.vm.$nextTick();
+    expect(wrapper.vm.isReplaceOpen).toBe(true);
+
+    wrapper.vm.closeSearch();
+    await wrapper.vm.$nextTick();
+    expect(wrapper.findComponent({ name: 'ConsoleFindWidget' }).exists()).toBe(false);
   });
 });
