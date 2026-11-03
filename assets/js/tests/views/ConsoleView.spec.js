@@ -231,4 +231,22 @@ describe('ConsoleView.vue Toolbar', () => {
     expect(items[4].text()).toContain('Settings');
     expect(items[5].text()).toContain('About');
   });
+
+  it('renders "With Pro Addon" subtitle under Expression Lab when addons are enabled', () => {
+    const wrapperWithoutAddons = mountConsoleView({}, false);
+    const btnWithoutAddons = wrapperWithoutAddons.find('.group-file .menu-dropdown-btn');
+    expect(btnWithoutAddons.classes()).not.toContain('has-subtitle');
+    expect(btnWithoutAddons.find('.toolbar-button-subtitle').exists()).toBe(false);
+    expect(btnWithoutAddons.find('.toolbar-button-title').text()).toBe('Expression Lab');
+
+    const wrapperWithAddons = mountConsoleView({}, true);
+    const btnWithAddons = wrapperWithAddons.find('.group-file .menu-dropdown-btn');
+    expect(btnWithAddons.classes()).toContain('has-subtitle');
+    const labelWithAddons = btnWithAddons.find('.toolbar-button-label');
+    expect(labelWithAddons.classes()).toContain('has-subtitle');
+    expect(labelWithAddons.find('.toolbar-button-title').text()).toBe('Expression Lab');
+    const subtitle = btnWithAddons.find('.toolbar-button-subtitle');
+    expect(subtitle.exists()).toBe(true);
+    expect(subtitle.text()).toBe('With Pro Addon');
+  });
 });

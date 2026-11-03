@@ -439,12 +439,23 @@ onUnmounted(() => {
           <div
             ref="fileDropdownBtnRef"
             class="console-toolbar-button menu-dropdown-btn"
-            :class="{ active: isFileDropdownOpen }"
+            :class="{ active: isFileDropdownOpen, 'has-subtitle': hasAddons() }"
             :title="__('Expression Lab')"
             @click.stop="toggleFileDropdown"
           >
             <ExpressionLabIcon style="width: 26px; height: 26px; flex-shrink: 0; margin-right:4px;" />
-            <span>{{ __('Expression Lab') }}</span>
+            <span
+              class="toolbar-button-label"
+              :class="{ 'has-subtitle': hasAddons() }"
+            >
+              <span class="toolbar-button-title">{{ __('Expression Lab') }}</span>
+              <span
+                v-if="hasAddons()"
+                class="toolbar-button-subtitle"
+              >
+                {{ __('With Pro Addon') }}
+              </span>
+            </span>
             <div class="codicon codicon-chevron-down tools-chevron" />
           </div>
         </div>

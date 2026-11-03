@@ -196,7 +196,46 @@
 			.console-toolbar-button {
 				padding: 4px;
 
-				& > span {
+				.toolbar-button-label {
+					display: inline-flex;
+					align-items: center;
+					font-weight: normal;
+
+					.toolbar-button-title {
+						font-weight: bold;
+					}
+
+					&.has-subtitle {
+						flex-direction: column;
+						align-items: flex-start;
+						justify-content: center;
+						gap: 1px;
+						line-height: normal;
+
+						.toolbar-button-title {
+							line-height: 1.2;
+						}
+
+						.toolbar-button-subtitle {
+							font-size: 11px;
+							line-height: 1;
+							color: #555;
+							white-space: nowrap;
+							user-select: none;
+							letter-spacing: 0.2px;
+							font-weight: normal;
+						}
+					}
+				}
+
+				&:active,
+				&.active {
+					.toolbar-button-label.has-subtitle .toolbar-button-subtitle {
+						color: #646970;
+					}
+				}
+
+				& > span:not(.toolbar-button-label) {
 					font-weight: bold !important;
 				}
 			}
