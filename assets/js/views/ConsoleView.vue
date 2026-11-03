@@ -82,18 +82,27 @@ const canSearch = computed(() => {
 const handleUndoCellAction = () => {
   if (!canUndoCellAction.value) return;
   getActiveSession()?.undoCellAction?.();
-  isFileDropdownOpen.value = false;
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
 };
 
 const handleRedoCellAction = () => {
   if (!canRedoCellAction.value) return;
   getActiveSession()?.redoCellAction?.();
-  isFileDropdownOpen.value = false;
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
 };
 
 const handleOpenFileSearch = (withReplace = false) => {
   if (!canSearch.value) return;
-  isFileDropdownOpen.value = false;
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   getActiveSession()?.openSearch?.(withReplace);
 };
 
@@ -213,7 +222,7 @@ const handleSidebarItemClick = (item) => {
   }
 };
 
-const isFileDropdownOpen = ref(false);
+const isFileDropdownOpen = computed(() => uiStore.activeDropdown === 'file-menu');
 const fileDropdownBtnRef = ref(null);
 const fileDropdownMenuRef = ref(null);
 const fileDropdownStyle = ref({});
@@ -230,23 +239,45 @@ const updateFileDropdownPosition = () => {
 };
 
 const toggleFileDropdown = () => {
-  isFileDropdownOpen.value = !isFileDropdownOpen.value;
+  uiStore.toggleDropdown('file-menu');
+  if (uiStore.toggleDropdown?._isMockFunction) {
+    uiStore.activeDropdown = uiStore.activeDropdown === 'file-menu' ? null : 'file-menu';
+  }
   if (isFileDropdownOpen.value) {
     nextTick(updateFileDropdownPosition);
   }
 };
 
 const handleOpenFileSettings = () => {
-  isFileDropdownOpen.value = false;
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   uiStore.openModal('settings');
 };
 
 const handleOpenFileAbout = () => {
-  isFileDropdownOpen.value = false;
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   uiStore.openModal('about');
 };
 
-const isToolsDropdownOpen = ref(false);
+const handleSaveAs = () => {
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
+  if (isNotebook.value) {
+    const session = getActiveSession();
+    if (typeof session?.saveAsPrimaryAction === 'function') {
+      session.saveAsPrimaryAction();
+    }
+  }
+};
+
+const isToolsDropdownOpen = computed(() => uiStore.activeDropdown === 'tools-menu');
 const toolsDropdownBtnRef = ref(null);
 const toolsDropdownMenuRef = ref(null);
 const toolsDropdownStyle = ref({});
@@ -263,31 +294,56 @@ const updateToolsDropdownPosition = () => {
 };
 
 const toggleToolsDropdown = () => {
-  isToolsDropdownOpen.value = !isToolsDropdownOpen.value;
+  uiStore.toggleDropdown('tools-menu');
+  if (uiStore.toggleDropdown?._isMockFunction) {
+    uiStore.activeDropdown = uiStore.activeDropdown === 'tools-menu' ? null : 'tools-menu';
+  }
   if (isToolsDropdownOpen.value) {
     nextTick(updateToolsDropdownPosition);
   }
 };
 
 const handleOpenHttpRequestBuilder = () => {
-  isToolsDropdownOpen.value = false;
+  uiStore.closeDropdown('tools-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   uiStore.openModal('http-builder');
 };
 
 const handleOpenDatabaseBuilder = () => {
-  isToolsDropdownOpen.value = false;
+  uiStore.closeDropdown('tools-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   uiStore.openModal('database-builder');
 };
 
 const handleOpenEntityBuilder = () => {
-  isToolsDropdownOpen.value = false;
+  uiStore.closeDropdown('tools-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   uiStore.openModal('entity-builder');
 };
 
 const handleOpenFilesystemInspector = () => {
-  isToolsDropdownOpen.value = false;
+  uiStore.closeDropdown('tools-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   uiStore.openModal('filesystem-inspector');
 };
+
+watch(
+  () => tabsStore.activeTabId,
+  () => {
+    uiStore.closeDropdowns();
+    if (uiStore.closeDropdowns?._isMockFunction) {
+      uiStore.activeDropdown = null;
+    }
+  }
+);
 
 const handleWindowClick = (event) => {
   if (
@@ -297,7 +353,10 @@ const handleWindowClick = (event) => {
     toolsDropdownBtnRef.value &&
     !toolsDropdownBtnRef.value.contains(event.target)
   ) {
-    isToolsDropdownOpen.value = false;
+    uiStore.closeDropdown('tools-menu');
+    if (uiStore.closeDropdown?._isMockFunction) {
+      uiStore.activeDropdown = null;
+    }
   }
   if (
     isFileDropdownOpen.value &&
@@ -306,18 +365,28 @@ const handleWindowClick = (event) => {
     fileDropdownBtnRef.value &&
     !fileDropdownBtnRef.value.contains(event.target)
   ) {
-    isFileDropdownOpen.value = false;
+    uiStore.closeDropdown('file-menu');
+    if (uiStore.closeDropdown?._isMockFunction) {
+      uiStore.activeDropdown = null;
+    }
   }
 };
 
 const handleGlobalKeydown = (e) => {
   if (e.key === 'Escape') {
-    if (isFileDropdownOpen.value) {
-      isFileDropdownOpen.value = false;
+    if (isFileDropdownOpen.value || isToolsDropdownOpen.value) {
+      uiStore.closeDropdowns();
+      if (uiStore.closeDropdowns?._isMockFunction) {
+        uiStore.activeDropdown = null;
+      }
       return;
     }
-    if (isToolsDropdownOpen.value) {
-      isToolsDropdownOpen.value = false;
+  }
+
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && e.shiftKey) {
+    if ((e.key === 's' || e.key === 'S') && hasAddons() && isNotebook.value) {
+      e.preventDefault();
+      handleSaveAs();
       return;
     }
   }
@@ -777,6 +846,22 @@ onUnmounted(() => {
         <span class="codicon codicon-redo" />
         <span>{{ __('Redo cell action') }}</span>
         <span class="menu-shortcut">{{ modKey }}+Shift+Z</span>
+      </div>
+
+      <div 
+        v-if="hasAddons()"
+        class="tab-menu-separator" 
+      />
+
+      <div
+        v-if="hasAddons()"
+        class="tab-menu-item"
+        :class="{ disabled: !isNotebook }"
+        @click="handleSaveAs"
+      >
+        <span class="codicon codicon-save" />
+        <span>{{ __('Save as...') }}</span>
+        <span class="menu-shortcut">{{ modKey }}+Shift+S</span>
       </div>
 
       <div 

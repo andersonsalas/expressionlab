@@ -3,10 +3,12 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { getActivePinia } from 'pinia';
 import { useTabsStore } from '../../stores/tabs.js';
 import { useSettingsStore } from '../../stores/settings.js';
+import { useUiStore } from '../../stores/ui.js';
 import { __, hasAddons } from '../../lib/helpers.js';
 
 const tabsStore = useTabsStore();
 const settingsStore = useSettingsStore();
+const uiStore = useUiStore();
 
 const isProLicenseValid = computed(() => {
   const pinia = getActivePinia();
@@ -30,12 +32,12 @@ const dragOverIndex = ref(null);
 const editingTabId = ref(null);
 const editingTitle = ref('');
 
-const isAddDropdownOpen = ref(false);
+const isAddDropdownOpen = computed(() => uiStore.activeDropdown === 'tab-add-menu');
 const addDropdownBtnRef = ref(null);
 const dropdownMenuRef = ref(null);
 const dropdownStyle = ref({});
 
-const isContextMenuOpen = ref(false);
+const isContextMenuOpen = computed(() => uiStore.activeDropdown === 'tab-context-menu');
 const contextMenuTab = ref(null);
 const contextMenuRef = ref(null);
 const contextMenuStyle = ref({});
@@ -72,7 +74,7 @@ const handleScroll = () => {
     updateDropdownPosition();
   }
   if (isContextMenuOpen.value) {
-    isContextMenuOpen.value = false;
+    uiStore.closeDropdown('tab-context-menu');
   }
 };
 
@@ -163,17 +165,20 @@ const updateContextMenuPosition = (x, y) => {
 
 const toggleAddDropdown = () => {
   if (!tabsStore.canAddTab) return;
-  if (isContextMenuOpen.value) {
-    isContextMenuOpen.value = false;
+  uiStore.toggleDropdown('tab-add-menu');
+  if (uiStore.toggleDropdown?._isMockFunction) {
+    uiStore.activeDropdown = uiStore.activeDropdown === 'tab-add-menu' ? null : 'tab-add-menu';
   }
-  isAddDropdownOpen.value = !isAddDropdownOpen.value;
   if (isAddDropdownOpen.value) {
     nextTick(updateDropdownPosition);
   }
 };
 
 const handleCreateTab = (mode = 'repl') => {
-  isAddDropdownOpen.value = false;
+  uiStore.closeDropdown('tab-add-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   const newTab = tabsStore.createTab({ mode });
   if (newTab) {
     if (addTabScrollTimeout) {
@@ -206,7 +211,6 @@ const handleContextMenu = (tab, event) => {
   event.preventDefault();
   if (editingTabId.value) return;
 
-  isAddDropdownOpen.value = false;
   contextMenuTab.value = tab;
 
   const clientX = event.clientX;
@@ -219,7 +223,10 @@ const handleContextMenu = (tab, event) => {
     left: `${clientX}px`,
     zIndex: 99999,
   };
-  isContextMenuOpen.value = true;
+  uiStore.openDropdown('tab-context-menu');
+  if (uiStore.openDropdown?._isMockFunction) {
+    uiStore.activeDropdown = 'tab-context-menu';
+  }
 
   nextTick(() => {
     updateContextMenuPosition(clientX, clientY);
@@ -227,7 +234,10 @@ const handleContextMenu = (tab, event) => {
 };
 
 const handleCloseAllTabs = async () => {
-  isContextMenuOpen.value = false;
+  uiStore.closeDropdown('tab-context-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   await tabsStore.requestCloseAllTabs();
   nextTick(checkOverflow);
 };
@@ -235,7 +245,10 @@ const handleCloseAllTabs = async () => {
 const handleCloseOtherTabs = async () => {
   if (!canCloseOtherTabs.value || !contextMenuTab.value) return;
   const tabId = contextMenuTab.value.id;
-  isContextMenuOpen.value = false;
+  uiStore.closeDropdown('tab-context-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   await tabsStore.requestCloseOtherTabs(tabId);
   nextTick(checkOverflow);
 };
@@ -243,7 +256,10 @@ const handleCloseOtherTabs = async () => {
 const handleCloseTabsToTheRight = async () => {
   if (!canCloseTabsToTheRight.value || !contextMenuTab.value) return;
   const tabId = contextMenuTab.value.id;
-  isContextMenuOpen.value = false;
+  uiStore.closeDropdown('tab-context-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   await tabsStore.requestCloseTabsToTheRight(tabId);
   nextTick(checkOverflow);
 };
@@ -251,7 +267,10 @@ const handleCloseTabsToTheRight = async () => {
 const handleRenameFromMenu = () => {
   if (!contextMenuTab.value) return;
   const tabToRename = contextMenuTab.value;
-  isContextMenuOpen.value = false;
+  uiStore.closeDropdown('tab-context-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   startRename(tabToRename);
 };
 
@@ -263,7 +282,10 @@ const handleClickOutside = (event) => {
     addDropdownBtnRef.value &&
     !addDropdownBtnRef.value.contains(event.target)
   ) {
-    isAddDropdownOpen.value = false;
+    uiStore.closeDropdown('tab-add-menu');
+    if (uiStore.closeDropdown?._isMockFunction) {
+      uiStore.activeDropdown = null;
+    }
   }
 
   if (
@@ -271,17 +293,20 @@ const handleClickOutside = (event) => {
     contextMenuRef.value &&
     !contextMenuRef.value.contains(event.target)
   ) {
-    isContextMenuOpen.value = false;
+    uiStore.closeDropdown('tab-context-menu');
+    if (uiStore.closeDropdown?._isMockFunction) {
+      uiStore.activeDropdown = null;
+    }
   }
 };
 
 const handleKeydown = (event) => {
   if (event.key === 'Escape') {
-    if (isAddDropdownOpen.value) {
-      isAddDropdownOpen.value = false;
-    }
-    if (isContextMenuOpen.value) {
-      isContextMenuOpen.value = false;
+    if (isAddDropdownOpen.value || isContextMenuOpen.value) {
+      uiStore.closeDropdowns();
+      if (uiStore.closeDropdowns?._isMockFunction) {
+        uiStore.activeDropdown = null;
+      }
     }
   }
 };
@@ -360,7 +385,7 @@ const handleDragEnd = () => {
 const handleWindowResize = () => {
   updateDropdownPosition();
   if (isContextMenuOpen.value) {
-    isContextMenuOpen.value = false;
+    uiStore.closeDropdown('tab-context-menu');
   }
 };
 

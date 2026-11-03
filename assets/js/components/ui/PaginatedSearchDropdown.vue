@@ -1,9 +1,15 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { getActivePinia } from 'pinia';
+import { useUiStore } from '../../stores/ui.js';
 import { handleFetch } from '../../lib/api/client.js';
 import { __ } from '../../lib/helpers.js';
 
 const props = defineProps({
+  dropdownId: {
+    type: String,
+    default: null,
+  },
   modelValue: {
     type: [String, Number],
     default: null
@@ -40,7 +46,17 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue']);
 
-const isOpen = ref(false);
+const getUiStore = () => (getActivePinia() ? useUiStore() : null);
+const localIsOpen = ref(false);
+const instanceDropdownId = props.dropdownId || `search-dropdown-${props.action}`;
+
+const isOpen = computed(() => {
+  const store = getUiStore();
+  if (store) {
+    return store.activeDropdown === instanceDropdownId;
+  }
+  return localIsOpen.value;
+});
 const searchQuery = ref('');
 const containerRef = ref(null);
 const items = ref([...props.initialItems]);
@@ -132,11 +148,21 @@ watch(searchQuery, () => {
 
 const handleSelect = (option) => {
   emit('update:modelValue', option.id);
-  isOpen.value = false;
+  const store = getUiStore();
+  if (store) {
+    store.closeDropdown(instanceDropdownId);
+  } else {
+    localIsOpen.value = false;
+  }
 };
 
 const toggleDropdown = () => {
-  isOpen.value = !isOpen.value;
+  const store = getUiStore();
+  if (store) {
+    store.toggleDropdown(instanceDropdownId);
+  } else {
+    localIsOpen.value = !localIsOpen.value;
+  }
   if (isOpen.value && items.value.length === 0) {
     fetchItems(true);
   } else if (!isOpen.value) {
@@ -160,7 +186,12 @@ const handleScroll = (event) => {
 
 const closeOnOutsideClick = (e) => {
   if (containerRef.value && !containerRef.value.contains(e.target)) {
-    isOpen.value = false;
+    const store = getUiStore();
+    if (store) {
+      store.closeDropdown(instanceDropdownId);
+    } else {
+      localIsOpen.value = false;
+    }
   }
 };
 
@@ -170,6 +201,10 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', closeOnOutsideClick);
+  const store = getUiStore();
+  if (store?.activeDropdown === instanceDropdownId) {
+    store.closeDropdown(instanceDropdownId);
+  }
 });
 
 const filterLabel = (option) => {

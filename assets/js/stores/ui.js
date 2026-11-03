@@ -13,10 +13,29 @@ export const useUiStore = defineStore('ui', {
     activeDialogData: null,
     snippetToInsert: null,
     librarySnippetToInsert: null,
-    isLocked: window.el_settings.settings.enable_sandbox || window.el_settings.settings.debug_mode || false,
+    isLocked: window.el_settings?.settings?.enable_sandbox || window.el_settings?.settings?.debug_mode || false,
+    activeDropdown: null,
   }),
 
   actions: {
+    openDropdown(dropdownId) {
+      this.activeDropdown = dropdownId;
+    },
+    closeDropdown(dropdownId = null) {
+      if (!dropdownId || this.activeDropdown === dropdownId) {
+        this.activeDropdown = null;
+      }
+    },
+    closeDropdowns() {
+      this.activeDropdown = null;
+    },
+    toggleDropdown(dropdownId) {
+      if (this.activeDropdown === dropdownId) {
+        this.activeDropdown = null;
+      } else {
+        this.activeDropdown = dropdownId;
+      }
+    },
     triggerSnippetInsert(snippet) {
       this.snippetToInsert = snippet;
     },
@@ -24,6 +43,7 @@ export const useUiStore = defineStore('ui', {
       this.librarySnippetToInsert = snippet;
     },
     openModal(modalName, modalData = null) {
+      this.closeDropdowns();
       this.activeModal = modalName;
       this.activeModalData = modalData;
     },
@@ -32,6 +52,7 @@ export const useUiStore = defineStore('ui', {
       this.activeModalData = null;
     },
     showDialog(options) {
+      this.closeDropdowns();
       return new Promise((resolve) => {
         this.activeDialog = 'dialog';
         this.activeDialogData = {

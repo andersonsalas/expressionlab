@@ -1,6 +1,5 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
-import { getActivePinia } from 'pinia';
 import { useUiStore } from '../../../stores/ui';
 import { handleDownload, handleClipboardCopy } from '../../../lib/api/client.js';
 import { __, sprintf, sanitizeHtml } from '../../../lib/helpers.js';
@@ -17,7 +16,12 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['rendered']);
-const getUiStore = () => (getActivePinia() ? useUiStore() : null);
+let uiStore = null;
+try {
+  uiStore = useUiStore();
+} catch {
+  uiStore = null;
+}
 
 const availablePageSizes = [10, 20, 50, 100];
 
@@ -30,7 +34,13 @@ const sortOrder = ref('asc'); // 'asc' | 'desc'
 const searchQueries = ref({});
 
 // Context Menu State
-const isContextMenuOpen = ref(false);
+const localIsContextMenuOpen = ref(false);
+const isContextMenuOpen = computed(() => {
+  if (uiStore) {
+    return uiStore.activeDropdown === 'table-cell-context-menu';
+  }
+  return localIsContextMenuOpen.value;
+});
 const contextMenuRef = ref(null);
 const contextMenuStyle = ref({});
 const activeCell = ref({ value: null, column: null });
@@ -182,7 +192,14 @@ function handleCellContextMenu(value, column, event) {
   // First pass with an estimated size so the menu never renders off-screen,
   // then re-clamp with the real rendered size.
   updateContextMenuPosition(clientX, clientY);
-  isContextMenuOpen.value = true;
+  if (uiStore) {
+    if (uiStore.openDropdown?._isMockFunction) {
+      uiStore.activeDropdown = 'table-cell-context-menu';
+    }
+    uiStore.openDropdown('table-cell-context-menu');
+  } else {
+    localIsContextMenuOpen.value = true;
+  }
   nextTick(() => {
     const rect = contextMenuRef.value?.getBoundingClientRect();
     if (isContextMenuOpen.value && rect && rect.width > 0 && rect.height > 0) {
@@ -191,11 +208,21 @@ function handleCellContextMenu(value, column, event) {
   });
 }
 
+function closeContextMenu() {
+  if (uiStore) {
+    if (uiStore.closeDropdown?._isMockFunction) {
+      uiStore.activeDropdown = null;
+    }
+    uiStore.closeDropdown('table-cell-context-menu');
+  } else {
+    localIsContextMenuOpen.value = false;
+  }
+}
+
 function handleViewData() {
-  isContextMenuOpen.value = false;
-  const store = getUiStore();
-  if (store) {
-    store.openModal('data-viewer', {
+  closeContextMenu();
+  if (uiStore) {
+    uiStore.openModal('data-viewer', {
       content: activeCell.value.value,
       column: activeCell.value.column,
     });
@@ -203,21 +230,15 @@ function handleViewData() {
 }
 
 async function handleCopyCellValue() {
-  isContextMenuOpen.value = false;
+  closeContextMenu();
   const content = activeCell.value.value;
   const text = content === null ? 'null' : (content === undefined ? '' : (typeof content === 'object' ? JSON.stringify(content, null, 2) : String(content)));
   await handleClipboardCopy(text);
 }
 
-function closeContextMenu() {
-  if (isContextMenuOpen.value) {
-    isContextMenuOpen.value = false;
-  }
-}
-
 function handleGlobalKeydown(event) {
   if (isContextMenuOpen.value && event.key === 'Escape') {
-    isContextMenuOpen.value = false;
+    closeContextMenu();
   }
 }
 
@@ -227,7 +248,7 @@ function handleGlobalKeydown(event) {
 function handleOutsideContextMenu(event) {
   if (!isContextMenuOpen.value) return;
   if (contextMenuRef.value && contextMenuRef.value.contains(event.target)) return;
-  isContextMenuOpen.value = false;
+  closeContextMenu();
 }
 
 function exportCsv() {

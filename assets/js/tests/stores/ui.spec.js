@@ -126,4 +126,56 @@ describe('stores/ui.js - Lock/Unlock Security State', () => {
     store.setRequestingChallenge(false);
     expect(store.isRequestingChallenge).toBe(false);
   });
+
+  it('manages activeDropdown correctly with open, close, closeDropdowns, and toggle', () => {
+    const store = useUiStore();
+    expect(store.activeDropdown).toBeNull();
+
+    store.openDropdown('file-menu');
+    expect(store.activeDropdown).toBe('file-menu');
+
+    // Opening another replaces the previous one (only one dropdown active at a time)
+    store.openDropdown('tools-menu');
+    expect(store.activeDropdown).toBe('tools-menu');
+
+    // Toggle same closes it
+    store.toggleDropdown('tools-menu');
+    expect(store.activeDropdown).toBeNull();
+
+    // Toggle different opens it
+    store.toggleDropdown('file-menu');
+    expect(store.activeDropdown).toBe('file-menu');
+
+    // Toggle to another replaces it
+    store.toggleDropdown('tab-context-menu');
+    expect(store.activeDropdown).toBe('tab-context-menu');
+
+    // closeDropdown with matching id closes
+    store.closeDropdown('tab-context-menu');
+    expect(store.activeDropdown).toBeNull();
+
+    // closeDropdown with non-matching id does not close
+    store.openDropdown('tools-menu');
+    store.closeDropdown('other-id');
+    expect(store.activeDropdown).toBe('tools-menu');
+
+    // closeDropdowns clears any active dropdown
+    store.closeDropdowns();
+    expect(store.activeDropdown).toBeNull();
+  });
+
+  it('closes activeDropdown when opening a modal or showing a dialog', () => {
+    const store = useUiStore();
+    store.openDropdown('file-menu');
+    expect(store.activeDropdown).toBe('file-menu');
+
+    store.openModal('settings');
+    expect(store.activeDropdown).toBeNull();
+
+    store.openDropdown('tools-menu');
+    expect(store.activeDropdown).toBe('tools-menu');
+
+    store.showDialog({ title: 'Test' });
+    expect(store.activeDropdown).toBeNull();
+  });
 });

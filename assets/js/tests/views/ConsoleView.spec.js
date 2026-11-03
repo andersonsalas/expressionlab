@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils';
 import { createTestingPinia } from '@pinia/testing';
 
 const mockOpenSearch = jest.fn();
+const mockSaveAsPrimaryAction = jest.fn();
 
 jest.mock('../../components/console/ConsoleSession.vue', () => ({
   name: 'ConsoleSession',
@@ -10,6 +11,9 @@ jest.mock('../../components/console/ConsoleSession.vue', () => ({
     focus() {},
     openSearch(...args) {
       mockOpenSearch(...args);
+    },
+    saveAsPrimaryAction(...args) {
+      mockSaveAsPrimaryAction(...args);
     },
   },
 }));
@@ -221,15 +225,17 @@ describe('ConsoleView.vue Toolbar', () => {
     expect(fileMenu.exists()).toBe(true);
 
     const items = fileMenu.findAll('.tab-menu-item');
-    expect(items.length).toBe(6);
+    expect(items.length).toBe(7);
     expect(items[0].text()).toContain('Undo cell action');
     expect(items[0].find('.codicon-discard').exists()).toBe(true);
     expect(items[1].text()).toContain('Redo cell action');
     expect(items[1].find('.codicon-redo').exists()).toBe(true);
-    expect(items[2].text()).toContain('Search');
-    expect(items[3].text()).toContain('Replace');
-    expect(items[4].text()).toContain('Settings');
-    expect(items[5].text()).toContain('About');
+    expect(items[2].text()).toContain('Save as...');
+    expect(items[2].find('.codicon-save').exists()).toBe(true);
+    expect(items[3].text()).toContain('Search');
+    expect(items[4].text()).toContain('Replace');
+    expect(items[5].text()).toContain('Settings');
+    expect(items[6].text()).toContain('About');
   });
 
   it('renders "With Pro Addon" subtitle under Expression Lab when addons are enabled', () => {
@@ -248,5 +254,59 @@ describe('ConsoleView.vue Toolbar', () => {
     const subtitle = btnWithAddons.find('.toolbar-button-subtitle');
     expect(subtitle.exists()).toBe(true);
     expect(subtitle.text()).toBe('With Pro Addon');
+  });
+
+  it('triggers Save as... from File dropdown and global Ctrl+Shift+S when in Notebook mode with addons', async () => {
+    mockSaveAsPrimaryAction.mockClear();
+    const wrapper = mountConsoleView(
+      {
+        tabs: {
+          tabs: [{ id: 'tab-1', mode: 'notebook', isEvaluating: false }],
+          activeTabId: 'tab-1',
+          activeTab: { id: 'tab-1', mode: 'notebook' },
+        },
+      },
+      true
+    );
+
+    const fileDropdownBtn = wrapper.find('.group-file .menu-dropdown-btn');
+    await fileDropdownBtn.trigger('click');
+
+    const items = wrapper.findAll('.console-file-dropdown-menu .tab-menu-item');
+    // "Save as..." is item index 2
+    expect(items[2].text()).toContain('Save as...');
+    expect(items[2].classes()).not.toContain('disabled');
+
+    await items[2].trigger('click');
+    expect(mockSaveAsPrimaryAction).toHaveBeenCalledTimes(1);
+
+    // Global Ctrl+Shift+S
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'S', ctrlKey: true, shiftKey: true }));
+    expect(mockSaveAsPrimaryAction).toHaveBeenCalledTimes(2);
+  });
+
+  it('ensures only one dropdown is open at a time between File and Tools dropdowns', async () => {
+    const wrapper = mountConsoleView();
+    const uiStore = useUiStore();
+
+    const fileBtn = wrapper.find('.group-file .menu-dropdown-btn');
+    const toolsBtn = wrapper.find('.group-tools-library .menu-dropdown-btn');
+
+    // Click File dropdown
+    await fileBtn.trigger('click');
+    expect(uiStore.activeDropdown).toBe('file-menu');
+    expect(wrapper.find('.console-file-dropdown-menu').exists()).toBe(true);
+    expect(wrapper.find('.console-tools-dropdown-menu').exists()).toBe(false);
+
+    // Click Tools dropdown -> closes File and opens Tools
+    await toolsBtn.trigger('click');
+    expect(uiStore.activeDropdown).toBe('tools-menu');
+    expect(wrapper.find('.console-file-dropdown-menu').exists()).toBe(false);
+    expect(wrapper.find('.console-tools-dropdown-menu').exists()).toBe(true);
+
+    // Click Tools dropdown again -> closes Tools
+    await toolsBtn.trigger('click');
+    expect(uiStore.activeDropdown).toBeNull();
+    expect(wrapper.find('.console-tools-dropdown-menu').exists()).toBe(false);
   });
 });

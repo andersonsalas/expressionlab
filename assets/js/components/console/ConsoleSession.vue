@@ -175,6 +175,13 @@ const savePrimaryAction = () => {
   emit('save-snippet', code);
 };
 
+const saveAsPrimaryAction = () => {
+  if (tab.value.mode === 'notebook') {
+    return notebookWorkspaceRef.value?.saveNotebookAs?.();
+  }
+  return null;
+};
+
 const openNotebookFile = () => {
   return notebookWorkspaceRef.value?.openNotebookFile?.();
 };
@@ -719,6 +726,7 @@ defineExpose({
   handleExecute,
   runPrimaryAction,
   savePrimaryAction,
+  saveAsPrimaryAction,
   openNotebookFile,
   undoCellAction,
   redoCellAction,
