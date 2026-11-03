@@ -36,6 +36,7 @@ defineProps({
 const uiStore = useUiStore();
 const tabsStore = useTabsStore();
 const isScratchpad = computed(() => tabsStore.activeTab?.mode === 'scratchpad');
+const canReplace = computed(() => isScratchpad.value || tabsStore.activeTab?.mode === 'notebook');
 const isOpen = computed(() => uiStore.activeModal === 'database-builder');
 
 const OPERATORS = [
@@ -2255,14 +2256,14 @@ onBeforeUnmount(() => {
           <button
             type="button"
             class="btn fw-80px insert-btn"
-            :class="isScratchpad ? 'btn-default' : 'btn-primary'"
+            :class="canReplace ? 'btn-default' : 'btn-primary'"
             :disabled="isEmpty"
             @click="handleInsert"
           >
             {{ __('Insert') }}
           </button>
           <button
-            v-if="isScratchpad"
+            v-if="canReplace"
             type="button"
             class="btn btn-primary fw-80px replace-btn"
             :disabled="isEmpty"

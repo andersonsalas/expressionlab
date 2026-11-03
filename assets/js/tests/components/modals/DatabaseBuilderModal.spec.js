@@ -443,6 +443,58 @@ describe('DatabaseBuilderModal.vue', () => {
     );
   });
 
+  it('displays Replace button and passes mode replace when in notebook mode', async () => {
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'database-builder' },
+        tabs: {
+          tabs: [{ id: 'tab1', mode: 'notebook' }],
+          activeTabId: 'tab1'
+        }
+      }
+    });
+
+    const wrapper = mount(DatabaseBuilderModal, {
+      global: {
+        plugins: [pinia],
+        mocks: {
+          __: (str) => str
+        }
+      }
+    });
+
+    const uiStore = useUiStore();
+    const replaceBtn = wrapper.find('.database-builder-footer .replace-btn');
+    const insertBtn = wrapper.find('.database-builder-footer .insert-btn');
+
+    expect(replaceBtn.exists()).toBe(true);
+    expect(replaceBtn.text()).toBe('Replace');
+    expect(replaceBtn.classes()).toContain('btn-primary');
+
+    expect(insertBtn.exists()).toBe(true);
+    expect(insertBtn.text()).toBe('Insert');
+    expect(insertBtn.classes()).toContain('btn-default');
+
+    wrapper.vm.steps[0].table = 'posts';
+    await wrapper.vm.$nextTick();
+
+    // Clicking Insert passes mode 'insert'
+    await insertBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'insert'
+      })
+    );
+
+    // Clicking Replace passes mode 'replace'
+    await replaceBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'replace'
+      })
+    );
+  });
+
   it('renders compound join selector and updates joinRef when changing source or column', async () => {
     const pinia = createTestingPinia({
       initialState: {

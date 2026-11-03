@@ -727,6 +727,62 @@ describe('FilesystemInspectorModal.vue', () => {
     );
   });
 
+  it('triggers insert / replace when active tab is in notebook mode', async () => {
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'filesystem-inspector' },
+        tabs: {
+          tabs: [{ id: 'tab1', mode: 'notebook' }],
+          activeTabId: 'tab1',
+        },
+      },
+    });
+
+    const wrapper = mount(FilesystemInspectorModal, {
+      global: {
+        plugins: [pinia],
+        mocks: {
+          __: (str) => str,
+        },
+      },
+    });
+
+    const uiStore = useUiStore();
+
+    // Select a preset card first so button is enabled
+    const presetCards = wrapper.findAll('.preset-card');
+    await presetCards[0].trigger('click');
+
+    const insertBtn = wrapper.find('.insert-btn');
+    const replaceBtn = wrapper.find('.replace-btn');
+
+    expect(insertBtn.exists()).toBe(true);
+    expect(insertBtn.text()).toBe('Insert');
+    expect(insertBtn.classes()).toContain('btn-default');
+    expect(insertBtn.attributes('disabled')).toBeUndefined();
+
+    expect(replaceBtn.exists()).toBe(true);
+    expect(replaceBtn.text()).toBe('Replace');
+    expect(replaceBtn.classes()).toContain('btn-primary');
+    expect(replaceBtn.attributes('disabled')).toBeUndefined();
+
+    // Clicking Insert sends mode 'insert'
+    await insertBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'insert',
+      })
+    );
+
+    // Clicking Replace sends mode 'replace'
+    await replaceBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'replace',
+      })
+    );
+  });
+
   it('closes cleanly when cancel or close button is clicked', async () => {
     const pinia = createTestingPinia({
       initialState: {

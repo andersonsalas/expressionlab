@@ -518,6 +518,59 @@ describe('HttpRequestBuilderModal.vue', () => {
     );
   });
 
+  it('displays Replace button and passes mode replace when in notebook mode', async () => {
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'http-builder' },
+        tabs: {
+          tabs: [{ id: 'tab1', mode: 'notebook' }],
+          activeTabId: 'tab1'
+        }
+      }
+    });
+
+    const wrapper = mount(HttpRequestBuilderModal, {
+      global: {
+        plugins: [pinia],
+        mocks: {
+          __: (str) => str
+        }
+      }
+    });
+
+    const uiStore = useUiStore();
+    const replaceBtn = wrapper.find('.http-builder-footer .replace-btn');
+    const insertBtn = wrapper.find('.http-builder-footer .insert-btn');
+
+    expect(replaceBtn.exists()).toBe(true);
+    expect(replaceBtn.text()).toBe('Replace');
+    expect(replaceBtn.classes()).toContain('btn-primary');
+
+    expect(insertBtn.exists()).toBe(true);
+    expect(insertBtn.text()).toBe('Insert');
+    expect(insertBtn.classes()).toContain('btn-default');
+
+    const addressInput = wrapper.find('.request-url-input');
+    await addressInput.setValue('https://api.example.com/data');
+    await wrapper.vm.$nextTick();
+
+    // Clicking Insert passes mode 'insert'
+    await insertBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'insert'
+      })
+    );
+
+    // Clicking Replace passes mode 'replace'
+    await replaceBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'replace'
+      })
+    );
+  });
+
   it('does not cause recursive loop when configuring API Key in Query Params', async () => {
     const pinia = createTestingPinia({
       initialState: {

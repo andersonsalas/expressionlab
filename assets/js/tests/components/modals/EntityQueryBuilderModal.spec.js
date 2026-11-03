@@ -379,6 +379,56 @@ describe('EntityQueryBuilderModal.vue', () => {
     expect(uiStore.closeModal).toHaveBeenCalled();
   });
 
+  it('triggers snippet insert on primary button click (insert vs replace) when in notebook mode', async () => {
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'entity-builder' },
+        tabs: {
+          tabs: [{ id: 'tab1', mode: 'notebook' }],
+          activeTabId: 'tab1'
+        }
+      }
+    });
+
+    const wrapper = mount(EntityQueryBuilderModal, {
+      global: {
+        plugins: [pinia],
+        mocks: {
+          __: (str) => str
+        }
+      }
+    });
+
+    const uiStore = useUiStore();
+
+    // In notebook mode, both Insert and Replace buttons coexist
+    const replaceBtn = wrapper.find('.footer-actions-right .replace-btn');
+    const insertBtn = wrapper.find('.footer-actions-right .insert-btn');
+
+    expect(replaceBtn.exists()).toBe(true);
+    expect(replaceBtn.text()).toBe('Replace');
+    expect(replaceBtn.classes()).toContain('btn-primary');
+
+    expect(insertBtn.exists()).toBe(true);
+    expect(insertBtn.text()).toBe('Insert');
+    expect(insertBtn.classes()).toContain('btn-default');
+
+    // Clicking Insert passes mode 'insert'
+    await insertBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith({
+      code: 'Users.get()',
+      mode: 'insert'
+    });
+
+    // Clicking Replace passes mode 'replace'
+    await replaceBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith({
+      code: 'Users.get()',
+      mode: 'replace'
+    });
+    expect(uiStore.closeModal).toHaveBeenCalled();
+  });
+
   it('prompts confirmation when resetting dirty draft', async () => {
     const pinia = createTestingPinia({
       initialState: {
