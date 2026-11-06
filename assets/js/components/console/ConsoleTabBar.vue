@@ -19,6 +19,10 @@ const isEvaluationNotebook = (tab) => {
   return Boolean(tab && tab.mode === 'notebook' && hasAddons() && !isProLicenseValid.value);
 };
 
+const isEncryptedNotebook = (tab) => {
+  return Boolean(tab && tab.mode === 'notebook' && tab.isEncrypted);
+};
+
 const scrollContainerRef = ref(null);
 const renameInputRef = ref(null);
 
@@ -484,6 +488,11 @@ onBeforeUnmount(() => {
           :title="tab.title"
         >
           <span class="tab-title-line">
+            <span
+              v-if="isEncryptedNotebook(tab)"
+              class="codicon codicon-lock-small tab-encrypted-icon"
+              :title="__('Encrypted Notebook')"
+            />
             <span class="tab-title-text">{{ tab.title }}</span>
             <span
               v-if="tab.mode === 'notebook' && tab.notebookDirty"

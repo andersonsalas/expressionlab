@@ -5,6 +5,7 @@ import { useOutlineStore } from '../stores/outline.js';
 import { useTabsStore } from '../stores/tabs.js';
 import { useSettingsStore } from '../stores/settings.js';
 import { debugLog, __, hasAddons } from '../lib/helpers.js';
+import { menuRegistry, matchesShortcut } from '../lib/menuRegistry.js';
 import ConsoleTabBar from '../components/console/ConsoleTabBar.vue';
 import ConsoleSession from '../components/console/ConsoleSession.vue';
 import ConsoleSidebar from '../components/console/ConsoleSidebar.vue';
@@ -37,6 +38,8 @@ const isNotebook = computed(() => activeTab.value?.mode === 'notebook');
 const activeTabLoading = computed(() => Boolean(activeTab.value?.isEvaluating));
 const isScratchpadOutputVisible = computed(() => Boolean(activeTab.value?.isScratchpadOutputVisible));
 
+const isNotebookLocked = computed(() => Boolean(tabsStore.isCurrentTabReadOnly));
+
 const runButtonTitle = computed(() => {
   if (activeTabLoading.value) return __('Evaluating expression...');
   if (isNotebook.value) return __('Run all cells (Ctrl+R)');
@@ -45,7 +48,12 @@ const runButtonTitle = computed(() => {
 });
 
 const saveButtonTitle = computed(() => {
-  if (isNotebook.value) return __('Save Notebook (.elab) (Ctrl+S / Cmd+S)');
+  if (isNotebook.value) {
+    if (isNotebookLocked.value) {
+      return __('Notebook is Read-Only (Ctrl+S / Cmd+S)');
+    }
+    return __('Save Notebook (.elab) (Ctrl+S / Cmd+S)');
+  }
   return __('Save snippet to Library (Ctrl+S / Cmd+S)');
 });
 
@@ -72,30 +80,10 @@ const isMac =
   );
 const modKey = isMac ? '⌘' : 'Ctrl';
 
-const canUndoCellAction = computed(() => isNotebook.value && Boolean(activeTab.value?.canUndoCell));
-const canRedoCellAction = computed(() => isNotebook.value && Boolean(activeTab.value?.canRedoCell));
 const canSearch = computed(() => {
   const mode = activeTab.value?.mode;
-  return mode === 'scratchpad' || (mode === 'notebook' && hasAddons());
+  return mode === 'scratchpad' || mode === 'notebook';
 });
-
-const handleUndoCellAction = () => {
-  if (!canUndoCellAction.value) return;
-  getActiveSession()?.undoCellAction?.();
-  uiStore.closeDropdown('file-menu');
-  if (uiStore.closeDropdown?._isMockFunction) {
-    uiStore.activeDropdown = null;
-  }
-};
-
-const handleRedoCellAction = () => {
-  if (!canRedoCellAction.value) return;
-  getActiveSession()?.redoCellAction?.();
-  uiStore.closeDropdown('file-menu');
-  if (uiStore.closeDropdown?._isMockFunction) {
-    uiStore.activeDropdown = null;
-  }
-};
 
 const handleOpenFileSearch = (withReplace = false) => {
   if (!canSearch.value) return;
@@ -123,6 +111,10 @@ watch(
   () => uiStore.snippetToInsert,
   (payload) => {
     if (payload) {
+      if (tabsStore.isCurrentTabReadOnly) {
+        uiStore.triggerSnippetInsert(null);
+        return;
+      }
       const code = typeof payload === 'object' && payload !== null && payload.code !== undefined ? payload.code : payload;
       const mode = typeof payload === 'object' && payload !== null && payload.mode ? payload.mode : 'insert';
       const session = getActiveSession();
@@ -173,6 +165,10 @@ const handleExecuteActiveScratchpad = () => {
 };
 
 const handleSavePrimary = () => {
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   const session = getActiveSession();
   if (typeof session?.savePrimaryAction === 'function') {
     session.savePrimaryAction();
@@ -182,6 +178,17 @@ const handleSavePrimary = () => {
 };
 
 const handleOpenFile = () => {
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
+  const openItem = fileMenuGroups.value
+    .flatMap((g) => g.items || [])
+    .find((i) => i.id === 'open');
+  if (openItem && !openItem.disabled && typeof openItem.action === 'function') {
+    openItem.action();
+    return;
+  }
   if (typeof window !== 'undefined' && typeof window.__elOpenNotebookFile === 'function') {
     window.__elOpenNotebookFile({
       tabsStore,
@@ -192,15 +199,49 @@ const handleOpenFile = () => {
   }
 };
 
+const handleNewTab = () => {
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
+  tabsStore.createTab();
+};
+
+const handleCloseCurrentTab = () => {
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
+  if (tabsStore.activeTabId) {
+    tabsStore.requestCloseTab(tabsStore.activeTabId);
+  }
+};
+
+const handleCloseAllTabs = () => {
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
+  tabsStore.requestCloseAllTabs();
+};
+
 const handleSaveScratchpadSnippet = (code) => {
   uiStore.openModal('library', { draftCode: code });
 };
 
 const handleClear = () => {
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   getActiveSession()?.clearSession();
 };
 
 const handleFormatCode = () => {
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   getActiveSession()?.formatCode();
 };
 
@@ -264,18 +305,119 @@ const handleOpenFileAbout = () => {
   uiStore.openModal('about');
 };
 
-const handleSaveAs = () => {
-  uiStore.closeDropdown('file-menu');
-  if (uiStore.closeDropdown?._isMockFunction) {
-    uiStore.activeDropdown = null;
-  }
-  if (isNotebook.value) {
-    const session = getActiveSession();
-    if (typeof session?.saveAsPrimaryAction === 'function') {
-      session.saveAsPrimaryAction();
-    }
-  }
-};
+const fileMenuGroups = computed(() => {
+  const baseGroups = [
+    // Group 1: File & Persistence
+    {
+      id: 'file',
+      items: [
+        {
+          id: 'new',
+          label: __('New'),
+          icon: 'codicon-new-file',
+          action: handleNewTab,
+        },
+        {
+          id: 'save',
+          label: __('Save'),
+          icon: 'codicon-save',
+          shortcut: `${modKey}+S`,
+          action: handleSavePrimary,
+        },
+      ],
+    },
+
+    // Group 2: Edit & Code
+    {
+      id: 'edit',
+      items: [
+        {
+          id: 'search',
+          label: __('Search'),
+          icon: 'codicon-search',
+          shortcut: `${modKey}+F`,
+          disabled: !canSearch.value,
+          action: () => handleOpenFileSearch(false),
+        },
+        {
+          id: 'replace',
+          label: __('Replace'),
+          icon: 'codicon-replace',
+          shortcut: `${modKey}+H`,
+          disabled: !canSearch.value,
+          action: () => handleOpenFileSearch(true),
+        },
+        {
+          id: 'format-code',
+          label: __('Format Code'),
+          icon: 'codicon-json',
+          shortcut: 'Shift+Alt+F',
+          action: handleFormatCode,
+        },
+        {
+          id: 'clear-outputs',
+          label: __('Clear session'),
+          icon: 'codicon-circle-slash',
+          action: handleClear,
+        },
+      ],
+    },
+
+    // Group 3: Tabs / Window
+    {
+      id: 'tabs',
+      items: [
+        {
+          id: 'close-tab',
+          label: __('Close tab'),
+          icon: 'codicon-close',
+          shortcut: `${modKey}+W`,
+          disabled: tabsStore.tabs.length === 0,
+          action: handleCloseCurrentTab,
+        },
+        {
+          id: 'close-all-tabs',
+          label: __('Close all tabs'),
+          icon: 'codicon-close-all',
+          disabled: tabsStore.tabs.length === 0,
+          action: handleCloseAllTabs,
+        },
+      ],
+    },
+
+    // Group 4: Application
+    {
+      id: 'app',
+      items: [
+        {
+          id: 'settings',
+          label: __('Settings'),
+          icon: 'codicon-settings-gear',
+          action: handleOpenFileSettings,
+        },
+        {
+          id: 'about',
+          label: __('About'),
+          icon: 'codicon-info',
+          action: handleOpenFileAbout,
+        },
+      ],
+    },
+  ];
+
+  const context = {
+    tabsStore,
+    uiStore,
+    settingsStore,
+    activeTab: activeTab.value,
+    activeSession: getActiveSession(),
+    isNotebook: isNotebook.value,
+    sessionRefs: sessionRefs.value,
+    modKey,
+  };
+
+  return menuRegistry.apply('file', baseGroups, context);
+});
 
 const isToolsDropdownOpen = computed(() => uiStore.activeDropdown === 'tools-menu');
 const toolsDropdownBtnRef = ref(null);
@@ -383,36 +525,28 @@ const handleGlobalKeydown = (e) => {
     }
   }
 
-  if ((e.ctrlKey || e.metaKey) && !e.altKey && e.shiftKey) {
-    if ((e.key === 's' || e.key === 'S') && hasAddons() && isNotebook.value) {
-      e.preventDefault();
-      handleSaveAs();
-      return;
-    }
-  }
-
-  if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
-    if (e.key === 's' || e.key === 'S') {
-      e.preventDefault();
-      handleSavePrimary();
-      return;
-    }
-    if ((e.key === 'o' || e.key === 'O') && hasAddons()) {
-      e.preventDefault();
-      handleOpenFile();
-      return;
-    }
-    if (e.key === 'f' || e.key === 'F') {
-      if (canSearch.value) {
-        e.preventDefault();
-        getActiveSession()?.openSearch?.(false);
-        return;
-      }
-    }
-    if (e.key === 'h' || e.key === 'H') {
-      if (canSearch.value) {
-        e.preventDefault();
-        getActiveSession()?.openSearch?.(true);
+  for (const group of fileMenuGroups.value) {
+    for (const item of group.items || []) {
+      if (item.shortcut && matchesShortcut(e, item.shortcut)) {
+        if (item.id === 'undo' || item.id === 'redo') {
+          const active = typeof document !== 'undefined' ? document.activeElement : null;
+          if (active) {
+            const tag = active.tagName?.toLowerCase();
+            if (
+              tag === 'input' ||
+              tag === 'textarea' ||
+              active.isContentEditable ||
+              active.closest?.('.cm-editor') ||
+              active.closest?.('.cm-content')
+            ) {
+              return;
+            }
+          }
+        }
+        if (!item.disabled && typeof item.action === 'function') {
+          e.preventDefault();
+          item.action();
+        }
         return;
       }
     }
@@ -513,16 +647,19 @@ onUnmounted(() => {
             @click.stop="toggleFileDropdown"
           >
             <ExpressionLabIcon style="width: 26px; height: 26px; flex-shrink: 0; margin-right:4px;" />
-            <span
-              class="toolbar-button-label"
-              :class="{ 'has-subtitle': hasAddons() }"
-            >
+            <span class="toolbar-button-label has-subtitle">
               <span class="toolbar-button-title">{{ __('Expression Lab') }}</span>
               <span
                 v-if="hasAddons()"
                 class="toolbar-button-subtitle"
               >
-                {{ __('With Pro Addon') }}
+                {{ __('Professional Edition') }}
+              </span>
+              <span
+                v-else
+                class="toolbar-button-subtitle"
+              >
+                {{ __('Community Edition') }}
               </span>
             </span>
             <div class="codicon codicon-chevron-down tools-chevron" />
@@ -540,9 +677,16 @@ onUnmounted(() => {
           </div>
           <div
             class="console-toolbar-button menu btn-scratchpad-save"
+            :class="{ 'btn-save-locked': isNotebookLocked }"
             :title="saveButtonTitle"
             @click="handleSavePrimary"
           >
+            <div
+              v-if="isNotebookLocked"
+              class="btn-badge btn-badge-lock"
+            >
+              <div class="codicon codicon-add" />
+            </div>
             <div
               class="codicon codicon-save"
               style="color: #3858e9;"
@@ -827,83 +971,34 @@ onUnmounted(() => {
       class="console-tab-context-menu console-file-dropdown-menu"
       :style="fileDropdownStyle"
     >
-      <div
-        v-if="hasAddons()"
-        class="tab-menu-item"
-        :class="{ disabled: !canUndoCellAction }"
-        @click="handleUndoCellAction"
+      <template
+        v-for="(group, gIndex) in fileMenuGroups"
+        :key="group.id"
       >
-        <span class="codicon codicon-discard" />
-        <span>{{ __('Undo cell action') }}</span>
-        <span class="menu-shortcut">{{ modKey }}+Z</span>
-      </div>
-      <div
-        v-if="hasAddons()"
-        class="tab-menu-item"
-        :class="{ disabled: !canRedoCellAction }"
-        @click="handleRedoCellAction"
-      >
-        <span class="codicon codicon-redo" />
-        <span>{{ __('Redo cell action') }}</span>
-        <span class="menu-shortcut">{{ modKey }}+Shift+Z</span>
-      </div>
-
-      <div 
-        v-if="hasAddons()"
-        class="tab-menu-separator" 
-      />
-
-      <div
-        v-if="hasAddons()"
-        class="tab-menu-item"
-        :class="{ disabled: !isNotebook }"
-        @click="handleSaveAs"
-      >
-        <span class="codicon codicon-save" />
-        <span>{{ __('Save as...') }}</span>
-        <span class="menu-shortcut">{{ modKey }}+Shift+S</span>
-      </div>
-
-      <div 
-        v-if="hasAddons()"
-        class="tab-menu-separator" 
-      />
-
-      <div
-        class="tab-menu-item"
-        :class="{ disabled: !canSearch }"
-        @click="handleOpenFileSearch(false)"
-      >
-        <span class="codicon codicon-search" />
-        <span>{{ __('Search') }}</span>
-        <span class="menu-shortcut">{{ modKey }}+F</span>
-      </div>
-      <div
-        class="tab-menu-item"
-        :class="{ disabled: !canSearch }"
-        @click="handleOpenFileSearch(true)"
-      >
-        <span class="codicon codicon-replace" />
-        <span>{{ __('Replace') }}</span>
-        <span class="menu-shortcut">{{ modKey }}+H</span>
-      </div>
-
-      <div class="tab-menu-separator" />
-
-      <div
-        class="tab-menu-item"
-        @click="handleOpenFileSettings"
-      >
-        <span class="codicon codicon-settings-gear" />
-        <span>{{ __('Settings') }}</span>
-      </div>
-      <div
-        class="tab-menu-item"
-        @click="handleOpenFileAbout"
-      >
-        <span class="codicon codicon-info" />
-        <span>{{ __('About') }}</span>
-      </div>
+        <div
+          v-if="gIndex > 0 && group.items.length > 0"
+          class="tab-menu-separator"
+        />
+        <div
+          v-for="item in group.items"
+          :key="item.id"
+          class="tab-menu-item"
+          :class="{ disabled: item.disabled }"
+          :title="item.title || item.label"
+          @click="!item.disabled && item.action()"
+        >
+          <span
+            v-if="item.icon"
+            class="codicon"
+            :class="item.icon"
+          />
+          <span class="tab-menu-item-label">{{ item.label }}</span>
+          <span
+            v-if="item.shortcut"
+            class="menu-shortcut"
+          >{{ item.shortcut }}</span>
+        </div>
+      </template>
     </div>
   </Teleport>
 

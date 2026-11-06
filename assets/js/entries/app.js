@@ -22,6 +22,7 @@ import {
 } from '../lib/api/client.js';
 import { formatExpressionLab } from '../lib/codemirror/formatter.js';
 import { formatEditorDocument } from '../lib/codemirror/format-command.js';
+import { menuRegistry } from '../lib/menuRegistry.js';
 import { useTabsStore } from '../stores/tabs.js';
 import { useUiStore } from '../stores/ui.js';
 import { useSettingsStore } from '../stores/settings.js';
@@ -85,6 +86,7 @@ const core = {
     sprintf,
     hasAddons,
   },
+  menu: menuRegistry,
 };
 
 app.provide('elCore', core);
@@ -97,7 +99,7 @@ async function initAddons() {
         await addon.register({ app, pinia, router, core });
       }
     } catch (err) {
-      console.error('[Expression Lab] Failed to register Pro Addon:', err);
+      console.error('[Expression Lab] Failed to register Professional Edition:', err);
     }
   }
 }

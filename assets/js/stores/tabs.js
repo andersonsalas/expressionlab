@@ -7,6 +7,23 @@ export const MAX_TABS = 12;
 
 const isDirtyNotebookTab = (tab) => Boolean(tab && tab.mode === 'notebook' && tab.notebookDirty);
 
+/**
+ * Determines whether a tab represents a locked, read-only notebook.
+ *
+ * @param {object|null} tab
+ * @return {boolean}
+ */
+export const isTabLocked = (tab) => {
+  if (!tab || tab.mode !== 'notebook') return false;
+  const isPersisted = Boolean(tab.notebookFileHandleId || tab.notebookFileHandle);
+  const isReadOnly = Boolean(tab.notebookMeta?.meta?.isReadOnly);
+  const isUnlocked = Boolean(tab.notebookUnlockedForEditing);
+  const isPersistedReadOnly = tab.notebookPersistedReadOnly !== undefined && tab.notebookPersistedReadOnly !== null
+    ? Boolean(tab.notebookPersistedReadOnly)
+    : isReadOnly;
+  return isPersisted && isReadOnly && !isUnlocked && isPersistedReadOnly;
+};
+
 let tabCounter = 1;
 
 /**
@@ -112,10 +129,14 @@ export const createTabInstance = ({
   scratchpadCode = '',
   withBanner = undefined,
   notebookDocHandle = null,
+  notebookClonedFromDocHandle = null,
   notebookFileHandleId = null,
   notebookFilename = null,
   notebookDirty = false,
   notebookPayload = null,
+  notebookOpenPassword = null,
+  isEncrypted = false,
+  notebookPersistedReadOnly = null,
   existingTabs = [],
 } = {}) => {
   const tabId = id || `tab_${Date.now()}_${tabCounter++}`;
@@ -147,6 +168,7 @@ export const createTabInstance = ({
     isScratchpadOutputVisible: false,
     needsLayoutRefresh: false,
     notebookDocHandle,
+    notebookClonedFromDocHandle,
     notebookMeta: null,
     notebookFileHandle: null,
     notebookFileName: notebookFilename,
@@ -154,6 +176,12 @@ export const createTabInstance = ({
     notebookFilename,
     notebookDirty: Boolean(notebookDirty),
     notebookPayload,
+    isEncrypted: Boolean(isEncrypted || notebookOpenPassword),
+    notebookUnlockedForEditing: false,
+    notebookPersistedReadOnly:
+      notebookPersistedReadOnly !== null && notebookPersistedReadOnly !== undefined
+        ? Boolean(notebookPersistedReadOnly)
+        : null,
   };
 };
 
@@ -202,6 +230,12 @@ export const useTabsStore = defineStore('tabs', {
     },
     activeTabIndex: (state) => {
       return state.tabs.findIndex((tab) => tab.id === state.activeTabId);
+    },
+    isCurrentTabReadOnly: (state) => {
+      const tab = Array.isArray(state.tabs)
+        ? (state.tabs.find((t) => t.id === state.activeTabId) || state.tabs[0] || null)
+        : null;
+      return isTabLocked(tab);
     },
   },
 
@@ -315,7 +349,7 @@ export const useTabsStore = defineStore('tabs', {
 
     /**
      * Prompts the user with a confirmation modal when attempting to close one or more
-     * dirty notebook tabs.
+     * dirty notebook tabs. (Professional Edition only)
      *
      * @param {Array<object>} dirtyTabs
      * @return {Promise<boolean>}
@@ -337,14 +371,14 @@ export const useTabsStore = defineStore('tabs', {
       }
 
       const isMultiple = dirtyTabs.length > 1;
-      const title = isMultiple ? __('Unsaved Notebooks') : __('Unsaved Notebook');
+      const title = __('Unsaved Changes');
       const message = isMultiple
         ? sprintf(
-            __('You have %d notebooks with unsaved changes. Are you sure you want to close them without saving?'),
+            __('%d notebooks have unsaved changes. Discard changes and close all?'),
             dirtyTabs.length
           )
         : sprintf(
-            __('The notebook "%s" has unsaved changes. Are you sure you want to close it without saving?'),
+            __('"%s" has unsaved changes. Discard changes and close?'),
             dirtyTabs[0]?.title || __('Notebook')
           );
 
@@ -600,6 +634,17 @@ export const useTabsStore = defineStore('tabs', {
       if (patch.notebookPayload !== undefined) tab.notebookPayload = patch.notebookPayload;
       if (patch.canUndoCell !== undefined) tab.canUndoCell = Boolean(patch.canUndoCell);
       if (patch.canRedoCell !== undefined) tab.canRedoCell = Boolean(patch.canRedoCell);
+      if (patch.notebookClonedFromDocHandle !== undefined) {
+        tab.notebookClonedFromDocHandle = patch.notebookClonedFromDocHandle;
+      }
+      if (patch.notebookOpenPassword !== undefined) {
+        tab.isEncrypted = Boolean(patch.notebookOpenPassword);
+      }
+      if (patch.isEncrypted !== undefined) {
+        tab.isEncrypted = Boolean(patch.isEncrypted);
+      }
+      if (patch.notebookUnlockedForEditing !== undefined) tab.notebookUnlockedForEditing = Boolean(patch.notebookUnlockedForEditing);
+      if (patch.notebookPersistedReadOnly !== undefined) tab.notebookPersistedReadOnly = Boolean(patch.notebookPersistedReadOnly);
     },
 
     /**
@@ -665,6 +710,10 @@ export const useTabsStore = defineStore('tabs', {
         selectedUser: source.selectedUser,
         selectedSite: source.selectedSite,
         scratchpadCode: source.scratchpadCode,
+        isEncrypted: source.isEncrypted,
+        notebookClonedFromDocHandle: source.notebookDocHandle || null,
+        notebookPersistedReadOnly: source.notebookPersistedReadOnly,
+        existingTabs: this.tabs,
       });
 
       clonedTab.scratchpadEditorRatio = source.scratchpadEditorRatio;
@@ -673,6 +722,16 @@ export const useTabsStore = defineStore('tabs', {
       this.tabs.splice(index + 1, 0, clonedTab);
       this.activeTabId = clonedTab.id;
       return clonedTab;
+    },
+
+    /**
+     * Alias for duplicateTab.
+     *
+     * @param {string} id
+     * @return {object|null}
+     */
+    cloneTab(id) {
+      return this.duplicateTab(id);
     },
   },
 });

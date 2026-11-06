@@ -774,5 +774,52 @@ describe('EntityQueryBuilderModal.vue', () => {
 
     wrapper.unmount();
   });
+
+  it('disables Insert and Replace buttons when active tab is a locked read-only notebook', async () => {
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'entity-builder' },
+        tabs: {
+          activeTabId: 'tab_locked_nb',
+          tabs: [
+            {
+              id: 'tab_locked_nb',
+              mode: 'notebook',
+              notebookFileHandleId: 'handle-locked',
+              notebookMeta: { meta: { isReadOnly: true } },
+              notebookUnlockedForEditing: false,
+              notebookPersistedReadOnly: true,
+            }
+          ]
+        }
+      }
+    });
+
+    const wrapper = mount(EntityQueryBuilderModal, {
+      global: {
+        plugins: [pinia],
+        mocks: {
+          __: (str) => str
+        }
+      }
+    });
+
+    const insertBtn = wrapper.find('.footer-actions-right .insert-btn');
+    const replaceBtn = wrapper.find('.footer-actions-right .replace-btn');
+
+    expect(insertBtn.exists()).toBe(true);
+    expect(replaceBtn.exists()).toBe(true);
+    expect(insertBtn.attributes('disabled')).toBeDefined();
+    expect(replaceBtn.attributes('disabled')).toBeDefined();
+    expect(insertBtn.attributes('title')).toBe('Notebook is in Read-Only mode');
+    expect(replaceBtn.attributes('title')).toBe('Notebook is in Read-Only mode');
+
+    const uiStore = useUiStore();
+    await insertBtn.trigger('click');
+    await replaceBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).not.toHaveBeenCalled();
+
+    wrapper.unmount();
+  });
 });
 

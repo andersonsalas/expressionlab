@@ -16,7 +16,7 @@ let addonManifest = null;
 if (withProAddon) {
   if (Encore.isProduction()) {
     const expressionLabPublicKey = '38129953c6aabc40a5837e3b9ede6d7bb68b34ff78db004df1c9353b74e37afb';
-    console.info('[Info] Starting production build with Pro Addon...');
+    console.info('[Info] Starting production build for Professional Edition...');
 
     if (typeof expressionLabPublicKey !== 'string' || !/^[0-9a-fA-F]{64}$/.test(expressionLabPublicKey)) {
       throw new Error('[Error] Public Key is invalid');

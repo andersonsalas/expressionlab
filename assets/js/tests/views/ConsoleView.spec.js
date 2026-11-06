@@ -28,9 +28,12 @@ jest.mock('../../components/console/ConsoleSidebar.vue', () => ({
 
 import ConsoleView from '../../views/ConsoleView.vue';
 import { useUiStore } from '../../stores/ui';
+import { useTabsStore } from '../../stores/tabs';
+import { menuRegistry } from '../../lib/menuRegistry.js';
 
 describe('ConsoleView.vue Toolbar', () => {
   beforeEach(() => {
+    menuRegistry.reset('file');
     window.el_settings = {
       multisite: false,
       site: { users: [], sites: [] },
@@ -52,6 +55,7 @@ describe('ConsoleView.vue Toolbar', () => {
   });
 
   afterEach(() => {
+    menuRegistry.reset('file');
     delete global.__WITH_ADDONS__;
   });
 
@@ -163,25 +167,30 @@ describe('ConsoleView.vue Toolbar', () => {
     expect(fileMenu.exists()).toBe(true);
 
     const items = fileMenu.findAll('.tab-menu-item');
-    expect(items.length).toBe(4);
-    expect(items[0].text()).toContain('Search');
-    expect(items[0].find('.codicon-search').exists()).toBe(true);
-    expect(items[1].text()).toContain('Replace');
-    expect(items[1].find('.codicon-replace').exists()).toBe(true);
-    expect(items[2].text()).toContain('Settings');
-    expect(items[2].find('.codicon-settings-gear').exists()).toBe(true);
-    expect(items[3].text()).toContain('About');
-    expect(items[3].find('.codicon-info').exists()).toBe(true);
+    expect(items.length).toBe(10);
+    const searchItem = items.find((i) => i.text().includes('Search'));
+    expect(searchItem).toBeDefined();
+    expect(searchItem.find('.codicon-search').exists()).toBe(true);
+    const replaceItem = items.find((i) => i.text().includes('Replace'));
+    expect(replaceItem).toBeDefined();
+    expect(replaceItem.find('.codicon-replace').exists()).toBe(true);
+    const settingsItem = items.find((i) => i.text().includes('Settings'));
+    expect(settingsItem).toBeDefined();
+    expect(settingsItem.find('.codicon-settings-gear').exists()).toBe(true);
+    const aboutItem = items.find((i) => i.text().includes('About'));
+    expect(aboutItem).toBeDefined();
+    expect(aboutItem.find('.codicon-info').exists()).toBe(true);
 
     // Click Settings
-    await items[2].trigger('click');
+    await settingsItem.trigger('click');
     expect(uiStore.openModal).toHaveBeenCalledWith('settings');
     expect(wrapper.find('.console-file-dropdown-menu').exists()).toBe(false);
 
     // Open File dropdown again and click About
     await fileDropdownBtn.trigger('click');
     const itemsAgain = wrapper.findAll('.console-file-dropdown-menu .tab-menu-item');
-    await itemsAgain[3].trigger('click');
+    const aboutItemAgain = itemsAgain.find((i) => i.text().includes('About'));
+    await aboutItemAgain.trigger('click');
     expect(uiStore.openModal).toHaveBeenCalledWith('about');
     expect(wrapper.find('.console-file-dropdown-menu').exists()).toBe(false);
   });
@@ -195,13 +204,15 @@ describe('ConsoleView.vue Toolbar', () => {
 
     const items = wrapper.findAll('.console-file-dropdown-menu .tab-menu-item');
     // Search item
-    await items[0].trigger('click');
+    const searchItem = items.find((i) => i.text().includes('Search'));
+    await searchItem.trigger('click');
     expect(mockOpenSearch).toHaveBeenCalledWith(false);
 
     // Replace item
     await fileDropdownBtn.trigger('click');
     const itemsAgain = wrapper.findAll('.console-file-dropdown-menu .tab-menu-item');
-    await itemsAgain[1].trigger('click');
+    const replaceItem = itemsAgain.find((i) => i.text().includes('Replace'));
+    await replaceItem.trigger('click');
     expect(mockOpenSearch).toHaveBeenCalledWith(true);
 
     // Global Ctrl+F
@@ -213,7 +224,43 @@ describe('ConsoleView.vue Toolbar', () => {
     expect(mockOpenSearch).toHaveBeenCalledWith(true);
   });
 
-  it('renders Open button in Group 2 and Undo/Redo in File dropdown when addons are enabled', async () => {
+  it('renders Open button in Group 2 and extended items in File dropdown when a transformer is registered', async () => {
+    const mockTransformerAction = jest.fn();
+    menuRegistry.registerTransformer('file', (groups) => {
+      const fileGroup = groups.find((g) => g.id === 'file');
+      if (fileGroup) {
+        fileGroup.items.splice(1, 0, {
+          id: 'open',
+          label: 'Open...',
+          icon: 'codicon-folder-opened',
+          shortcut: 'Ctrl+O',
+          action: mockTransformerAction,
+        });
+      }
+      const editGroup = groups.find((g) => g.id === 'edit');
+      if (editGroup) {
+        editGroup.items.unshift(
+          {
+            id: 'undo',
+            label: 'Undo cell action',
+            icon: 'codicon-discard',
+            shortcut: 'Ctrl+Z',
+            disabled: false,
+            action: jest.fn(),
+          },
+          {
+            id: 'redo',
+            label: 'Redo cell action',
+            icon: 'codicon-redo',
+            shortcut: 'Ctrl+Shift+Z',
+            disabled: false,
+            action: jest.fn(),
+          }
+        );
+      }
+      return groups;
+    });
+
     const wrapper = mountConsoleView({}, true);
     const group2 = wrapper.find('.group-file-actions');
     expect(group2.find('.btn-open-notebook').exists()).toBe(true);
@@ -225,39 +272,42 @@ describe('ConsoleView.vue Toolbar', () => {
     expect(fileMenu.exists()).toBe(true);
 
     const items = fileMenu.findAll('.tab-menu-item');
-    expect(items.length).toBe(7);
-    expect(items[0].text()).toContain('Undo cell action');
-    expect(items[0].find('.codicon-discard').exists()).toBe(true);
-    expect(items[1].text()).toContain('Redo cell action');
-    expect(items[1].find('.codicon-redo').exists()).toBe(true);
-    expect(items[2].text()).toContain('Save as...');
-    expect(items[2].find('.codicon-save').exists()).toBe(true);
-    expect(items[3].text()).toContain('Search');
-    expect(items[4].text()).toContain('Replace');
-    expect(items[5].text()).toContain('Settings');
-    expect(items[6].text()).toContain('About');
+    expect(items.length).toBe(13); // 10 base + 3 injected
+    const undoItem = items.find((i) => i.text().includes('Undo cell action'));
+    expect(undoItem).toBeDefined();
+    expect(undoItem.find('.codicon-discard').exists()).toBe(true);
+    const redoItem = items.find((i) => i.text().includes('Redo cell action'));
+    expect(redoItem).toBeDefined();
+    expect(redoItem.find('.codicon-redo').exists()).toBe(true);
+    const openItem = items.find((i) => i.text().includes('Open...'));
+    expect(openItem).toBeDefined();
+    expect(openItem.find('.codicon-folder-opened').exists()).toBe(true);
+
+    // Clicking openItem triggers action
+    await openItem.trigger('click');
+    expect(mockTransformerAction).toHaveBeenCalledTimes(1);
   });
 
-  it('renders "With Pro Addon" subtitle under Expression Lab when addons are enabled', () => {
-    const wrapperWithoutAddons = mountConsoleView({}, false);
-    const btnWithoutAddons = wrapperWithoutAddons.find('.group-file .menu-dropdown-btn');
-    expect(btnWithoutAddons.classes()).not.toContain('has-subtitle');
-    expect(btnWithoutAddons.find('.toolbar-button-subtitle').exists()).toBe(false);
-    expect(btnWithoutAddons.find('.toolbar-button-title').text()).toBe('Expression Lab');
-
-    const wrapperWithAddons = mountConsoleView({}, true);
-    const btnWithAddons = wrapperWithAddons.find('.group-file .menu-dropdown-btn');
-    expect(btnWithAddons.classes()).toContain('has-subtitle');
-    const labelWithAddons = btnWithAddons.find('.toolbar-button-label');
-    expect(labelWithAddons.classes()).toContain('has-subtitle');
-    expect(labelWithAddons.find('.toolbar-button-title').text()).toBe('Expression Lab');
-    const subtitle = btnWithAddons.find('.toolbar-button-subtitle');
-    expect(subtitle.exists()).toBe(true);
-    expect(subtitle.text()).toBe('With Pro Addon');
-  });
-
-  it('triggers Save as... from File dropdown and global Ctrl+Shift+S when in Notebook mode with addons', async () => {
+  it('triggers Save as... from File dropdown and global Ctrl+Shift+S when registered by transformer in Notebook mode', async () => {
     mockSaveAsPrimaryAction.mockClear();
+
+    menuRegistry.registerTransformer('file', (groups, context) => {
+      const fileGroup = groups.find((g) => g.id === 'file');
+      if (fileGroup) {
+        fileGroup.items.push({
+          id: 'save-as',
+          label: 'Save as...',
+          icon: 'codicon-save',
+          shortcut: `${context.modKey}+Shift+S`,
+          disabled: !context.isNotebook,
+          action: () => {
+            context.activeSession?.saveAsPrimaryAction?.();
+          },
+        });
+      }
+      return groups;
+    });
+
     const wrapper = mountConsoleView(
       {
         tabs: {
@@ -273,11 +323,11 @@ describe('ConsoleView.vue Toolbar', () => {
     await fileDropdownBtn.trigger('click');
 
     const items = wrapper.findAll('.console-file-dropdown-menu .tab-menu-item');
-    // "Save as..." is item index 2
-    expect(items[2].text()).toContain('Save as...');
-    expect(items[2].classes()).not.toContain('disabled');
+    const saveAsItem = items.find((i) => i.text().includes('Save as...'));
+    expect(saveAsItem).toBeDefined();
+    expect(saveAsItem.classes()).not.toContain('disabled');
 
-    await items[2].trigger('click');
+    await saveAsItem.trigger('click');
     expect(mockSaveAsPrimaryAction).toHaveBeenCalledTimes(1);
 
     // Global Ctrl+Shift+S
@@ -308,5 +358,62 @@ describe('ConsoleView.vue Toolbar', () => {
     await toolsBtn.trigger('click');
     expect(uiStore.activeDropdown).toBeNull();
     expect(wrapper.find('.console-tools-dropdown-menu').exists()).toBe(false);
+  });
+
+  it('ignores and resets snippetToInsert when active tab is a locked read-only notebook', async () => {
+    const wrapper = mountConsoleView({
+      tabs: {
+        tabs: [
+          {
+            id: 'tab-locked',
+            mode: 'notebook',
+            notebookFileHandleId: 'handle-locked',
+            notebookMeta: { meta: { isReadOnly: true } },
+            notebookUnlockedForEditing: false,
+            notebookPersistedReadOnly: true,
+          },
+        ],
+        activeTabId: 'tab-locked',
+      },
+    }, true);
+
+    const uiStore = useUiStore();
+    uiStore.snippetToInsert = 'console.log("hacked")';
+    await wrapper.vm.$nextTick();
+
+    expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith(null);
+  });
+
+  it('triggers New tab, Close tab, and Close all tabs from File dropdown', async () => {
+    const wrapper = mountConsoleView();
+    const tabsStore = useTabsStore();
+
+    const fileDropdownBtn = wrapper.find('.group-file .menu-dropdown-btn');
+    await fileDropdownBtn.trigger('click');
+
+    const fileMenu = wrapper.find('.console-file-dropdown-menu');
+    const items = fileMenu.findAll('.tab-menu-item');
+
+    // New item
+    const newItem = items.find((i) => i.text().includes('New'));
+    expect(newItem).toBeDefined();
+    await newItem.trigger('click');
+    expect(tabsStore.createTab).toHaveBeenCalled();
+
+    // Close tab item
+    await fileDropdownBtn.trigger('click');
+    const itemsAgain = wrapper.findAll('.console-file-dropdown-menu .tab-menu-item');
+    const closeTabItem = itemsAgain.find((i) => i.text().includes('Close tab'));
+    expect(closeTabItem).toBeDefined();
+    await closeTabItem.trigger('click');
+    expect(tabsStore.requestCloseTab).toHaveBeenCalledWith(tabsStore.activeTabId);
+
+    // Close all tabs item
+    await fileDropdownBtn.trigger('click');
+    const itemsThird = wrapper.findAll('.console-file-dropdown-menu .tab-menu-item');
+    const closeAllItem = itemsThird.find((i) => i.text().includes('Close all tabs'));
+    expect(closeAllItem).toBeDefined();
+    await closeAllItem.trigger('click');
+    expect(tabsStore.requestCloseAllTabs).toHaveBeenCalled();
   });
 });

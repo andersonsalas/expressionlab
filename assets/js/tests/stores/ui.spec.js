@@ -178,4 +178,72 @@ describe('stores/ui.js - Lock/Unlock Security State', () => {
     store.showDialog({ title: 'Test' });
     expect(store.activeDropdown).toBeNull();
   });
+
+  it('showDialog prompt resolves entered value on confirm and null on cancel', async () => {
+    const store = useUiStore();
+    const promptPromise = store.showDialog({
+      type: 'prompt',
+      inputType: 'password',
+      title: 'Encrypted Notebook',
+    });
+
+    expect(store.activeDialog).toBe('dialog');
+    expect(store.activeDialogData.type).toBe('prompt');
+
+    store.activeDialogData.onConfirm('mypassword');
+    const result = await promptPromise;
+    expect(result).toBe('mypassword');
+    expect(store.activeDialog).toBeNull();
+
+    const cancelPromise = store.showDialog({
+      type: 'prompt',
+      inputType: 'password',
+      title: 'Encrypted Notebook',
+    });
+    store.activeDialogData.onCancel();
+    const cancelResult = await cancelPromise;
+    expect(cancelResult).toBeNull();
+  });
+
+  it('showDialog alert resolves true on confirm and resets activeDialog', async () => {
+    const store = useUiStore();
+    const alertPromise = store.showDialog({
+      type: 'alert',
+      title: 'Decryption Failed',
+    });
+
+    expect(store.activeDialog).toBe('dialog');
+    store.activeDialogData.onConfirm();
+    const result = await alertPromise;
+    expect(result).toBe(true);
+    expect(store.activeDialog).toBeNull();
+  });
+
+  it('centrally blocks triggerSnippetInsert and triggerLibrarySnippetInsert when active tab is read-only', () => {
+    const store = useUiStore();
+    const { useTabsStore } = require('../../stores/tabs');
+    const tabsStore = useTabsStore();
+
+    const nbTab = tabsStore.createTab({
+      mode: 'notebook',
+      notebookFileHandleId: 'locked-handle',
+      notebookPersistedReadOnly: true,
+    });
+    tabsStore.updateTabNotebook(nbTab.id, {
+      notebookMeta: { meta: { isReadOnly: true } },
+      notebookUnlockedForEditing: false,
+    });
+
+    expect(tabsStore.isCurrentTabReadOnly).toBe(true);
+    expect(store.triggerSnippetInsert({ code: '1 + 1', mode: 'insert' })).toBe(false);
+    expect(store.snippetToInsert).toBeNull();
+
+    expect(store.triggerLibrarySnippetInsert({ code: '2 + 2' })).toBe(false);
+    expect(store.librarySnippetToInsert).toBeNull();
+
+    // Unlocking the tab allows snippet insertion again
+    tabsStore.updateTabNotebook(nbTab.id, { notebookUnlockedForEditing: true });
+    expect(store.triggerSnippetInsert({ code: '1 + 1', mode: 'insert' })).toBe(true);
+    expect(store.snippetToInsert).toEqual({ code: '1 + 1', mode: 'insert' });
+  });
 });

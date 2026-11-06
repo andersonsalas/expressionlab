@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { useTabsStore } from './tabs';
 
 export const useUiStore = defineStore('ui', {
   state: () => ({
@@ -37,10 +38,32 @@ export const useUiStore = defineStore('ui', {
       }
     },
     triggerSnippetInsert(snippet) {
+      if (snippet !== null && snippet !== undefined) {
+        try {
+          const tabsStore = useTabsStore();
+          if (tabsStore?.isCurrentTabReadOnly) {
+            return false;
+          }
+        } catch {
+          // Proceed if Pinia context is unavailable
+        }
+      }
       this.snippetToInsert = snippet;
+      return true;
     },
     triggerLibrarySnippetInsert(snippet) {
+      if (snippet !== null && snippet !== undefined) {
+        try {
+          const tabsStore = useTabsStore();
+          if (tabsStore?.isCurrentTabReadOnly) {
+            return false;
+          }
+        } catch {
+          // Proceed if Pinia context is unavailable
+        }
+      }
       this.librarySnippetToInsert = snippet;
+      return true;
     },
     openModal(modalName, modalData = null) {
       this.closeDropdowns();
@@ -53,14 +76,19 @@ export const useUiStore = defineStore('ui', {
     },
     showDialog(options) {
       this.closeDropdowns();
+      const hasDeny = Boolean(options?.denyText || options?.denyLabel);
       return new Promise((resolve) => {
         this.activeDialog = 'dialog';
         this.activeDialogData = {
           ...options,
-          onConfirm: () => {
+          onConfirm: (payload) => {
             this.activeDialog = null;
             this.activeDialogData = null;
-            resolve(options.denyText ? 'confirm' : true);
+            if (options.type === 'prompt') {
+              resolve(payload !== undefined ? payload : '');
+            } else {
+              resolve(hasDeny ? 'confirm' : true);
+            }
           },
           onDeny: () => {
             this.activeDialog = null;
@@ -70,7 +98,11 @@ export const useUiStore = defineStore('ui', {
           onCancel: () => {
             this.activeDialog = null;
             this.activeDialogData = null;
-            resolve(options.denyText ? 'cancel' : false);
+            if (options.type === 'prompt') {
+              resolve(null);
+            } else {
+              resolve(hasDeny ? 'cancel' : false);
+            }
           }
         };
       });

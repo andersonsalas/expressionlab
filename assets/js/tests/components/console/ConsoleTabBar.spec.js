@@ -878,4 +878,45 @@ describe('ConsoleTabBar.vue', () => {
       expect(scrollToSpy).not.toHaveBeenCalled();
     });
   });
+
+  describe('Encrypted notebook icon badge', () => {
+    const mountComponent = () =>
+      mount(ConsoleTabBar, {
+        global: {
+          plugins: [pinia],
+          mocks: {
+            __: (str) => str,
+          },
+        },
+      });
+
+    it('renders codicon-lock-small prefix when notebook tab is encrypted', async () => {
+      tabsStore.setTabMode(tabsStore.activeTabId, 'notebook');
+      tabsStore.updateTabNotebook(tabsStore.activeTabId, {
+        isEncrypted: true,
+        notebookOpenPassword: 'secret-password',
+      });
+
+      const wrapper = mountComponent();
+      const lockIcon = wrapper.find('.console-tab-item.active .tab-title-line .tab-encrypted-icon');
+      expect(lockIcon.exists()).toBe(true);
+      expect(lockIcon.classes()).toContain('codicon-lock-small');
+
+      wrapper.unmount();
+    });
+
+    it('does not render lock-small when notebook tab is not encrypted', async () => {
+      tabsStore.setTabMode(tabsStore.activeTabId, 'notebook');
+      tabsStore.updateTabNotebook(tabsStore.activeTabId, {
+        isEncrypted: false,
+        notebookOpenPassword: null,
+      });
+
+      const wrapper = mountComponent();
+      const lockIcon = wrapper.find('.console-tab-item.active .tab-title-line .tab-encrypted-icon');
+      expect(lockIcon.exists()).toBe(false);
+
+      wrapper.unmount();
+    });
+  });
 });

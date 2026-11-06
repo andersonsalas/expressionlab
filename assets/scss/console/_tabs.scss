@@ -107,10 +107,18 @@
 		.tab-title-line {
 			display: inline-flex;
 			align-items: center;
-			gap: 6px;
+			gap: 3px;
 			min-width: 0;
 			max-width: 100%;
 			line-height: inherit;
+
+			.tab-encrypted-icon {
+				font-size: 16px;
+				line-height: 1;
+				color: $wordpress-primary;
+				flex-shrink: 0;
+				margin-left: -2px;
+			}
 
 			.tab-title-text {
 				min-width: 0;

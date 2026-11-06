@@ -670,4 +670,54 @@ describe('HttpRequestBuilderModal.vue', () => {
     const insertedPayload = uiStore.triggerSnippetInsert.mock.calls[0][0];
     expect(insertedPayload.code).toContain('Http.post(');
   });
+
+  it('disables Insert and Replace buttons when the active tab is a locked read-only notebook', async () => {
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'http-builder' },
+        tabs: {
+          activeTabId: 'tab_nb_locked',
+          tabs: [
+            {
+              id: 'tab_nb_locked',
+              mode: 'notebook',
+              notebookFileHandleId: 'handle-locked',
+              notebookMeta: { meta: { isReadOnly: true } },
+              notebookUnlockedForEditing: false,
+              notebookPersistedReadOnly: true,
+            }
+          ]
+        }
+      }
+    });
+
+    const wrapper = mount(HttpRequestBuilderModal, {
+      global: {
+        plugins: [pinia],
+        mocks: {
+          __: (str) => str
+        }
+      }
+    });
+
+    const addressInput = wrapper.find('.request-url-input');
+    await addressInput.setValue('https://api.example.com/test');
+    await wrapper.vm.$nextTick();
+
+    const insertBtn = wrapper.find('.insert-btn');
+    const replaceBtn = wrapper.find('.replace-btn');
+
+    expect(insertBtn.exists()).toBe(true);
+    expect(replaceBtn.exists()).toBe(true);
+
+    expect(insertBtn.attributes('disabled')).toBeDefined();
+    expect(replaceBtn.attributes('disabled')).toBeDefined();
+    expect(insertBtn.attributes('title')).toBe('Notebook is in Read-Only mode');
+    expect(replaceBtn.attributes('title')).toBe('Notebook is in Read-Only mode');
+
+    const uiStore = useUiStore();
+    await insertBtn.trigger('click');
+    await replaceBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).not.toHaveBeenCalled();
+  });
 });

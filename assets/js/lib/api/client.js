@@ -1392,17 +1392,38 @@ export async function handleOpenBinaryFilePicker(options = {}) {
  * @param {string} [options.mimeType='application/octet-stream']
  * @returns {Promise<{ success?: boolean, filename?: string, fileHandleId?: string|null, fallbackDownload?: boolean, cancelled?: boolean, error?: string, message?: string }>}
  */
+function formatBinarySaveError(err, defaultCode = 'error') {
+  const message = typeof err === 'string' ? err : (err?.message || String(err));
+  const error = (typeof err === 'object' && err !== null && err.name) ? err.name : defaultCode;
+  return { error, message };
+}
+
+async function resolveBufferFromProvider(getBuffer, targetName) {
+  try {
+    const generated = await getBuffer(targetName);
+    const transferBuffer = toTransferableArrayBuffer(generated);
+    if (!transferBuffer) {
+      return { error: 'invalid_buffer', message: 'Binary buffer is required to save file.' };
+    }
+    return { transferBuffer };
+  } catch (err) {
+    return formatBinarySaveError(err, 'export_error');
+  }
+}
+
 export async function handleSaveBinaryFileAs(options = {}) {
   const {
     buffer,
+    getBuffer,
     description = 'Expression Lab Notebook (.elab)',
     mimeType = 'application/octet-stream',
   } = options;
   const extensions = resolveBinaryExtensions(options.extensions);
   const suggestedName = sanitizeBinaryFilename(options.suggestedName || 'notebook.elab', extensions);
 
-  const transferBuffer = toTransferableArrayBuffer(buffer);
-  if (!transferBuffer) {
+  const hasBufferProvider = typeof getBuffer === 'function';
+  let transferBuffer = hasBufferProvider ? null : toTransferableArrayBuffer(buffer);
+  if (!hasBufferProvider && !transferBuffer) {
     return { error: 'invalid_buffer', message: 'Binary buffer is required to save file.' };
   }
 
@@ -1423,6 +1444,15 @@ export async function handleSaveBinaryFileAs(options = {}) {
             },
           ],
         });
+
+        if (hasBufferProvider) {
+          const resolved = await resolveBufferFromProvider(getBuffer, fileHandle.name || suggestedName);
+          if (resolved.error) {
+            return resolved;
+          }
+          transferBuffer = resolved.transferBuffer;
+        }
+
         await writeBinaryToHandle(fileHandle, transferBuffer);
         const fileHandleId = await registerDirectBinaryHandle(fileHandle);
         return {
@@ -1431,18 +1461,45 @@ export async function handleSaveBinaryFileAs(options = {}) {
           fileHandleId,
         };
       } catch (err) {
-        if (err.name === 'AbortError') {
+        if (err?.name === 'AbortError') {
           return { cancelled: true };
         }
-        if (err.name === 'SecurityError' || err.name === 'NotAllowedError') {
-          handleDownload(transferBuffer, suggestedName, 'application/octet-stream');
-          return { success: true, filename: suggestedName, fileHandleId: null, fallbackDownload: true };
+        if (err?.name === 'SecurityError' || err?.name === 'NotAllowedError') {
+          debugLog('Direct FS: handleSaveBinaryFileAs SecurityError, falling back to download:', err, 'warn');
+          if (hasBufferProvider && !transferBuffer) {
+            const resolved = await resolveBufferFromProvider(getBuffer, suggestedName);
+            if (resolved.error) {
+              return resolved;
+            }
+            transferBuffer = resolved.transferBuffer;
+          }
+          if (transferBuffer) {
+            handleDownload(transferBuffer, suggestedName, 'application/octet-stream');
+            return { success: true, filename: suggestedName, fileHandleId: null, fallbackDownload: true };
+          }
+          return formatBinarySaveError(err);
         }
-        return { error: err.name || 'error', message: err.message };
+        return formatBinarySaveError(err);
       }
+    }
+
+    if (hasBufferProvider && !transferBuffer) {
+      const resolved = await resolveBufferFromProvider(getBuffer, suggestedName);
+      if (resolved.error) {
+        return resolved;
+      }
+      transferBuffer = resolved.transferBuffer;
     }
     handleDownload(transferBuffer, suggestedName, 'application/octet-stream');
     return { success: true, filename: suggestedName, fileHandleId: null, fallbackDownload: true };
+  }
+
+  if (hasBufferProvider && !transferBuffer) {
+    const resolved = await resolveBufferFromProvider(getBuffer, suggestedName);
+    if (resolved.error) {
+      return resolved;
+    }
+    transferBuffer = resolved.transferBuffer;
   }
 
   return postBinaryBridgeRequest(
@@ -1467,7 +1524,8 @@ export async function handleSaveBinaryFileAs(options = {}) {
  * after a sandboxed call.
  *
  * @param {object} options
- * @param {ArrayBuffer|Uint8Array} options.buffer
+ * @param {ArrayBuffer|Uint8Array} [options.buffer]
+ * @param {Function} [options.getBuffer]
  * @param {string|null} [options.fileHandleId=null]
  * @param {string} [options.suggestedName='notebook.elab']
  * @param {string} [options.description='Expression Lab Notebook (.elab)']
@@ -1478,6 +1536,7 @@ export async function handleSaveBinaryFileAs(options = {}) {
 export async function handleSaveBinaryFile(options = {}) {
   const {
     buffer,
+    getBuffer,
     fileHandleId = null,
     description = 'Expression Lab Notebook (.elab)',
     mimeType = 'application/octet-stream',
@@ -1485,8 +1544,9 @@ export async function handleSaveBinaryFile(options = {}) {
   const extensions = resolveBinaryExtensions(options.extensions);
   const suggestedName = sanitizeBinaryFilename(options.suggestedName || 'notebook.elab', extensions);
 
-  const transferBuffer = toTransferableArrayBuffer(buffer);
-  if (!transferBuffer) {
+  const hasBufferProvider = typeof getBuffer === 'function';
+  let transferBuffer = hasBufferProvider ? null : toTransferableArrayBuffer(buffer);
+  if (!hasBufferProvider && !transferBuffer) {
     return { error: 'invalid_buffer', message: 'Binary buffer is required to save file.' };
   }
 
@@ -1496,6 +1556,13 @@ export async function handleSaveBinaryFile(options = {}) {
   if (isDirect) {
     if (fileHandleId && directBinaryFileHandles.has(fileHandleId)) {
       const fileHandle = directBinaryFileHandles.get(fileHandleId);
+      if (hasBufferProvider) {
+        const resolved = await resolveBufferFromProvider(getBuffer, fileHandle.name || suggestedName);
+        if (resolved.error) {
+          return resolved;
+        }
+        transferBuffer = resolved.transferBuffer;
+      }
       try {
         await writeBinaryToHandle(fileHandle, transferBuffer);
         return {
@@ -1509,12 +1576,21 @@ export async function handleSaveBinaryFile(options = {}) {
       }
     }
     return handleSaveBinaryFileAs({
-      buffer: transferBuffer,
+      buffer: hasBufferProvider ? undefined : transferBuffer,
+      getBuffer,
       suggestedName,
       description,
       extensions,
       mimeType,
     });
+  }
+
+  if (hasBufferProvider && !transferBuffer) {
+    const resolved = await resolveBufferFromProvider(getBuffer, suggestedName);
+    if (resolved.error) {
+      return resolved;
+    }
+    transferBuffer = resolved.transferBuffer;
   }
 
   return postBinaryBridgeRequest(

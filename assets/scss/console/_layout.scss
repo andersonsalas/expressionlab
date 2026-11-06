@@ -177,11 +177,38 @@
 						color: #fff !important;
 					}
 				}
+			}
 
-				&:hover:not(.disabled) {
+			&.btn-save-locked {
+				position: relative;
+
+				.btn-badge-lock {
+					position: absolute;
+					bottom: 3px;
+					right: 3px;
+					width: 11px;
+					height: 11px;
+					background-color: $wordpress-primary;
+					border-radius: 50%;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					pointer-events: none;
+					box-shadow: 0 0 0 1.5px #fff;
+					z-index: 2;
+
 					.codicon {
-						color: #000;
+						font-size: 8px !important;
+						line-height: 1 !important;
+						margin: 0 !important;
+						color: #fff !important;
 					}
+				}
+			}
+
+			&.btn-tab-creator:hover:not(.disabled) {
+				.codicon {
+					color: #000;
 				}
 			}
 

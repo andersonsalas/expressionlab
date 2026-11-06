@@ -77,6 +77,10 @@ onUnmounted(() => {
       :is="'ProNagModal'"
       v-if="hasAddons()"
     />
+    <component
+      :is="'NotebookPropertiesModal'"
+      v-if="hasAddons()"
+    />
     <!-- /Base Modals -->
 
     <!-- Dialog Modal Layer (teleported to body, above base modals) -->

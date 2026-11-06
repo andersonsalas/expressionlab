@@ -15,7 +15,12 @@ jest.mock('@codemirror/state', () => ({
       };
     }),
     tabSize: { of: jest.fn() },
+    readOnly: { of: jest.fn() },
   },
+  Compartment: jest.fn().mockImplementation(() => ({
+    of: jest.fn(),
+    reconfigure: jest.fn(),
+  })),
 }));
 
 jest.mock('@codemirror/view', () => {
@@ -141,6 +146,10 @@ jest.mock('@codemirror/search', () => ({
 jest.mock('../../../lib/codemirror/search-highlight.js', () => ({
   searchHighlightField: [],
   setSearchHighlightEffect: { of: jest.fn() },
+}));
+
+jest.mock('../../../lib/codemirror/format-command.js', () => ({
+  formatEditorDocument: jest.fn(() => true),
 }));
 
 jest.mock('@fsegurai/codemirror-theme-bundle', () => ({
@@ -387,5 +396,75 @@ describe('ConsoleEditor.vue', () => {
     wrapper.vm.closeSearch();
     await wrapper.vm.$nextTick();
     expect(wrapper.findComponent({ name: 'ConsoleFindWidget' }).exists()).toBe(false);
+  });
+
+  it('configures readOnly Compartment from readonly prop, reconfigures dynamically, and blocks mutations while readonly', async () => {
+    const { EditorState, Compartment } = require('@codemirror/state');
+    const { EditorView } = require('@codemirror/view');
+    const { formatEditorDocument } = require('../../../lib/codemirror/format-command.js');
+
+    let capturedDomHandlers = null;
+    EditorView.domEventHandlers.mockImplementation((handlers) => {
+      capturedDomHandlers = handlers;
+      return {};
+    });
+
+    const wrapper = mount(ConsoleEditor, {
+      global: {
+        plugins: [createTestingPinia()],
+      },
+      props: {
+        mode: 'notebook',
+        readonly: true,
+      },
+    });
+
+    // Initial Compartment configured with EditorState.readOnly.of(true)
+    expect(EditorState.readOnly.of).toHaveBeenCalledWith(true);
+    const compartmentInstance = Compartment.mock.results[Compartment.mock.results.length - 1].value;
+    expect(compartmentInstance.of).toHaveBeenCalled();
+
+    // formatCode and Shift-Alt-f keymap are blocked while readonly is true
+    formatEditorDocument.mockClear();
+    expect(wrapper.vm.formatCode()).toBe(false);
+    expect(formatEditorDocument).not.toHaveBeenCalled();
+
+    const formatBinding = mockCapturedFormatKeymap.find((k) => k.key === 'Shift-Alt-f');
+    expect(formatBinding.run({})).toBe(false);
+    expect(formatEditorDocument).not.toHaveBeenCalled();
+
+    // insertSnippet is blocked while readonly is true
+    const viewInstance = EditorView.mock.results[EditorView.mock.results.length - 1].value;
+    viewInstance.dispatch.mockClear();
+    wrapper.vm.insertSnippet('Users.all()');
+    expect(viewInstance.dispatch).not.toHaveBeenCalled();
+
+    // paste DOM event handler is blocked while readonly is true
+    expect(capturedDomHandlers).toBeDefined();
+    const fakePasteEvent = {
+      preventDefault: jest.fn(),
+      clipboardData: { getData: jest.fn(() => 'Pasted.code()') },
+    };
+    capturedDomHandlers.paste(fakePasteEvent, viewInstance);
+    expect(fakePasteEvent.preventDefault).toHaveBeenCalled();
+    expect(viewInstance.dispatch).not.toHaveBeenCalled();
+
+    // Dynamically toggling readonly -> false reconfigures the Compartment and unblocks mutations
+    EditorState.readOnly.of.mockClear();
+    compartmentInstance.reconfigure.mockClear();
+    viewInstance.dispatch.mockClear();
+
+    await wrapper.setProps({ readonly: false });
+    expect(EditorState.readOnly.of).toHaveBeenCalledWith(false);
+    expect(compartmentInstance.reconfigure).toHaveBeenCalled();
+    expect(viewInstance.dispatch).toHaveBeenCalled();
+
+    // Now formatCode and paste are allowed
+    wrapper.vm.formatCode();
+    expect(formatEditorDocument).toHaveBeenCalledTimes(1);
+
+    viewInstance.dispatch.mockClear();
+    capturedDomHandlers.paste(fakePasteEvent, viewInstance);
+    expect(viewInstance.dispatch).toHaveBeenCalled();
   });
 });

@@ -91,12 +91,6 @@ onUnmounted(() => {
           <div class="about-app-version">
             {{ version }}
           </div>
-          <div
-            v-if="hasAddons()"
-            class="about-addon-badge-wrapper"
-          >
-            <component :is="'AddonsBadge'" />
-          </div>
           <div class="about-credits">
             {{ __('© Anderson Salas and contributors.') }}
           </div>

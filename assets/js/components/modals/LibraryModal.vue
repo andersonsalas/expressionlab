@@ -2,6 +2,7 @@
 import { computed, watch, onMounted, onUnmounted, nextTick, ref, reactive } from 'vue';
 import { useUiStore } from '../../stores/ui';
 import { useOutlineStore } from '../../stores/outline.js';
+import { useTabsStore } from '../../stores/tabs.js';
 import { EditorState } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import { indentUnit, bracketMatching } from '@codemirror/language';
@@ -40,6 +41,8 @@ const props = defineProps({
 
 const uiStore = useUiStore();
 const outlineStore = useOutlineStore();
+const tabsStore = useTabsStore();
+const isTargetReadOnly = computed(() => Boolean(tabsStore.isCurrentTabReadOnly));
 const isOpen = computed(() => uiStore.activeModal === 'library');
 
 const closeModal = () => {
@@ -686,6 +689,7 @@ const deleteActiveSnippet = async () => {
 };
 
 const insertActiveSnippet = () => {
+  if (isTargetReadOnly.value) return;
   if (activeSnippet.value) {
     const code = getEditorValue();
     activeSnippet.value.code = code;
@@ -1208,7 +1212,8 @@ defineExpose({
           </button>
           <button
             class="btn btn-primary btn-insert fw-80px"
-            :disabled="!activeSnippet"
+            :disabled="!activeSnippet || isTargetReadOnly"
+            :title="isTargetReadOnly ? __('Notebook is in Read-Only mode') : __('Insert')"
             @click="insertActiveSnippet"
           >
             {{ __('Insert') }}

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useUiStore } from '../../stores/ui';
-import { EditorState } from '@codemirror/state';
+import { EditorState, Compartment } from '@codemirror/state';
 import { EditorView, keymap, lineNumbers } from '@codemirror/view';
 import { indentUnit, bracketMatching, foldGutter, foldKeymap } from '@codemirror/language';
 import { lintGutter } from '@codemirror/lint';
@@ -47,6 +47,10 @@ const props = defineProps({
   initialValue: {
     type: String,
     default: ''
+  },
+  readonly: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -57,6 +61,7 @@ const hasSyntaxErrors = ref(false);
 let view = null;
 let editorExtensions = [];
 let syntaxDebounceTimer = null;
+const readOnlyCompartment = new Compartment();
 
 const checkSyntax = (state) => {
   const targetState = state || view?.state;
@@ -100,12 +105,12 @@ const setEditorValue = (val) => {
 };
 
 const formatCode = () => {
-  if (!view) return false;
+  if (!view || props.readonly) return false;
   return formatEditorDocument(view);
 };
 
 const insertSnippet = (text, options = {}) => {
-    if (!view) {
+    if (!view || props.readonly) {
         return;
     }
 
@@ -500,6 +505,7 @@ onMounted(() => {
       {
         key: 'Shift-Alt-f',
         run: (cmView) => {
+          if (props.readonly) return false;
           return formatEditorDocument(cmView);
         }
       }
@@ -545,6 +551,9 @@ onMounted(() => {
       EditorView.domEventHandlers({
           paste(event, view) {
               event.preventDefault();
+              if (props.readonly) {
+                  return true;
+              }
               const text = event.clipboardData.getData('text/plain');
               if (text) {
                   view.dispatch(view.state.replaceSelection(text.replace(/\t/g, '    ')));
@@ -580,6 +589,8 @@ onMounted(() => {
       );
     }
 
+    extensions.push(readOnlyCompartment.of(EditorState.readOnly.of(Boolean(props.readonly))));
+
     editorExtensions = extensions;
 
     const state = EditorState.create({
@@ -595,6 +606,17 @@ onMounted(() => {
       view.focus();
     }
 });
+
+watch(
+  () => props.readonly,
+  (isReadOnly) => {
+    if (view) {
+      view.dispatch({
+        effects: readOnlyCompartment.reconfigure(EditorState.readOnly.of(Boolean(isReadOnly)))
+      });
+    }
+  }
+);
 
 onBeforeUnmount(() => {
     if (syntaxDebounceTimer) {

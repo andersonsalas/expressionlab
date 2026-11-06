@@ -635,6 +635,32 @@ describe('lib/api/client.js', () => {
       expect(mockWritable.close).toHaveBeenCalledTimes(1);
     });
 
+    it('handleSaveBinaryFileAs supports getBuffer callback to defer buffer generation until after picker selection', async () => {
+      const mockWritable = {
+        write: jest.fn().mockResolvedValue(undefined),
+        close: jest.fn().mockResolvedValue(undefined),
+      };
+      const mockFileHandle = {
+        name: 'picked-file.elab',
+        createWritable: jest.fn().mockResolvedValue(mockWritable),
+      };
+      window.showSaveFilePicker = jest.fn().mockResolvedValue(mockFileHandle);
+
+      const generatedBuffer = new Uint8Array([9, 8, 7, 6]).buffer;
+      const getBufferSpy = jest.fn().mockResolvedValue(generatedBuffer);
+
+      const result = await handleSaveBinaryFileAs({
+        getBuffer: getBufferSpy,
+        suggestedName: 'initial.elab',
+      });
+
+      expect(window.showSaveFilePicker).toHaveBeenCalledTimes(1);
+      expect(getBufferSpy).toHaveBeenCalledWith('picked-file.elab');
+      expect(result.success).toBe(true);
+      expect(result.filename).toBe('picked-file.elab');
+      expect(mockWritable.write).toHaveBeenCalledWith(generatedBuffer);
+    });
+
     it('transfers ArrayBuffer via postMessage when sandbox is enabled', async () => {
       window.el_settings.settings.enable_sandbox = true;
       window.el_settings.settings.debug_mode = false;
@@ -883,6 +909,65 @@ describe('lib/api/client.js', () => {
       expect(result).toEqual({ error: 'QuotaExceededError', message: 'Disk full' });
       expect(writable.abort).toHaveBeenCalledTimes(1);
       expect(writable.close).not.toHaveBeenCalled();
+    });
+
+    it('fails closed when getBuffer throws an Error or plain engine string in handleSaveBinaryFile without evicting fileHandleId or falling back to Save As (Directive D3-3)', async () => {
+      const opened = { name: 'existing.elab', arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(1)) };
+      const writable = { write: jest.fn().mockResolvedValue(undefined), close: jest.fn().mockResolvedValue(undefined) };
+      const existingHandle = {
+        name: 'existing.elab',
+        getFile: jest.fn().mockResolvedValue(opened),
+        createWritable: jest.fn().mockResolvedValue(writable),
+      };
+      window.showOpenFilePicker = jest.fn().mockResolvedValue([existingHandle]);
+      const { fileHandleId } = await handleOpenBinaryFilePicker();
+
+      window.showSaveFilePicker = jest.fn();
+
+      // 1. Plain string thrown by the engine (e.g. size-limit error)
+      const failRes = await handleSaveBinaryFile({
+        fileHandleId,
+        getBuffer: () => {
+          throw 'Notebook too large to export: SQLite image exceeds 256 MiB limit';
+        },
+      });
+
+      expect(failRes).toEqual({
+        error: 'export_error',
+        message: 'Notebook too large to export: SQLite image exceeds 256 MiB limit',
+      });
+      // Must NOT fall back to Save As picker or write anything
+      expect(window.showSaveFilePicker).not.toHaveBeenCalled();
+      expect(existingHandle.createWritable).not.toHaveBeenCalled();
+
+      // 2. Subsequent save with valid buffer succeeds using the preserved fileHandleId
+      const okRes = await handleSaveBinaryFile({
+        fileHandleId,
+        getBuffer: () => new Uint8Array([9, 8, 7]),
+      });
+      expect(okRes.success).toBe(true);
+      expect(okRes.fileHandleId).toBe(fileHandleId);
+      expect(existingHandle.createWritable).toHaveBeenCalledTimes(1);
+      expect(window.showSaveFilePicker).not.toHaveBeenCalled();
+    });
+
+    it('fails closed when getBuffer throws in handleSaveBinaryFileAs without writing an empty buffer', async () => {
+      const writable = { write: jest.fn(), close: jest.fn() };
+      const saveHandle = { name: 'new.elab', createWritable: jest.fn().mockResolvedValue(writable) };
+      window.showSaveFilePicker = jest.fn().mockResolvedValue(saveHandle);
+
+      const res = await handleSaveBinaryFileAs({
+        getBuffer: () => {
+          throw new Error('Password cannot be empty');
+        },
+      });
+
+      expect(res).toEqual({
+        error: 'Error',
+        message: 'Password cannot be empty',
+      });
+      expect(saveHandle.createWritable).not.toHaveBeenCalled();
+      expect(writable.write).not.toHaveBeenCalled();
     });
   });
 });

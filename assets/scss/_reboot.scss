@@ -471,6 +471,10 @@ legend {
 //    https://github.com/twbs/bootstrap/issues/11586.
 // 2. Correct the outline style in Safari.
 
+.form-control {
+	transition: none !important;
+}
+
 [type="search"] {
 	-webkit-appearance: textfield; // 1
 	outline-offset: -2px; // 2
