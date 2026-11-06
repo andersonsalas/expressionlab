@@ -187,8 +187,8 @@ abstract class AdminPage {
 	public function admin_menu() {
 		add_submenu_page(
 			'tools.php',
-			__( 'Console', 'expression-lab' ),
-			__( 'Console', 'expression-lab' ),
+			__( 'Expression Lab', 'expression-lab' ),
+			__( 'Expression Lab', 'expression-lab' ),
 			'manage_options',
 			'expressionlab',
 			array( $this, 'render' )
