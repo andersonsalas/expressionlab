@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { useTabsStore } from './tabs';
+import { clearStorageCrypto } from '../lib/storage-crypto.js';
 
 export const useUiStore = defineStore('ui', {
   state: () => ({
@@ -137,6 +138,7 @@ export const useUiStore = defineStore('ui', {
     lock() {
       this.privateKey = null;
       this.isLocked = true;
+      clearStorageCrypto();
     },
     unlock(seed) {
       this.privateKey = seed;

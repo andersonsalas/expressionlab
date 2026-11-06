@@ -14,6 +14,11 @@ import {
   handleSaveBinaryFileAs,
   isLocalFsSupported,
 } from '../../../lib/api/client.js';
+import {
+  STORAGE_ENC_PREFIX,
+  clearStorageCrypto,
+  initStorageCryptoFromSeed,
+} from '../../../lib/storage-crypto.js';
 
 describe('lib/api/client.js', () => {
   let originalFetch;
@@ -184,17 +189,32 @@ describe('lib/api/client.js', () => {
   });
 
   describe('handleLocalStorage', () => {
-    it('delegates getItem, setItem, and removeItem correctly', async () => {
+    beforeEach(() => {
+      window.localStorage.clear();
+    });
+
+    it('encrypts values on setItem/set, decrypts on getItem/get, and removes on removeItem/remove', async () => {
       const setSpy = jest.spyOn(Storage.prototype, 'setItem');
-      const getSpy = jest.spyOn(Storage.prototype, 'getItem').mockReturnValue('stored_value');
+      const getSpy = jest.spyOn(Storage.prototype, 'getItem');
       const removeSpy = jest.spyOn(Storage.prototype, 'removeItem');
 
       await handleLocalStorage('setItem', 'test_key', 'test_val');
-      expect(setSpy).toHaveBeenCalledWith('test_key', 'test_val');
+      expect(setSpy).toHaveBeenCalledTimes(1);
+      const [storedKey, storedEnvelope] = setSpy.mock.calls[0];
+      expect(storedKey).toBe('test_key');
+      expect(storedEnvelope).toMatch(/^el_enc:v1:(seed|dev):/);
+      expect(storedEnvelope).not.toContain('test_val');
 
       const val = await handleLocalStorage('getItem', 'test_key');
-      expect(val).toBe('stored_value');
+      expect(val).toBe('test_val');
       expect(getSpy).toHaveBeenCalledWith('test_key');
+
+      // Also supports short aliases ('set', 'get', 'remove') used by addons
+      await handleLocalStorage('set', 'el_license', '{"email":"a@b.com","key":"stub-license-key"}');
+      expect(await handleLocalStorage('get', 'el_license')).toBe('{"email":"a@b.com","key":"stub-license-key"}');
+
+      await handleLocalStorage('remove', 'el_license');
+      expect(await handleLocalStorage('get', 'el_license')).toBeNull();
 
       await handleLocalStorage('removeItem', 'test_key');
       expect(removeSpy).toHaveBeenCalledWith('test_key');
@@ -202,6 +222,128 @@ describe('lib/api/client.js', () => {
       setSpy.mockRestore();
       getSpy.mockRestore();
       removeSpy.mockRestore();
+    });
+
+    it('rejects unencrypted legacy plaintext entries in localStorage and cleans them up', async () => {
+      window.localStorage.setItem('el_outline_cache', '{"legacy":true}');
+      const val = await handleLocalStorage('getItem', 'el_outline_cache');
+      expect(val).toBeNull();
+      expect(window.localStorage.getItem('el_outline_cache')).toBeNull();
+    });
+
+    describe('encryption lifecycle', () => {
+      const PUBLIC_KEY = 'AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=';
+      const SALT = 'AAECAwQFBgcICQoLDA0ODw==';
+      const SEED = new Uint8Array(32).fill(7);
+
+      const configure = ({ locked }) => {
+        window.el_settings = {
+          ...window.el_settings,
+          user_id: 7,
+          public_key: PUBLIC_KEY,
+          salt: SALT,
+          settings: {
+            ...window.el_settings.settings,
+            // Direct (non-iframe) transport; `debug_mode` alone toggles the passphrase lock.
+            enable_sandbox: false,
+            debug_mode: locked,
+          },
+        };
+      };
+
+      beforeEach(() => {
+        clearStorageCrypto();
+      });
+
+      afterEach(() => {
+        clearStorageCrypto();
+      });
+
+      it('migrates well-formed legacy plaintext user data into an encrypted envelope', async () => {
+        configure({ locked: false });
+        window.localStorage.setItem('el_snippets', '[{"id":1}]');
+
+        expect(await handleLocalStorage('getItem', 'el_snippets')).toBe('[{"id":1}]');
+        const raw = window.localStorage.getItem('el_snippets');
+        expect(raw.startsWith(`${STORAGE_ENC_PREFIX}dev:`)).toBe(true);
+        expect(raw).not.toContain('"id"');
+        expect(await handleLocalStorage('getItem', 'el_snippets')).toBe('[{"id":1}]');
+      });
+
+      it('purges malformed legacy plaintext user data and ignores foreign keys', async () => {
+        configure({ locked: false });
+        window.localStorage.setItem('el_snippets', 'not-json');
+        window.localStorage.setItem('el_user_settings', '[1,2]');
+        window.localStorage.setItem('third_party_key', 'keep-me');
+
+        expect(await handleLocalStorage('getItem', 'el_snippets')).toBeNull();
+        expect(await handleLocalStorage('getItem', 'el_user_settings')).toBeNull();
+        expect(await handleLocalStorage('getItem', 'third_party_key')).toBeNull();
+        expect(window.localStorage.getItem('el_snippets')).toBeNull();
+        expect(window.localStorage.getItem('el_user_settings')).toBeNull();
+        expect(window.localStorage.getItem('third_party_key')).toBe('keep-me');
+      });
+
+      it('refuses reads, writes and removals while the console is locked', async () => {
+        configure({ locked: false });
+        await handleLocalStorage('setItem', 'el_license', '{"email":"a@b.com","key":"stub-license-key"}');
+        const stored = window.localStorage.getItem('el_license');
+        window.localStorage.setItem('el_outline_cache', '{"legacy":true}');
+
+        clearStorageCrypto();
+        configure({ locked: true });
+
+        expect(await handleLocalStorage('getItem', 'el_license')).toBeNull();
+        await handleLocalStorage('setItem', 'el_license', 'overwrite');
+        await handleLocalStorage('removeItem', 'el_license');
+        await handleLocalStorage('getItem', 'el_outline_cache');
+
+        expect(window.localStorage.getItem('el_license')).toBe(stored);
+        expect(window.localStorage.getItem('el_outline_cache')).toBe('{"legacy":true}');
+      });
+
+      it('never deletes seed envelopes read in dev mode or envelopes that fail authentication', async () => {
+        configure({ locked: true });
+        await initStorageCryptoFromSeed(SEED);
+        await handleLocalStorage('setItem', 'el_snippets', '[{"id":2}]');
+        const seedEnvelope = window.localStorage.getItem('el_snippets');
+        expect(seedEnvelope.startsWith(`${STORAGE_ENC_PREFIX}seed:`)).toBe(true);
+
+        const tampered = seedEnvelope.slice(0, -6) + (seedEnvelope.slice(-6, -5) === 'A' ? 'B' : 'A') + seedEnvelope.slice(-5);
+        window.localStorage.setItem('el_user_settings', tampered);
+        expect(await handleLocalStorage('getItem', 'el_user_settings')).toBeNull();
+        expect(window.localStorage.getItem('el_user_settings')).toBe(tampered);
+
+        clearStorageCrypto();
+        configure({ locked: false });
+        expect(await handleLocalStorage('getItem', 'el_snippets')).toBeNull();
+        expect(window.localStorage.getItem('el_snippets')).toBe(seedEnvelope);
+      });
+
+      it('transparently upgrades dev envelopes to seed envelopes after unlocking', async () => {
+        configure({ locked: false });
+        await handleLocalStorage('setItem', 'el_license', '{"email":"a@b.com","key":"stub-license-key"}');
+        expect(window.localStorage.getItem('el_license').startsWith(`${STORAGE_ENC_PREFIX}dev:`)).toBe(true);
+
+        clearStorageCrypto();
+        configure({ locked: true });
+        await initStorageCryptoFromSeed(SEED);
+
+        expect(await handleLocalStorage('getItem', 'el_license')).toBe('{"email":"a@b.com","key":"stub-license-key"}');
+        expect(window.localStorage.getItem('el_license').startsWith(`${STORAGE_ENC_PREFIX}seed:`)).toBe(true);
+        expect(await handleLocalStorage('getItem', 'el_license')).toBe('{"email":"a@b.com","key":"stub-license-key"}');
+      });
+
+      it('round-trips large cache payloads (> 64 KB) through handleLocalStorage', async () => {
+        configure({ locked: true });
+        await initStorageCryptoFromSeed(SEED);
+        const large = JSON.stringify({ timestamp: 1, data: { tree: 'd/'.repeat(50000) } });
+        expect(large.length).toBeGreaterThan(64 * 1024);
+
+        await handleLocalStorage('setItem', 'el_filesystem_cache', large);
+        expect(window.localStorage.getItem('el_filesystem_cache')).not.toContain('d/d/');
+        expect(await handleLocalStorage('getItem', 'el_filesystem_cache')).toBe(large);
+      });
     });
   });
 

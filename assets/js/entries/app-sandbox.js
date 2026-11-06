@@ -207,13 +207,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const { method, key, value } = msg.payload;
     let result = null;
 
+    // Confine the sandboxed frame to the Expression Lab namespace of the shared wp-admin origin.
+    const isAllowedKey = typeof key === 'string' && (key.startsWith('el_') || key.startsWith('expressionlab_'));
+
     try {
-      if (typeof localStorage !== 'undefined') {
-        if (method === 'getItem') {
+      if (isAllowedKey && typeof localStorage !== 'undefined') {
+        if (method === 'getItem' || method === 'get') {
           result = localStorage.getItem(key);
-        } else if (method === 'setItem') {
+        } else if (method === 'setItem' || method === 'set') {
           localStorage.setItem(key, value);
-        } else if (method === 'removeItem') {
+        } else if (method === 'removeItem' || method === 'remove') {
           localStorage.removeItem(key);
         }
       }

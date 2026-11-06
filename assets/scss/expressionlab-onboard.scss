@@ -665,7 +665,7 @@ iframe.expressionlab-app {
 		}
 
 		.settings-section-title {
-			margin: 0 0 20px;
+			margin: 0 0 12px;
 			padding: 0 0 12px;
 			border-bottom: dotted 1px #d4d4d4;
 			color: $wp-text-dark;
@@ -693,6 +693,25 @@ iframe.expressionlab-app {
 			font-size: 12px;
 			color: $wp-text-muted;
 			margin-top: 4px;
+		}
+
+		.settings-valid {
+			display: block;
+			font-size: 12px;
+			line-height: 1.45;
+			color: #007017;
+			margin-top: 4px;
+		}
+
+		.license-combo-group {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 16px;
+
+			@media (width <= 640px) {
+				grid-template-columns: 1fr;
+				gap: 10px;
+			}
 		}
 
 		.settings-divider {

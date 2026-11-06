@@ -2,6 +2,13 @@ import { useUiStore } from '../../stores/ui';
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { arrayBufferToBase64, debugLog, BINARY_FILE_EXTENSIONS, resolveBinaryExtensions, sanitizeBinaryFilename } from '../helpers.js';
 import { sendToSandbox, requestFromSandbox } from '../sandbox-communication.js';
+import {
+  encryptStorageValue,
+  decryptStorageEnvelope,
+  ensureStorageCryptoContext,
+  STORAGE_STATUS_OK,
+  STORAGE_STATUS_PLAINTEXT,
+} from '../storage-crypto.js';
 
 let activeChallengeRequest = null;
 export function isSandboxEnabled() {
@@ -403,20 +410,26 @@ export function handleOpenTab(content, mimeType = 'application/json') {
 
 
 /**
- * Handle localStorage operations, proxying through the parent window when sandboxed.
- * 
- * @param {'getItem'|'setItem'|'removeItem'} method 
- * @param {string} key 
- * @param {string|null} value - Required for 'setItem'
+ * Raw low-level localStorage transport (direct or postMessage proxy).
+ *
+ * @param {'getItem'|'setItem'|'removeItem'} method
+ * @param {string} key
+ * @param {string|null} value
  * @returns {Promise<string|null>}
  */
-export function handleLocalStorage(method, key, value = null) {
-  if ( ! isSandboxEnabled() ) {
+function rawLocalStorageTransport(method, key, value = null) {
+  if (!isSandboxEnabled()) {
     try {
       if (typeof localStorage === 'undefined') return Promise.resolve(null);
       if (method === 'getItem') return Promise.resolve(localStorage.getItem(key));
-      if (method === 'setItem') { localStorage.setItem(key, value); return Promise.resolve(null); }
-      if (method === 'removeItem') { localStorage.removeItem(key); return Promise.resolve(null); }
+      if (method === 'setItem') {
+        localStorage.setItem(key, value);
+        return Promise.resolve(null);
+      }
+      if (method === 'removeItem') {
+        localStorage.removeItem(key);
+        return Promise.resolve(null);
+      }
       return Promise.resolve(null);
     } catch (e) {
       return Promise.resolve(null);
@@ -448,7 +461,125 @@ export function handleLocalStorage(method, key, value = null) {
       );
     });
   }
+}
 
+/**
+ * Legacy plaintext validators for user-owned entries written before storage encryption existed.
+ * Matching values are re-encrypted in place; any other plaintext entry is purged.
+ */
+const LEGACY_PLAINTEXT_MIGRATIONS = {
+  el_snippets: (parsed) => Array.isArray(parsed),
+  el_user_settings: (parsed) => Boolean(parsed) && typeof parsed === 'object' && !Array.isArray(parsed),
+  el_use_local_fs: (parsed) => typeof parsed === 'boolean',
+  el_license: (parsed) => Boolean(parsed) && typeof parsed.email === 'string' && typeof parsed.key === 'string',
+  expressionlab_pro_license: (parsed) => Boolean(parsed) && typeof parsed.email === 'string' && typeof parsed.key === 'string',
+};
+
+/**
+ * Checks whether a key belongs to the Expression Lab localStorage namespace.
+ *
+ * @param {string} key
+ * @returns {boolean}
+ */
+function isExpressionLabStorageKey(key) {
+  return typeof key === 'string' && (key.startsWith('el_') || key.startsWith('expressionlab_'));
+}
+
+/**
+ * Determines whether a legacy plaintext value is a well-formed user entry eligible for migration.
+ *
+ * @param {string} key
+ * @param {string} raw
+ * @returns {boolean}
+ */
+function isMigratableLegacyPlaintext(key, raw) {
+  const validator = Object.prototype.hasOwnProperty.call(LEGACY_PLAINTEXT_MIGRATIONS, key)
+    ? LEGACY_PLAINTEXT_MIGRATIONS[key]
+    : null;
+  if (!validator) return false;
+  try {
+    return validator(JSON.parse(raw));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Handle localStorage operations with authenticated symmetric encryption (AES-256-GCM),
+ * proxying through the parent window when sandboxed.
+ *
+ * All operations (including removals) are refused while the console is locked.
+ *
+ * @param {'getItem'|'setItem'|'removeItem'|'get'|'set'|'remove'} method
+ * @param {string} key
+ * @param {string|null} value - Required for 'setItem'
+ * @returns {Promise<string|null>}
+ */
+export async function handleLocalStorage(method, key, value = null) {
+  const normalizedMethod =
+    method === 'get' ? 'getItem' :
+    method === 'set' ? 'setItem' :
+    method === 'remove' ? 'removeItem' :
+    method;
+
+  if (normalizedMethod === 'removeItem') {
+    const context = await ensureStorageCryptoContext();
+    if (!context) {
+      return null;
+    }
+    return rawLocalStorageTransport('removeItem', key, null);
+  }
+
+  if (normalizedMethod === 'setItem') {
+    const encrypted = await encryptStorageValue(key, value);
+    if (!encrypted) {
+      return null;
+    }
+    return rawLocalStorageTransport('setItem', key, encrypted);
+  }
+
+  if (normalizedMethod === 'getItem') {
+    const context = await ensureStorageCryptoContext();
+    if (!context) {
+      return null;
+    }
+    const raw = await rawLocalStorageTransport('getItem', key, null);
+    if (!raw) {
+      return null;
+    }
+    const { value: decrypted, shouldUpgrade, status } = await decryptStorageEnvelope(key, raw, context);
+
+    if (status === STORAGE_STATUS_PLAINTEXT) {
+      if (isMigratableLegacyPlaintext(key, raw)) {
+        const migrated = await encryptStorageValue(key, raw, context);
+        if (migrated) {
+          await rawLocalStorageTransport('setItem', key, migrated);
+          return raw;
+        }
+        return null;
+      }
+      if (isExpressionLabStorageKey(key)) {
+        await rawLocalStorageTransport('removeItem', key, null);
+      }
+      return null;
+    }
+
+    // Unauthenticated or mismatched envelopes are treated as cache misses and never deleted on read:
+    // they may belong to another installation sharing this origin or to the other seed/dev mode.
+    if (status !== STORAGE_STATUS_OK) {
+      return null;
+    }
+
+    if (shouldUpgrade) {
+      const upgraded = await encryptStorageValue(key, decrypted, context);
+      if (upgraded) {
+        await rawLocalStorageTransport('setItem', key, upgraded);
+      }
+    }
+    return decrypted;
+  }
+
+  return null;
 }
 
 let directDirHandle = null;

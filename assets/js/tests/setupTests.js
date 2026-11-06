@@ -8,16 +8,29 @@ if (typeof global.TextDecoder === 'undefined') {
   global.TextDecoder = TextDecoder;
 }
 
-// Ensure crypto has getRandomValues if needed by noble-curves
+// Ensure crypto has getRandomValues and subtle if needed by noble-curves and storage-crypto
 if (typeof global.crypto === 'undefined') {
   const crypto = require('crypto');
   global.crypto = {
     getRandomValues: (arr) => crypto.randomFillSync(arr),
     subtle: crypto.webcrypto ? crypto.webcrypto.subtle : undefined,
   };
-} else if (!global.crypto.getRandomValues) {
+} else {
   const crypto = require('crypto');
-  global.crypto.getRandomValues = (arr) => crypto.randomFillSync(arr);
+  if (!global.crypto.getRandomValues) {
+    global.crypto.getRandomValues = (arr) => crypto.randomFillSync(arr);
+  }
+  if (!global.crypto.subtle && crypto.webcrypto && crypto.webcrypto.subtle) {
+    try {
+      Object.defineProperty(global.crypto, 'subtle', {
+        value: crypto.webcrypto.subtle,
+        configurable: true,
+        writable: true,
+      });
+    } catch {
+      global.crypto.subtle = crypto.webcrypto.subtle;
+    }
+  }
 }
 
 if (typeof window !== 'undefined' && !window.el_settings) {

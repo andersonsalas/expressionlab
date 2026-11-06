@@ -1,9 +1,16 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, inject } from 'vue';
 import ExpressionLabIcon from '../components/icons/ExpressionLabIcon.vue';
 import KeyGenGrid from '../components/ui/KeyGenGrid.vue';
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { arrayBufferToBase64, deriveKey, __, sprintf, sanitizeHtml } from '../lib/helpers.js';
+import { handleLocalStorage } from '../lib/api/client.js';
+import {
+    deriveStorageKeyFromSeed,
+    deriveStorageKeyForDev,
+    setStorageCryptoContext,
+    clearStorageCrypto,
+} from '../lib/storage-crypto.js';
 import {
     MIN_PASSPHRASE_LENGTH,
     buildConfigSnippet,
@@ -11,6 +18,10 @@ import {
     isValidStagingUrl,
     toPositiveInteger,
 } from '../lib/onboarding-config.js';
+
+const LICENSE_STORAGE_KEY = 'el_license';
+
+const elCore = inject('elCore', null);
 
 const steps = computed(() => [
     { id: 1, title: __('Welcome') },
@@ -30,8 +41,13 @@ const keyGenError = ref('');
 // Non-secret derived credentials ({ publicKeyBase64, saltBase64 }). The seed and the passphrase are never cached.
 const generatedKeysCache = ref(null);
 const hasCachedKeys = computed(() => generatedKeysCache.value !== null);
+const hasPersistedLicenseInSession = ref(false);
+// Non-reactive holder for non-extractable Web Crypto CryptoKey handles derived in this session.
+let cachedCryptoContextsPromise = null;
 
 const settings = ref({
+    licenseEmail: '',
+    licenseKey: '',
     stagingUrl: '',
     database: false,
     fileSystem: false,
@@ -52,11 +68,62 @@ const reqs = ref({
     webCrypto: !!(window.crypto && window.crypto.subtle)
 });
 
+const licenseValidation = computed(() => {
+    const cleanEmail = typeof settings.value.licenseEmail === 'string'
+        ? settings.value.licenseEmail.trim()
+        : '';
+    const cleanKey = typeof settings.value.licenseKey === 'string'
+        ? settings.value.licenseKey.trim()
+        : '';
+
+    if (cleanEmail === '' && cleanKey === '') {
+        return { provided: false, valid: true, errorCode: null };
+    }
+    if (cleanEmail === '') {
+        return { provided: true, valid: false, errorCode: 'missing_email' };
+    }
+    if (cleanKey === '') {
+        return { provided: true, valid: false, errorCode: 'missing_key' };
+    }
+
+    const wasmValidate = elCore?.addons?.validateLicense;
+    if (typeof wasmValidate !== 'function') {
+        return { provided: true, valid: false, errorCode: 'invalid_key' };
+    }
+
+    const res = wasmValidate(cleanEmail, cleanKey);
+    if (res && res.valid) {
+        return { provided: true, valid: true, errorCode: null };
+    }
+    // The add-on reports a semantic, implementation-agnostic reason for rejected licenses.
+    if (res?.reason === 'email_required') {
+        return { provided: true, valid: false, errorCode: 'missing_email' };
+    }
+    if (res?.reason === 'email_mismatch') {
+        return { provided: true, valid: false, errorCode: 'email_mismatch' };
+    }
+    return { provided: true, valid: false, errorCode: 'invalid_key' };
+});
+const licenseInvalid = computed(() => !licenseValidation.value.valid);
+const licenseErrorMessage = computed(() => {
+    switch (licenseValidation.value.errorCode) {
+        case 'missing_email':
+            return __('Please enter the email address associated with your license key.');
+        case 'missing_key':
+            return __('Please enter your license key, or clear the email field to continue without a license.');
+        case 'email_mismatch':
+            return __('This license key does not match the provided email address.');
+        default:
+            return __('Invalid or corrupted license key.');
+    }
+});
+
 const stagingUrlInvalid = computed(() => !isValidStagingUrl(settings.value.stagingUrl));
 const maxExecutionLimitInvalid = computed(() => toPositiveInteger(settings.value.maxExecutionLimit) === null);
 const signatureDurationInvalid = computed(() => toPositiveInteger(settings.value.signatureDuration) === null);
 const maxMindApiKeyInvalid = computed(() => !isValidMaxMindKey(settings.value.maxMindApiKey));
-const settingsValid = computed(() => !stagingUrlInvalid.value
+const settingsValid = computed(() => !licenseInvalid.value
+    && !stagingUrlInvalid.value
     && !maxExecutionLimitInvalid.value
     && !signatureDurationInvalid.value
     && !maxMindApiKeyInvalid.value);
@@ -90,6 +157,50 @@ const prevStep = () => {
     }
 };
 
+const persistOnboardingLicense = async () => {
+    if (!generatedKeysCache.value || !cachedCryptoContextsPromise) return;
+
+    const shouldPersist = licenseValidation.value.provided && licenseValidation.value.valid;
+    const shouldRemove = !licenseValidation.value.provided && hasPersistedLicenseInSession.value;
+    if (!shouldPersist && !shouldRemove) {
+        return;
+    }
+
+    const contexts = await cachedCryptoContextsPromise;
+    if (!contexts) return;
+
+    const isDevNoSandbox = window.el_settings?.settings?.enable_sandbox === false;
+    const activeContext = isDevNoSandbox
+        ? contexts.devKeyContext
+        : contexts.storageKeyContext;
+
+    if (shouldPersist) {
+        if (!activeContext) return;
+
+        setStorageCryptoContext(activeContext);
+        try {
+            const payload = JSON.stringify({
+                email: settings.value.licenseEmail.trim(),
+                key: settings.value.licenseKey.trim(),
+            });
+            await handleLocalStorage('setItem', LICENSE_STORAGE_KEY, payload);
+            hasPersistedLicenseInSession.value = true;
+        } finally {
+            clearStorageCrypto();
+        }
+    } else if (shouldRemove) {
+        if (activeContext) {
+            setStorageCryptoContext(activeContext);
+        }
+        try {
+            await handleLocalStorage('removeItem', LICENSE_STORAGE_KEY);
+            hasPersistedLicenseInSession.value = false;
+        } finally {
+            clearStorageCrypto();
+        }
+    }
+};
+
 const nextStep = async () => {
     // Re-entrancy and gate guard (Enter key, double clicks, programmatic calls).
     if (generatingKeys.value || !canProceed.value) return;
@@ -105,6 +216,7 @@ const nextStep = async () => {
     // reuse the cached public credentials without re-deriving.
     if (canReuseCachedKeys.value) {
         currentStep.value = 5;
+        await persistOnboardingLicense();
         return;
     }
 
@@ -122,9 +234,13 @@ const nextStep = async () => {
     if (success) {
         // Phase 3: Cryptographic keys generated successfully (2 seconds)
         keyGenMessage.value = __('Cryptographic keys generated successfully!');
+        const persistPromise = persistOnboardingLicense();
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         currentStep.value = 5;
+        generatingKeys.value = false;
+        await persistPromise;
+        return;
     }
 
     generatingKeys.value = false;
@@ -147,11 +263,29 @@ const generateKeys = async () => {
 
         // Public key generation (noble-ed25519).
         const publicKeyBuffer = ed25519.getPublicKey(seed);
+        const publicKeyBase64 = arrayBufferToBase64(publicKeyBuffer);
+        const saltBase64 = arrayBufferToBase64(salt);
+
+        if (window.crypto && window.crypto.subtle) {
+            const userId = window.el_settings?.user_id ?? 0;
+            // Note: deriveStorageKeyFromSeed copies `seed` synchronously before its first `await`,
+            // so zeroing `seed` in `finally` below is completely safe.
+            const seedPromise = deriveStorageKeyFromSeed(seed, saltBase64, publicKeyBase64, userId);
+            const devPromise = deriveStorageKeyForDev(publicKeyBase64, saltBase64, userId);
+            cachedCryptoContextsPromise = Promise.all([seedPromise, devPromise]).then(
+                ([storageKeyContext, devKeyContext]) => ({
+                    storageKeyContext,
+                    devKeyContext,
+                })
+            ).catch(() => null);
+        } else {
+            cachedCryptoContextsPromise = null;
+        }
 
         // Convert to Base64 for wp-config.php. Only non-secret values are kept.
         generatedKeysCache.value = {
-            publicKeyBase64: arrayBufferToBase64(publicKeyBuffer),
-            saltBase64: arrayBufferToBase64(salt)
+            publicKeyBase64,
+            saltBase64
         };
 
         return true;
@@ -217,10 +351,10 @@ const generateKeys = async () => {
           <div class="alpha-notice-box">
             <h2 class="alpha-notice-title">
               <span class="codicon codicon-warning alpha-notice-icon" />
-              {{ __('Warning: Alpha Software') }}
+              {{ __('Operational Notice: Live Environment Diagnostics') }}
             </h2>
             <p class="alpha-notice-description">
-              {{ __('Expression Lab contains diagnostic tools and evaluation engines designed for non-production environments. While built with defensive architecture (AST sandboxing, client-side cryptography), this codebase has not undergone independent third-party security audits.') }}
+              {{ __('Expression Lab executes low-level diagnostics, AST expressions, and direct data inspections. While designed with execution boundaries and sandboxing, running complex queries on high-traffic production environments carries operational risks and is done at your own discretion without warranty.') }}
             </p>
           </div>
 
@@ -231,7 +365,7 @@ const generateKeys = async () => {
                 v-model="agreementChecked"
                 type="checkbox"
               >
-              <span>{{ __('I understand Expression Lab is unaudited alpha software and agree to run it only in staging, testing, or local environments.') }}</span>
+              <span>{{ __('I acknowledge that Expression Lab performs low-level diagnostics and accept full responsibility for running executions on production environments.') }}</span>
             </label>
           </div>
         </div>
@@ -324,6 +458,65 @@ const generateKeys = async () => {
         <h2>{{ __('Settings') }}</h2>
       </div>
       <div class="step-body step-inner-container">
+        <!-- Section: License -->
+        <div class="settings-section">
+          <h3 class="settings-section-title">
+            {{ __('License') }}
+          </h3>
+          <p class="settings-description">
+            {{ __('Commercial use of Expression Lab Professional Edition requires a valid license key. Leave these fields blank to continue in evaluation mode.') }}
+          </p>
+          <div class="license-combo-group">
+            <div class="form-group settings-group license-field license-email-field">
+              <label
+                class="settings-label"
+                for="el-onboard-license-email"
+              >{{ __('Email address') }}</label>
+              <input
+                id="el-onboard-license-email"
+                v-model="settings.licenseEmail"
+                type="email"
+                class="settings-input"
+                :class="{ 'is-invalid': licenseInvalid }"
+                :aria-invalid="licenseInvalid ? 'true' : 'false'"
+                :placeholder="__('johndoe@example.com')"
+                autocomplete="off"
+                spellcheck="false"
+              >
+            </div>
+            <div class="form-group settings-group license-field license-key-field">
+              <label
+                class="settings-label"
+                for="el-onboard-license-key"
+              >{{ __('License key') }}</label>
+              <input
+                id="el-onboard-license-key"
+                v-model="settings.licenseKey"
+                type="text"
+                class="settings-input"
+                :class="{ 'is-invalid': licenseInvalid }"
+                :aria-invalid="licenseInvalid ? 'true' : 'false'"
+                :placeholder="__('Paste your license key here')"
+                autocomplete="off"
+                spellcheck="false"
+              >
+            </div>
+          </div>
+          <span
+            v-if="licenseInvalid"
+            class="settings-error"
+            role="alert"
+          >{{ licenseErrorMessage }}</span>
+          <span
+            v-else-if="licenseValidation.provided && licenseValidation.valid"
+            class="settings-valid"
+            role="status"
+          >{{ __('License verified.') }}</span>
+          <span class="settings-hint">{{ __('Your license will be encrypted with your passphrase during key generation and stored locally in your browser.') }}</span>
+        </div>
+
+        <hr class="settings-divider">
+
         <!-- Section: General -->
         <div class="settings-section">
           <h3 class="settings-section-title">
