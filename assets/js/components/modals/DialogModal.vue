@@ -13,6 +13,8 @@ const iconMap = {
   error: 'codicon-error',
   success: 'codicon-pass',
   prompt: 'codicon-key',
+  busy: 'codicon-clockface',
+  loading: 'codicon-clockface',
 };
 
 const dialogIcon = computed(() => {
@@ -26,6 +28,12 @@ const dialogIcon = computed(() => {
 });
 const isConfirm = computed(() => modalData.value.type === 'confirm');
 const isPrompt = computed(() => modalData.value.type === 'prompt');
+const isBusy = computed(
+  () =>
+    modalData.value.type === 'busy' ||
+    modalData.value.type === 'loading' ||
+    modalData.value.closable === false
+);
 const title = computed(() => modalData.value.title ? __(modalData.value.title) : '');
 const message = computed(() => modalData.value.message ? __(modalData.value.message) : '');
 const confirmText = computed(() => {
@@ -70,6 +78,13 @@ const handleConfirm = () => {
 const handleKeyDown = (e) => {
   if (!isOpen.value) return;
 
+  if (isBusy.value) {
+    if (e.key === 'Escape' || e.key === 'Enter') {
+      e.preventDefault();
+    }
+    return;
+  }
+
   if (e.key === 'Escape') {
     e.preventDefault();
     if (modalData.value.type === 'alert') {
@@ -95,8 +110,16 @@ const handleKeyDown = (e) => {
   }
 };
 
-watch(modalData, () => {
+watch(modalData, async (val) => {
   openedAt = Date.now();
+  if (!isOpen.value || !val) return;
+  await nextTick();
+  if (isPrompt.value) {
+    promptValue.value = val.defaultValue || '';
+    promptInputRef.value?.focus?.();
+  } else if (!isBusy.value) {
+    confirmBtnRef.value?.focus?.();
+  }
 });
 
 watch(isOpen, async (val) => {
@@ -109,7 +132,7 @@ watch(isOpen, async (val) => {
     if (isPrompt.value) {
       promptValue.value = modalData.value.defaultValue || '';
       promptInputRef.value?.focus?.();
-    } else {
+    } else if (!isBusy.value) {
       confirmBtnRef.value?.focus?.();
     }
   } else {
@@ -134,6 +157,8 @@ const handleDeny = () => {
       v-if="isOpen"
       id="dialog-modal"
       class="dialog-overlay"
+      :class="{ 'is-busy': isBusy }"
+      :aria-busy="isBusy ? 'true' : undefined"
     >
       <div class="modal-container dialog-modal-container">
         <div class="modal-header">
@@ -141,7 +166,7 @@ const handleDeny = () => {
         </div>
         <div
           class="modal-content dialog-content"
-          :class="{ 'has-prompt': isPrompt }"
+          :class="{ 'has-prompt': isPrompt, 'is-busy': isBusy }"
         >
           <div
             v-if="isConfirm && !modalData.icon"
@@ -152,7 +177,7 @@ const handleDeny = () => {
           <div
             v-else
             class="dialog-icon"
-            :class="{ 'prompt-icon': isPrompt, 'confirm-icon': isConfirm }"
+            :class="{ 'prompt-icon': isPrompt, 'confirm-icon': isConfirm, 'busy-icon': isBusy }"
           >
             <div :class="['codicon', dialogIcon]" />
           </div>
@@ -179,6 +204,7 @@ const handleDeny = () => {
           </div>
         </div>
         <div 
+          v-if="!isBusy"
           class="modal-footer"
           :style="denyText ? 'gap: 8px;' : ''"
         >

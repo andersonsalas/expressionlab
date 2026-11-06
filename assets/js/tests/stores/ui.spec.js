@@ -246,4 +246,75 @@ describe('stores/ui.js - Lock/Unlock Security State', () => {
     expect(store.triggerSnippetInsert({ code: '1 + 1', mode: 'insert' })).toBe(true);
     expect(store.snippetToInsert).toEqual({ code: '1 + 1', mode: 'insert' });
   });
+
+  it('showBusyDialog opens a non-closable busy dialog and closeDialog resets it', () => {
+    const store = useUiStore();
+    store.openDropdown('file-menu');
+
+    store.showBusyDialog({
+      title: 'Encrypted Notebook',
+      message: 'Unlocking and opening notebook, please wait...',
+    });
+
+    expect(store.activeDropdown).toBeNull();
+    expect(store.activeDialog).toBe('dialog');
+    expect(store.activeDialogData).toMatchObject({
+      type: 'busy',
+      closable: false,
+      icon: 'codicon-clockface',
+      title: 'Encrypted Notebook',
+      message: 'Unlocking and opening notebook, please wait...',
+    });
+
+    store.closeDialog();
+    expect(store.activeDialog).toBeNull();
+    expect(store.activeDialogData).toBeNull();
+  });
+
+  it('DialogModal renders non-dismissible busy dialog without footer and ignores Escape/Enter keys', async () => {
+    const { mount } = require('@vue/test-utils');
+    const DialogModal = require('../../components/modals/DialogModal.vue').default;
+    const store = useUiStore();
+
+    const wrapper = mount(DialogModal, {
+      global: {
+        stubs: {
+          Teleport: true,
+        },
+      },
+    });
+
+    store.showBusyDialog({
+      title: 'Encrypted Notebook',
+      message: 'Unlocking and opening notebook, please wait...',
+    });
+    await wrapper.vm.$nextTick();
+
+    const overlay = wrapper.find('#dialog-modal');
+    expect(overlay.exists()).toBe(true);
+    expect(overlay.classes()).toContain('is-busy');
+    expect(overlay.attributes('aria-busy')).toBe('true');
+    expect(wrapper.find('.modal-header h2').text()).toBe('Encrypted Notebook');
+    expect(wrapper.find('.dialog-message').text()).toBe('Unlocking and opening notebook, please wait...');
+    expect(wrapper.find('.codicon-clockface').exists()).toBe(true);
+    expect(wrapper.find('.modal-footer').exists()).toBe(false);
+
+    // Escape and Enter must not dismiss the busy dialog
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    await wrapper.vm.$nextTick();
+    expect(store.activeDialog).toBe('dialog');
+
+    // Transitioning in-place to an alert restores the footer without closing the overlay
+    store.showDialog({
+      type: 'alert',
+      title: 'Decryption Failed',
+      message: 'Incorrect password or corrupted file. Please try again.',
+    });
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find('#dialog-modal').classes()).not.toContain('is-busy');
+    expect(wrapper.find('.modal-footer').exists()).toBe(true);
+
+    wrapper.unmount();
+  });
 });

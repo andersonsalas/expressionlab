@@ -107,6 +107,16 @@ export const useUiStore = defineStore('ui', {
         };
       });
     },
+    showBusyDialog(options = {}) {
+      this.closeDropdowns();
+      this.activeDialog = 'dialog';
+      this.activeDialogData = {
+        icon: 'codicon-clockface',
+        ...options,
+        type: 'busy',
+        closable: false,
+      };
+    },
     closeDialog() {
       this.activeDialog = null;
       this.activeDialogData = null;

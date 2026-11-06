@@ -9,6 +9,10 @@
 	justify-content: center;
 	align-items: center;
 	z-index: 999999;
+
+	&.is-busy {
+		cursor: wait;
+	}
 }
 
 body.wp-admin {
@@ -107,8 +111,11 @@ body.wp-admin {
 		&.codicon-info,
 		.codicon-key,
 		&.codicon-key,
+		.codicon-clockface,
+		&.codicon-clockface,
 		&.prompt-icon .codicon,
-		&.confirm-icon .codicon {
+		&.confirm-icon .codicon,
+		&.busy-icon .codicon {
 			font-size: 48px;
 			color: #7c7c7c;
 		}
