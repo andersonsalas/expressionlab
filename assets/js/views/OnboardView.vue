@@ -3,7 +3,7 @@ import { ref, computed, inject } from 'vue';
 import ExpressionLabIcon from '../components/icons/ExpressionLabIcon.vue';
 import KeyGenGrid from '../components/ui/KeyGenGrid.vue';
 import { ed25519 } from '@noble/curves/ed25519.js';
-import { arrayBufferToBase64, deriveKey, __, sprintf, sanitizeHtml } from '../lib/helpers.js';
+import { arrayBufferToBase64, deriveKey, __, sprintf, sanitizeHtml, hasAddons } from '../lib/helpers.js';
 import { handleLocalStorage } from '../lib/api/client.js';
 import {
     deriveStorageKeyFromSeed,
@@ -33,6 +33,8 @@ const steps = computed(() => [
 
 const currentStep = ref(1);
 const agreementChecked = ref(false);
+const eulaChecked = ref(false);
+const isEulaModalOpen = ref(false);
 const password = ref('');
 const generatingKeys = ref(false);
 const keyGenMessage = ref('');
@@ -69,6 +71,10 @@ const reqs = ref({
 });
 
 const licenseValidation = computed(() => {
+    if (!hasAddons()) {
+        return { provided: false, valid: true, errorCode: null };
+    }
+
     const cleanEmail = typeof settings.value.licenseEmail === 'string'
         ? settings.value.licenseEmail.trim()
         : '';
@@ -131,7 +137,7 @@ const settingsValid = computed(() => !licenseInvalid.value
 const canReuseCachedKeys = computed(() => hasCachedKeys.value && password.value.length === 0);
 
 const canProceed = computed(() => {
-    if (currentStep.value === 1) return agreementChecked.value;
+    if (currentStep.value === 1) return agreementChecked.value && (!hasAddons() || eulaChecked.value);
     // Note: SQLite3 is required for some features but not strictly required for the core functionality
     // of Expression Lab, so we will allow users to proceed even if it's missing.
     // We will just show a warning in the requirements step.
@@ -158,7 +164,7 @@ const prevStep = () => {
 };
 
 const persistOnboardingLicense = async () => {
-    if (!generatedKeysCache.value || !cachedCryptoContextsPromise) return;
+    if (!hasAddons() || !generatedKeysCache.value || !cachedCryptoContextsPromise) return;
 
     const shouldPersist = licenseValidation.value.provided && licenseValidation.value.valid;
     const shouldRemove = !licenseValidation.value.provided && hasPersistedLicenseInSession.value;
@@ -358,15 +364,38 @@ const generateKeys = async () => {
             </p>
           </div>
 
-          <div class="agreement-check">
-            <label>
-              <input
-                id="el-onboard-agreement"
-                v-model="agreementChecked"
-                type="checkbox"
-              >
-              <span>{{ __('I acknowledge that Expression Lab performs low-level diagnostics and accept full responsibility for running executions on production environments.') }}</span>
-            </label>
+          <div class="agreement-group">
+            <div class="agreement-check">
+              <label>
+                <input
+                  id="el-onboard-agreement"
+                  v-model="agreementChecked"
+                  type="checkbox"
+                >
+                <span>{{ __('I acknowledge that Expression Lab performs low-level diagnostics and accept full responsibility for running executions on production environments.') }}</span>
+              </label>
+            </div>
+
+            <div
+              v-if="hasAddons()"
+              class="agreement-check"
+            >
+              <label>
+                <input
+                  id="el-onboard-eula"
+                  v-model="eulaChecked"
+                  type="checkbox"
+                >
+                <span>
+                  {{ __('I have read and accept the') }}
+                  <a
+                    href="#"
+                    class="onboard-eula-link"
+                    @click.prevent.stop="isEulaModalOpen = true"
+                  >{{ __('End-User License Agreement (EULA)') }}</a>.
+                </span>
+              </label>
+            </div>
           </div>
         </div>
       </div>
@@ -459,63 +488,65 @@ const generateKeys = async () => {
       </div>
       <div class="step-body step-inner-container">
         <!-- Section: License -->
-        <div class="settings-section">
-          <h3 class="settings-section-title">
-            {{ __('License') }}
-          </h3>
-          <p class="settings-description">
-            {{ __('Commercial use of Expression Lab Professional Edition requires a valid license key. Leave these fields blank to continue in evaluation mode.') }}
-          </p>
-          <div class="license-combo-group">
-            <div class="form-group settings-group license-field license-email-field">
-              <label
-                class="settings-label"
-                for="el-onboard-license-email"
-              >{{ __('Email address') }}</label>
-              <input
-                id="el-onboard-license-email"
-                v-model="settings.licenseEmail"
-                type="email"
-                class="settings-input"
-                :class="{ 'is-invalid': licenseInvalid }"
-                :aria-invalid="licenseInvalid ? 'true' : 'false'"
-                :placeholder="__('johndoe@example.com')"
-                autocomplete="off"
-                spellcheck="false"
-              >
+        <template v-if="hasAddons()">
+          <div class="settings-section">
+            <h3 class="settings-section-title">
+              {{ __('License') }}
+            </h3>
+            <p class="settings-description">
+              {{ __('Commercial use of Expression Lab Professional Edition requires a valid license key. Leave these fields blank to continue in evaluation mode.') }}
+            </p>
+            <div class="license-combo-group">
+              <div class="form-group settings-group license-field license-email-field">
+                <label
+                  class="settings-label"
+                  for="el-onboard-license-email"
+                >{{ __('Email address') }}</label>
+                <input
+                  id="el-onboard-license-email"
+                  v-model="settings.licenseEmail"
+                  type="email"
+                  class="settings-input"
+                  :class="{ 'is-invalid': licenseInvalid }"
+                  :aria-invalid="licenseInvalid ? 'true' : 'false'"
+                  :placeholder="__('johndoe@example.com')"
+                  autocomplete="off"
+                  spellcheck="false"
+                >
+              </div>
+              <div class="form-group settings-group license-field license-key-field">
+                <label
+                  class="settings-label"
+                  for="el-onboard-license-key"
+                >{{ __('License key') }}</label>
+                <input
+                  id="el-onboard-license-key"
+                  v-model="settings.licenseKey"
+                  type="text"
+                  class="settings-input"
+                  :class="{ 'is-invalid': licenseInvalid }"
+                  :aria-invalid="licenseInvalid ? 'true' : 'false'"
+                  :placeholder="__('Paste your license key here')"
+                  autocomplete="off"
+                  spellcheck="false"
+                >
+              </div>
             </div>
-            <div class="form-group settings-group license-field license-key-field">
-              <label
-                class="settings-label"
-                for="el-onboard-license-key"
-              >{{ __('License key') }}</label>
-              <input
-                id="el-onboard-license-key"
-                v-model="settings.licenseKey"
-                type="text"
-                class="settings-input"
-                :class="{ 'is-invalid': licenseInvalid }"
-                :aria-invalid="licenseInvalid ? 'true' : 'false'"
-                :placeholder="__('Paste your license key here')"
-                autocomplete="off"
-                spellcheck="false"
-              >
-            </div>
+            <span
+              v-if="licenseInvalid"
+              class="settings-error"
+              role="alert"
+            >{{ licenseErrorMessage }}</span>
+            <span
+              v-else-if="licenseValidation.provided && licenseValidation.valid"
+              class="settings-valid"
+              role="status"
+            >{{ __('License verified.') }}</span>
+            <span class="settings-hint">{{ __('Your license will be encrypted with your passphrase during key generation and stored locally in your browser.') }}</span>
           </div>
-          <span
-            v-if="licenseInvalid"
-            class="settings-error"
-            role="alert"
-          >{{ licenseErrorMessage }}</span>
-          <span
-            v-else-if="licenseValidation.provided && licenseValidation.valid"
-            class="settings-valid"
-            role="status"
-          >{{ __('License verified.') }}</span>
-          <span class="settings-hint">{{ __('Your license will be encrypted with your passphrase during key generation and stored locally in your browser.') }}</span>
-        </div>
 
-        <hr class="settings-divider">
+          <hr class="settings-divider">
+        </template>
 
         <!-- Section: General -->
         <div class="settings-section">
@@ -884,6 +915,18 @@ const generateKeys = async () => {
     </section>
   </main>
   <footer class="onboard-footer">
-    <p>{{ __('Expression Lab is a free, open-source plugin by Anderson Salas and contributors.') }}</p>
-  </footer>  
+    <p v-if="hasAddons()">
+      {{ __('Expression Lab Professional Edition by Anderson Salas. Built on the open-source Expression Lab core.') }}
+    </p>
+    <p v-else>
+      {{ __('Expression Lab is a free, open-source plugin by Anderson Salas and contributors.') }}
+    </p>
+  </footer>
+
+  <!-- EULA Modal (Professional Edition) -->
+  <component
+    :is="'ProEulaModal'"
+    v-if="hasAddons() && isEulaModalOpen"
+    @close="isEulaModalOpen = false"
+  />
 </template>

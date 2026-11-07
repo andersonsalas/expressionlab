@@ -167,6 +167,10 @@ class Onboarding extends AdminPage {
 			'Activation requires filesystem-level persistence. Paste the following constants into your <code>wp-config.php</code> file:' => __( 'Activation requires filesystem-level persistence. Paste the following constants into your <code>wp-config.php</code> file:', 'expression-lab' ),
 			'Once the file is saved, reload this page to validate the configuration and unlock the console.' => __( 'Once the file is saved, reload this page to validate the configuration and unlock the console.', 'expression-lab' ),
 			'Expression Lab is a free, open-source plugin by Anderson Salas and contributors.' => __( 'Expression Lab is a free, open-source plugin by Anderson Salas and contributors.', 'expression-lab' ),
+			'Expression Lab Professional Edition by Anderson Salas. Built on the open-source Expression Lab core.' => __( 'Expression Lab Professional Edition by Anderson Salas. Built on the open-source Expression Lab core.', 'expression-lab' ),
+			'I have read and accept the'                 => __( 'I have read and accept the', 'expression-lab' ),
+			'End-User License Agreement (EULA)'          => __( 'End-User License Agreement (EULA)', 'expression-lab' ),
+			'Close'                                      => __( 'Close', 'expression-lab' ),
 		);
 	}
 

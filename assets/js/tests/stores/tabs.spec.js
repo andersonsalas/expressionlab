@@ -558,6 +558,27 @@ describe('stores/tabs.js - Tabs Management Store', () => {
       expect(newTab.title).toBe('Scratchpad');
     });
 
+    it('initializes in notebook mode on a clean install of Professional Edition and initializes banner if switched to repl', () => {
+      const prevAddons = global.__WITH_ADDONS__;
+      global.__WITH_ADDONS__ = true;
+      localStorage.removeItem('el_user_settings');
+      setActivePinia(createPinia());
+
+      const store = useTabsStore();
+      expect(store.activeTab.mode).toBe('notebook');
+      expect(store.activeTab.title).toBe('Untitled.elab');
+      expect(store.activeTab.history).toEqual([]);
+
+      // Switching clean initial tab to repl (e.g. after unlocking with saved console setting)
+      store.setTabMode(store.activeTab.id, 'repl');
+      expect(store.activeTab.mode).toBe('repl');
+      expect(store.activeTab.title).toBe('Console');
+      expect(store.activeTab.history.length).toBe(1);
+      expect(store.activeTab.history[0].messages).toEqual(['Welcome to Expression Lab']);
+
+      global.__WITH_ADDONS__ = prevAddons;
+    });
+
     it('supports notebook mode creation, updateTabNotebook, and isTabCleanAndEmpty checks', () => {
       setActivePinia(createPinia());
       const store = useTabsStore();

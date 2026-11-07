@@ -545,6 +545,9 @@ export const useTabsStore = defineStore('tabs', {
       if (!tab) return;
 
       tab.mode = mode;
+      if (mode === 'repl' && (!Array.isArray(tab.history) || tab.history.length === 0)) {
+        tab.history = getInitialBanner();
+      }
       if (!tab.isCustomTitle) {
         tab.title = resolveDefaultTabTitle(
           mode,

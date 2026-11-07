@@ -46,6 +46,22 @@ describe('stores/settings.js - Settings Store', () => {
       localStorage.setItem(USER_SETTINGS_STORAGE_KEY, '{invalid json');
       expect(getStoredDefaultTabMode()).toBe('console');
     });
+
+    it('returns notebook by default on a clean install of Professional Edition (addons enabled)', () => {
+      const prevAddons = global.__WITH_ADDONS__;
+      global.__WITH_ADDONS__ = true;
+
+      expect(getStoredDefaultTabMode()).toBe('notebook');
+
+      // Preserves explicit console preference in Professional Edition
+      localStorage.setItem(
+        USER_SETTINGS_STORAGE_KEY,
+        JSON.stringify({ defaultTabMode: 'console' })
+      );
+      expect(getStoredDefaultTabMode()).toBe('console');
+
+      global.__WITH_ADDONS__ = prevAddons;
+    });
   });
 
   describe('getStoredSidebarVisible()', () => {
@@ -139,6 +155,21 @@ describe('stores/settings.js - Settings Store', () => {
       expect(store.defaultTabMode).toBe('console');
       expect(store.hasOutlineCache).toBe(false);
       expect(store.loaded).toBe(true);
+    });
+
+    it('defaults defaultTabMode to notebook on clean storage in Professional Edition', async () => {
+      const prevAddons = global.__WITH_ADDONS__;
+      global.__WITH_ADDONS__ = true;
+      client.handleLocalStorage.mockResolvedValue(null);
+
+      const store = useSettingsStore();
+      expect(store.defaultTabMode).toBe('notebook');
+      await store.loadSettings();
+
+      expect(store.defaultTabMode).toBe('notebook');
+      expect(store.loaded).toBe(true);
+
+      global.__WITH_ADDONS__ = prevAddons;
     });
   });
 

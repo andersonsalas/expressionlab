@@ -34,10 +34,16 @@ onMounted(async () => {
     }
     await settingsStore.loadSettings();
 
-    if ((settingsStore.defaultTabMode === 'scratchpad' || (settingsStore.defaultTabMode === 'notebook' && hasAddons())) && tabsStore.tabs.length === 1) {
+    if (tabsStore.tabs.length === 1) {
       const firstTab = tabsStore.tabs[0];
-      if (firstTab.mode === 'repl' && !firstTab.isCustomTitle && firstTab.history.length <= 1 && !firstTab.scratchpadCode && !firstTab.replDraft) {
-        tabsStore.setTabMode(firstTab.id, settingsStore.defaultTabMode);
+      const targetMode =
+        settingsStore.defaultTabMode === 'notebook' && hasAddons()
+          ? 'notebook'
+          : settingsStore.defaultTabMode === 'scratchpad'
+            ? 'scratchpad'
+            : 'repl';
+      if (firstTab.mode !== targetMode && tabsStore.isTabCleanAndEmpty(firstTab)) {
+        tabsStore.setTabMode(firstTab.id, targetMode);
       }
     }
   }

@@ -233,11 +233,11 @@ describe('SettingsModal.vue', () => {
     await radioInputs[2].setValue(true);
     expect(settingsStore.setDefaultTabMode).toHaveBeenCalledWith('notebook');
 
-    // Also check License tab exists when addons are enabled
+    // Also check General, Updates, and License tabs exist when addons are enabled
     const tabButtons = wrapper.findAll('.settings-tabs-header .builder-tab-btn');
     expect(tabButtons.length).toBe(3);
     expect(tabButtons[0].text()).toContain('General');
-    expect(tabButtons[1].text()).toContain('Data');
+    expect(tabButtons[1].text()).toContain('Updates');
     expect(tabButtons[2].text()).toContain('License');
 
     global.__WITH_ADDONS__ = prevAddons;
@@ -277,7 +277,7 @@ describe('SettingsModal.vue', () => {
     global.__WITH_ADDONS__ = prevAddons;
   });
 
-  it('renders General and Data tabs by default (without addons) and allows switching tabs', async () => {
+  it('renders General and Updates tabs by default (without addons) and allows switching tabs', async () => {
     const pinia = createTestingPinia({
       initialState: {
         ui: { activeModal: 'settings' },
@@ -301,19 +301,63 @@ describe('SettingsModal.vue', () => {
     const tabButtons = wrapper.findAll('.settings-tabs-header .builder-tab-btn');
     expect(tabButtons.length).toBe(2);
     expect(tabButtons[0].text()).toContain('General');
-    expect(tabButtons[1].text()).toContain('Data');
+    expect(tabButtons[1].text()).toContain('Updates');
     expect(tabButtons[0].classes()).toContain('active');
 
-    // General panel visible, data panel hidden
+    // General panel visible (containing both Default new tab layout and Browser cache), updates panel hidden
     expect(wrapper.find('.tab-general').isVisible()).toBe(true);
-    expect(wrapper.find('.tab-data').isVisible()).toBe(false);
+    expect(wrapper.find('.tab-general').text()).toContain('Default new tab layout');
+    expect(wrapper.find('.tab-general').text()).toContain('Browser cache');
+    expect(wrapper.find('.tab-updates').isVisible()).toBe(false);
 
-    // Switch to Data tab
+    // Switch to Updates tab
     await tabButtons[1].trigger('click');
     expect(tabButtons[1].classes()).toContain('active');
     expect(tabButtons[0].classes()).not.toContain('active');
     expect(wrapper.find('.tab-general').isVisible()).toBe(false);
-    expect(wrapper.find('.tab-data').isVisible()).toBe(true);
+    expect(wrapper.find('.tab-updates').isVisible()).toBe(true);
+    expect(wrapper.find('.settings-update-status .codicon-check').exists()).toBe(true);
+    expect(wrapper.find('.settings-update-status').text()).toBe('You are using the latest version.');
+  });
+
+  it('displays available update status when window.el_settings.updates.has_update is true', () => {
+    const prevSettings = window.el_settings;
+    window.el_settings = {
+      ...(prevSettings || {}),
+      version: '0.2.0-alpha',
+      updates: {
+        has_update: true,
+        latest_version: '9.9.9',
+      },
+    };
+
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'settings', activeModalData: { tab: 'updates' } },
+        settings: {
+          defaultTabMode: 'console',
+          hasOutlineCache: false,
+          isClearingCache: false,
+        },
+      },
+    });
+
+    const wrapper = mount(SettingsModal, {
+      global: {
+        plugins: [pinia],
+        mocks: {
+          __: (str) => str,
+        },
+      },
+    });
+
+    expect(wrapper.find('.tab-updates').isVisible()).toBe(true);
+    expect(wrapper.find('.settings-update-status .codicon-sync').exists()).toBe(true);
+    expect(wrapper.find('.settings-update-status').text()).toBe(
+      'A new version is available: 9.9.9 (Installed: 0.2.0-alpha)'
+    );
+
+    window.el_settings = prevSettings;
   });
 
   it('calls closeModal when modal footer Close button is clicked', async () => {

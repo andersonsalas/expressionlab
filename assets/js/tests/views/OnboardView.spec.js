@@ -60,6 +60,10 @@ const mountView = ({ validateLicense = jest.fn(() => ({ valid: true })) } = {}) 
     stubs: {
       KeyGenGrid: { template: '<div class="keygen-grid-stub" />' },
       ExpressionLabIcon: true,
+      ProEulaModal: {
+        emits: ['close'],
+        template: '<div id="pro-eula-modal"><button class="btn-close-eula" @click="$emit(\'close\')">Close</button></div>',
+      },
     },
   },
 });
@@ -90,6 +94,10 @@ const runKeyGeneration = async (wrapper) => {
 
 const goToSettings = async (wrapper) => {
   await wrapper.find('#el-onboard-agreement').setValue(true);
+  const eulaCheckbox = wrapper.find('#el-onboard-eula');
+  if (eulaCheckbox.exists()) {
+    await eulaCheckbox.setValue(true);
+  }
   await clickNext(wrapper); // -> 2
   await clickNext(wrapper); // -> 3
 };
@@ -159,6 +167,54 @@ describe('OnboardView.vue', () => {
       const wrapper = mountView();
       expect(wrapper.find('.step-item.active').attributes('aria-current')).toBe('step');
       expect(wrapper.findAll('[aria-current="step"]')).toHaveLength(1);
+    });
+
+    it('renders Community footer and omits EULA checkbox when addons are disabled', () => {
+      const prevAddons = global.__WITH_ADDONS__;
+      global.__WITH_ADDONS__ = false;
+
+      const wrapper = mountView();
+      expect(wrapper.find('#el-onboard-eula').exists()).toBe(false);
+      expect(wrapper.find('.onboard-footer').text()).toBe(
+        'Expression Lab is a free, open-source plugin by Anderson Salas and contributors.'
+      );
+
+      global.__WITH_ADDONS__ = prevAddons;
+    });
+
+    it('requires both agreement and EULA checkboxes and opens EULA modal in Professional Edition', async () => {
+      const prevAddons = global.__WITH_ADDONS__;
+      global.__WITH_ADDONS__ = true;
+
+      const wrapper = mountView();
+      expect(wrapper.find('#el-onboard-eula').exists()).toBe(true);
+      expect(wrapper.find('.onboard-footer').text()).toBe(
+        'Expression Lab Professional Edition by Anderson Salas. Built on the open-source Expression Lab core.'
+      );
+
+      // Clicking the EULA link opens ProEulaModal without toggling the checkbox
+      const eulaLink = wrapper.find('.onboard-eula-link');
+      expect(eulaLink.exists()).toBe(true);
+      await eulaLink.trigger('click');
+      expect(wrapper.find('#el-onboard-eula').element.checked).toBe(false);
+      expect(wrapper.find('#pro-eula-modal').exists()).toBe(true);
+
+      // Emitting close from ProEulaModal closes the modal
+      await wrapper.find('#pro-eula-modal .btn-close-eula').trigger('click');
+      expect(wrapper.find('#pro-eula-modal').exists()).toBe(false);
+
+      // Only checking first checkbox is not enough in Pro mode
+      await wrapper.find('#el-onboard-agreement').setValue(true);
+      expect(primaryButton(wrapper).attributes('disabled')).toBeDefined();
+
+      // Checking EULA checkbox enables proceeding
+      await wrapper.find('#el-onboard-eula').setValue(true);
+      expect(primaryButton(wrapper).attributes('disabled')).toBeUndefined();
+
+      await clickNext(wrapper);
+      expect(activeStepLabel(wrapper)).toBe('System Requirements');
+
+      global.__WITH_ADDONS__ = prevAddons;
     });
   });
 
@@ -570,16 +626,30 @@ describe('OnboardView.vue', () => {
   });
 
   describe('Step 3 & 4: Encrypted license localStorage persistence', () => {
+    let prevAddons;
+
     beforeEach(() => {
+      prevAddons = global.__WITH_ADDONS__;
+      global.__WITH_ADDONS__ = true;
       window.localStorage.clear();
       clearStorageCrypto();
     });
 
     afterEach(() => {
+      global.__WITH_ADDONS__ = prevAddons;
       window.localStorage.clear();
       clearStorageCrypto();
     });
 
+    it('hides the License section in Step 3 when addons are disabled (Community Edition)', async () => {
+      global.__WITH_ADDONS__ = false;
+      const wrapper = mountView();
+      await goToSettings(wrapper);
+
+      expect(wrapper.find('#el-onboard-license-email').exists()).toBe(false);
+      expect(wrapper.find('#el-onboard-license-key').exists()).toBe(false);
+      expect(primaryButton(wrapper).attributes('disabled')).toBeUndefined();
+    });
     it('keeps license in volatile Vue memory during Step 3 and encrypts it into localStorage on Step 4 completion', async () => {
       const wrapper = mountView();
       await goToSettings(wrapper);

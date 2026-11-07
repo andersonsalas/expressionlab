@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useUiStore } from '../../stores/ui';
 import { useSettingsStore } from '../../stores/settings';
-import { __, hasAddons } from '../../lib/helpers.js';
+import { __, sprintf, hasAddons } from '../../lib/helpers.js';
 
 const props = defineProps({
   closeOnOutsideClick: {
@@ -25,13 +25,27 @@ const resolveInitialTab = () => {
   if (requested === 'license' && !hasAddons()) {
     return 'general';
   }
-  if (requested && ['general', 'data', 'license'].includes(requested)) {
+  if (requested && ['general', 'updates', 'license'].includes(requested)) {
     return requested;
   }
   return 'general';
 };
 
 const activeTab = ref(resolveInitialTab());
+
+const hasUpdate = computed(() => Boolean(window.el_settings?.updates?.has_update));
+const latestVersion = computed(() => window.el_settings?.updates?.latest_version || '');
+const currentVersion = computed(() => window.el_settings?.version || '');
+const updateStatusText = computed(() => {
+  if (!hasUpdate.value) {
+    return __('You are using the latest version.');
+  }
+  return sprintf(
+    __('A new version is available: %1$s (Installed: %2$s)'),
+    latestVersion.value,
+    currentVersion.value
+  );
+});
 
 const selectedTabMode = computed({
   get: () => settingsStore.defaultTabMode,
@@ -139,10 +153,10 @@ onUnmounted(() => {
         <button
           type="button"
           class="builder-tab-btn"
-          :class="{ active: activeTab === 'data' }"
-          @click="activeTab = 'data'"
+          :class="{ active: activeTab === 'updates' }"
+          @click="activeTab = 'updates'"
         >
-          <span>{{ __('Data') }}</span>
+          <span>{{ __('Updates') }}</span>
         </button>
 
         <button
@@ -240,13 +254,9 @@ onUnmounted(() => {
               </label>
             </div>
           </div>
-        </div>
 
-        <!-- 2. Data Tab -->
-        <div
-          v-show="activeTab === 'data'"
-          class="settings-tab-panel tab-data"
-        >
+          <hr class="settings-divider">
+
           <div class="settings-section">
             <div class="panel-section-header">
               <h4>{{ __('Browser cache') }}</h4>
@@ -264,6 +274,28 @@ onUnmounted(() => {
               >
                 {{ isClearingCache ? __('Clearing...') : __('Clear cache') }}
               </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Updates Tab -->
+        <div
+          v-show="activeTab === 'updates'"
+          class="settings-tab-panel tab-updates"
+        >
+          <div class="settings-section">
+            <div class="panel-section-header">
+              <h4>{{ __('Updates') }}</h4>
+            </div>
+            <div
+              class="settings-update-status"
+              role="status"
+            >
+              <span
+                class="codicon"
+                :class="hasUpdate ? 'codicon-sync' : 'codicon-check'"
+              />
+              <span>{{ updateStatusText }}</span>
             </div>
           </div>
         </div>

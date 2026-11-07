@@ -242,4 +242,20 @@
 			}
 		}
 	}
+
+	.settings-update-status {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 13px;
+		color: #333;
+
+		.codicon-check {
+			color: $wordpress-primary;
+		}
+
+		.codicon-sync {
+			color: $wordpress-primary;
+		}
+	}
 }

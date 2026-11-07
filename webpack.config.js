@@ -158,6 +158,7 @@ if (!Encore.isRuntimeEnvironmentConfigured()) {
 }
 
 const appEntries = ['./assets/js/entries/app.js'];
+const onboardEntries = ['./assets/js/entries/onboard.js'];
 if (withProAddon) {
   const styleRels = Array.isArray(addonManifest?.styles) && addonManifest.styles.length > 0
     ? addonManifest.styles
@@ -166,6 +167,7 @@ if (withProAddon) {
     const stylePath = path.resolve(addonDir, styleRel);
     if (fs.existsSync(stylePath)) {
       appEntries.push(stylePath);
+      onboardEntries.push(stylePath);
     }
   }
 }
@@ -176,7 +178,7 @@ Encore
   .setOutputPath('assets/build/')
   .setPublicPath('/assets/build')
 
-  .addEntry('expressionlab-onboard', './assets/js/entries/onboard.js')
+  .addEntry('expressionlab-onboard', onboardEntries)
   .addEntry('expressionlab-app', appEntries)
   .addEntry('expressionlab-app-sandbox', './assets/js/entries/app-sandbox.js')
 

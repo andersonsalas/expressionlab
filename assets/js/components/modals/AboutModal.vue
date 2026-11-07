@@ -88,6 +88,12 @@ onUnmounted(() => {
           <div class="about-app-title">
             Expression Lab
           </div>
+          <div
+            v-if="hasAddons()"
+            class="about-app-edition"
+          >
+            {{ __('Professional Edition') }}
+          </div>
           <div class="about-app-version">
             {{ version }}
           </div>
@@ -95,15 +101,28 @@ onUnmounted(() => {
             {{ __('© Anderson Salas and contributors.') }}
           </div>
           <div class="about-license">
-            <p>
-              {{ __('This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.') }}
-            </p>
-            <p>
-              {{ __('This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.') }}
-            </p>
-            <p>
-              {{ __('You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.') }}
-            </p>
+            <template v-if="hasAddons()">
+              <p>
+                {{ __('Expression Lab Professional Edition includes proprietary add-on components and WebAssembly modules governed by the End-User License Agreement (EULA). Commercial use requires a valid license; unlicensed evaluation is subject to the terms of the EULA.') }}
+              </p>
+              <p>
+                {{ __('The core Expression Lab plugin is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.') }}
+              </p>
+              <p>
+                {{ __('This software is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the EULA and the GNU General Public License for more details.') }}
+              </p>
+            </template>
+            <template v-else>
+              <p>
+                {{ __('This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.') }}
+              </p>
+              <p>
+                {{ __('This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.') }}
+              </p>
+              <p>
+                {{ __('You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.') }}
+              </p>
+            </template>
           </div>
           <div class="about-links">
             <a

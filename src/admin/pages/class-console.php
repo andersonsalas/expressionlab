@@ -16,6 +16,7 @@ use ExpressionLab\Core\LanguageEngine;
 use ExpressionLab\Core\Helper;
 use ExpressionLab\Core\AdminPage;
 use ExpressionLab\Core\AuditLogger;
+use ExpressionLab\Core\Updater;
 use ExpressionLab\Core\Exceptions\SecurityException;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -260,6 +261,7 @@ class Console extends AdminPage {
 				'sodium_enabled' => extension_loaded( 'sodium' ),
 				'is_playground'  => Helper::is_playground(),
 			),
+			'updates'    => Updater::get()->get_cached_update_status(),
 			'i18n'       => $this->get_i18n_strings(),
 		);
 	}
@@ -381,6 +383,9 @@ class Console extends AdminPage {
 			'An error occurred during verification.'     => __( 'An error occurred during verification.', 'expression-lab' ),
 
 			// Settings Modal.
+			'General'                                    => __( 'General', 'expression-lab' ),
+			'Updates'                                    => __( 'Updates', 'expression-lab' ),
+			'License'                                    => __( 'License', 'expression-lab' ),
 			'Default new tab layout'                     => __( 'Default new tab layout', 'expression-lab' ),
 			'Choose the default layout for newly created tabs. This also affects the action of the New Tab button in the tab bar.' => __( 'Choose the default layout for newly created tabs. This also affects the action of the New Tab button in the tab bar.', 'expression-lab' ),
 			'Interactive single-expression evaluation with immediate output.' => __( 'Interactive single-expression evaluation with immediate output.', 'expression-lab' ),
@@ -390,14 +395,21 @@ class Console extends AdminPage {
 			'Clear cache'                                => __( 'Clear cache', 'expression-lab' ),
 			'Clearing...'                                => __( 'Clearing...', 'expression-lab' ),
 			'Refresh filesystem cache'                   => __( 'Refresh filesystem cache', 'expression-lab' ),
+			'You are using the latest version.'          => __( 'You are using the latest version.', 'expression-lab' ),
+			/* translators: 1: new available version number, 2: currently installed version number */
+			'A new version is available: %1$s (Installed: %2$s)' => __( 'A new version is available: %1$s (Installed: %2$s)', 'expression-lab' ),
 
 			// About Modal.
 			'About'                                      => __( 'About', 'expression-lab' ),
 			'Close'                                      => __( 'Close', 'expression-lab' ),
+			'Professional Edition'                       => __( 'Professional Edition', 'expression-lab' ),
 			'© Anderson Salas and contributors.'         => __( '© Anderson Salas and contributors.', 'expression-lab' ),
 			'Website'                                    => __( 'Website', 'expression-lab' ),
 			'Docs'                                       => __( 'Docs', 'expression-lab' ),
 			'GitHub'                                     => __( 'GitHub', 'expression-lab' ),
+			'Expression Lab Professional Edition includes proprietary add-on components and WebAssembly modules governed by the End-User License Agreement (EULA). Commercial use requires a valid license; unlicensed evaluation is subject to the terms of the EULA.' => __( 'Expression Lab Professional Edition includes proprietary add-on components and WebAssembly modules governed by the End-User License Agreement (EULA). Commercial use requires a valid license; unlicensed evaluation is subject to the terms of the EULA.', 'expression-lab' ),
+			'The core Expression Lab plugin is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.' => __( 'The core Expression Lab plugin is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.', 'expression-lab' ),
+			'This software is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the EULA and the GNU General Public License for more details.' => __( 'This software is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the EULA and the GNU General Public License for more details.', 'expression-lab' ),
 			'This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.' => __( 'This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.', 'expression-lab' ),
 			'This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.' => __( 'This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.', 'expression-lab' ),
 			'You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.' => __( 'You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.', 'expression-lab' ),
