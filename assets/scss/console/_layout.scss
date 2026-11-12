@@ -7,6 +7,7 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
+	gap: 0;
 
 	span {
 		display: none;
@@ -14,6 +15,15 @@
 
 	.codicon {
 		margin-right: 0;
+	}
+
+	.tools-chevron {
+		display: none;
+	}
+
+	svg.expressionlab-logo {
+		margin: 0;
+		margin-left: 3px !important;
 	}
 }
 
@@ -223,6 +233,10 @@
 			.console-toolbar-button {
 				padding: 4px;
 
+				svg {
+					margin-right: 4px;
+				}
+
 				.toolbar-button-label {
 					display: inline-flex;
 					align-items: center;
@@ -307,6 +321,12 @@
 		.group-file {
 			.console-toolbar-button {
 				@include toolbar-button-compact;
+			}
+		}
+
+		.group-file {
+			.console-toolbar-button {
+				padding: 3px;
 			}
 		}
 	}

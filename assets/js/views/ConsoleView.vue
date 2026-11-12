@@ -646,7 +646,10 @@ onUnmounted(() => {
             :title="__('Expression Lab')"
             @click.stop="toggleFileDropdown"
           >
-            <ExpressionLabIcon style="width: 26px; height: 26px; flex-shrink: 0; margin-right:4px;" />
+            <ExpressionLabIcon 
+              style="width: 26px; height: 26px; flex-shrink: 0;"
+              class="expressionlab-logo"
+            />
             <span class="toolbar-button-label has-subtitle">
               <span class="toolbar-button-title">{{ __('Expression Lab') }}</span>
               <span

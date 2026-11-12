@@ -119,10 +119,14 @@ describe('ConsoleView.vue Toolbar', () => {
 
     // Group 1: File dropdown
     expect(groups[0].classes()).toContain('group-file');
+    const fileDropdownBtn = groups[0].find('.menu-dropdown-btn');
+    expect(fileDropdownBtn.exists()).toBe(true);
     const svgIcon = groups[0].find('svg');
     expect(svgIcon.exists()).toBe(true);
     expect(svgIcon.attributes('style')).toContain('width: 26px');
     expect(svgIcon.attributes('style')).toContain('height: 26px');
+    expect(fileDropdownBtn.find('.toolbar-button-label').exists()).toBe(true);
+    expect(fileDropdownBtn.find('.tools-chevron').exists()).toBe(true);
 
     // Group 2: Open / Save
     expect(groups[1].classes()).toContain('group-file-actions');
