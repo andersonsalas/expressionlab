@@ -454,7 +454,7 @@ class Updater {
 	/**
 	 * Retrieves the cached update status from the transient without performing remote HTTP requests.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @return array{has_update: bool, latest_version: string} Cached update status.
 	 */

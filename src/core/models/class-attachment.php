@@ -400,7 +400,7 @@ final class Attachment extends Model {
 	 * Resolves an attachment file path safely, ensuring it is confined to allowed boundaries
 	 * and free from stream wrappers, null bytes, or directory traversal.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $path       The filesystem path to validate.
@@ -462,7 +462,7 @@ final class Attachment extends Model {
 	 * Media.get(42).show('large')
 	 * ```
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @param string $size Optional. Image size name (`'medium'`, `'thumbnail'`, `'large'`, `'full'`). Default `'medium'`.
 	 * @return self This attachment instance for method chaining.

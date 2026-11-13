@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Provides methods to inspect, diagnose, and manipulate the WordPress object cache subsystem.
  *
- * @since 0.3.0
+ * @since 1.0.0
  *
  * @package ExpressionLab
  */

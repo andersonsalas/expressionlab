@@ -156,7 +156,7 @@ class LanguageEngine {
 	 *
 	 * Caps the maximum size of the full response to prevent browser lockup.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @var int
 	 */
@@ -167,7 +167,7 @@ class LanguageEngine {
 	 *
 	 * Limits cumulative Base64-encoded image payloads within an evaluation.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @var int
 	 */
@@ -176,7 +176,7 @@ class LanguageEngine {
 	/**
 	 * Maximum number of expressions allowed in a single sequential batch evaluation.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @var int
 	 */
@@ -253,7 +253,7 @@ class LanguageEngine {
 	/**
 	 * Total accumulated binary bytes across all visualizations in the current evaluation.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @var int
 	 */
@@ -265,7 +265,7 @@ class LanguageEngine {
 	 * Counted against `MAX_EMBEDDED_BINARY_BYTES` together with `$accumulated_binary_bytes`, and
 	 * deliberately preserved by `evaluate()` so the embedded binary budget spans the whole batch.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @var int
 	 */
@@ -869,7 +869,7 @@ class LanguageEngine {
 	/**
 	 * Checks if the requested binary byte count can be accommodated within the embedded binary budget.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param int $bytes Number of raw binary bytes.
@@ -882,7 +882,7 @@ class LanguageEngine {
 	/**
 	 * Sets the binary bytes already committed by previous evaluations of the same batch response.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param int $bytes Binary bytes consumed by previous cells (negative values are clamped to zero).
@@ -896,7 +896,7 @@ class LanguageEngine {
 	/**
 	 * Allocates binary bytes against the embedded binary budget.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param int $bytes Number of raw binary bytes.
@@ -913,7 +913,7 @@ class LanguageEngine {
 	/**
 	 * Retrieves the total accumulated binary bytes in the current evaluation.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @return int Total accumulated binary bytes.

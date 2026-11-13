@@ -48,7 +48,7 @@ class Console extends AdminPage {
 	/**
 	 * Maximum length of a client-supplied cell identifier in batch evaluations.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 * @var int
 	 */
@@ -710,7 +710,7 @@ class Console extends AdminPage {
 	/**
 	 * AJAX endpoint to retrieve bounded filesystem metadata and presets asynchronously.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @return void
@@ -759,7 +759,7 @@ class Console extends AdminPage {
 	 * The signature covers the query string on GET requests and the raw body on
 	 * POST requests, so parameters are read only from the matching superglobal.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @return array{0: string, 1: string} Challenge nonce and timestamp.
@@ -840,7 +840,7 @@ class Console extends AdminPage {
 	 * This allows registering it as a shutdown function (status `aborted`) to
 	 * capture fatal errors and timeouts without duplicating regular records.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string   $expression      The evaluated expression (hashed by the logger, never stored).
@@ -876,7 +876,7 @@ class Console extends AdminPage {
 	/**
 	 * Formats an exception thrown during expression evaluation into a user-facing message.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param \Throwable $e          The caught exception or error.
@@ -909,7 +909,7 @@ class Console extends AdminPage {
 	/**
 	 * Formats an evaluated result value and captured PHP output for JSON serialization.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param mixed       $result Evaluated expression result.
@@ -951,7 +951,7 @@ class Console extends AdminPage {
 	/**
 	 * Evaluates a sequential batch of expressions sent via AJAX and returns per-cell outputs.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param mixed    $raw_expressions Raw `expressions` POST parameter (JSON string or array).
@@ -1126,7 +1126,7 @@ class Console extends AdminPage {
 	 * Cells are trimmed in descending order of their encoded visualization size, so lightweight
 	 * visualizations of other cells survive whenever a single heavy cell causes the overflow.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param array $response Batch response data (`format`, `challenge`, `results`).
@@ -1513,7 +1513,7 @@ class Console extends AdminPage {
 	 * Enforces boundary containment within ABSPATH using Helper::resolve_safe_path().
 	 * Returns null if the path is invalid or resolves outside ABSPATH.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $full_path  Absolute or relative path.
@@ -1544,7 +1544,7 @@ class Console extends AdminPage {
 	/**
 	 * Builds quick-access presets for critical WordPress system files.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 * @return array
 	 */
@@ -1785,7 +1785,7 @@ class Console extends AdminPage {
 	 * while strictly excluding uploads. Every emitted node, file or directory, counts toward the
 	 * global cap of 200 items; once reached, scanning stops and the accumulated tree is returned.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @return array Indexed array of tree nodes.
@@ -1866,7 +1866,7 @@ class Console extends AdminPage {
 	 * Only the directories matching `WP_PLUGIN_DIR`, `get_theme_root()` and `WPMU_PLUGIN_DIR`
 	 * are expanded. Every other subdirectory, including uploads, is returned as an opaque node.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $safe_content  Resolved absolute path of the wp-content directory.
@@ -1922,7 +1922,7 @@ class Console extends AdminPage {
 	/**
 	 * Builds the plugins list (depth 1 inside plugins directory).
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $name          Directory name.
@@ -1971,7 +1971,7 @@ class Console extends AdminPage {
 	/**
 	 * Builds themes tree with a bounded scan of the active theme and opaque entries for other themes.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $name          Directory name.
@@ -2034,7 +2034,7 @@ class Console extends AdminPage {
 	/**
 	 * Builds the mu-plugins tree.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $name          Directory name.
@@ -2057,7 +2057,7 @@ class Console extends AdminPage {
 	 * caller limits a subtree to N items by passing `min( $max_items, $total_scanned + N )`.
 	 * Entries of a level are collected before descending, so shallow items take precedence.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $dir           Absolute directory path to scan.
@@ -2138,7 +2138,7 @@ class Console extends AdminPage {
 	 * Entries resolving outside ABSPATH, dangling symlinks and symlinked directories
 	 * (loop and escape prevention) are skipped.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param \SplFileInfo $item Directory entry.
@@ -2163,7 +2163,7 @@ class Console extends AdminPage {
 	/**
 	 * Builds a directory tree node.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $name     Display name.
@@ -2189,7 +2189,7 @@ class Console extends AdminPage {
 	/**
 	 * Builds a file tree node.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $name  File name.
@@ -2215,7 +2215,7 @@ class Console extends AdminPage {
 	/**
 	 * Sorts tree nodes with directories first, then by case-insensitive name.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param array $nodes Tree nodes.
@@ -2238,7 +2238,7 @@ class Console extends AdminPage {
 	/**
 	 * Formats octal permission string (e.g. '0755', '0644') for a given path.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $path Target filesystem path.
@@ -2253,7 +2253,7 @@ class Console extends AdminPage {
 	/**
 	 * Resolves Unix owner name or returns numeric UID.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $path Target filesystem path.
@@ -2278,7 +2278,7 @@ class Console extends AdminPage {
 	/**
 	 * Resolves Unix group name or returns numeric GID.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $path Target filesystem path.

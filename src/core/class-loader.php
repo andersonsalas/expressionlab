@@ -63,7 +63,7 @@ class Loader {
 	 * notice are registered. No admin pages, AJAX endpoints or CLI commands are loaded,
 	 * and no database option is modified.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 */
 	public function boot_dormant() {
@@ -88,7 +88,7 @@ class Loader {
 	/**
 	 * Renders an inline warning below the plugin row in the plugins table.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $plugin_file Plugin basename relative to the plugins directory.

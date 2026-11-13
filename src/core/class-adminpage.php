@@ -518,7 +518,7 @@ abstract class AdminPage {
 	/**
 	 * Retrieves the Content Security Policy header value for the sandbox iframe.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $csp_nonce Cryptographic nonce for script-src directive.

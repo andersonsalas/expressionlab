@@ -33,7 +33,7 @@ class Helper {
 	 * the dedicated `EXPRESSION_LAB_PLAYGROUND` constant, the community `WP_PLAYGROUND`
 	 * constant, or inspecting server software and runtime environment markers.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @return bool True if running in WordPress Playground, false otherwise.
 	 */
@@ -377,7 +377,7 @@ class Helper {
 	 * performed against the site URL stored in the database (`get_option('home')`),
 	 * never relying on incoming HTTP request headers.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @return bool True if the environment is authorized or unrestricted, false otherwise.
 	 */
@@ -397,7 +397,7 @@ class Helper {
 	 * - Once a pattern is configured the check fails closed: an empty or unparsable
 	 *   home URL is treated as a mismatch.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param mixed  $configured_staging Value of EXPRESSION_LAB_STAGING_URL.
@@ -437,7 +437,7 @@ class Helper {
 	 * If no port is specified in the pattern, any port on that host is allowed.
 	 * Wildcards never match across `/` boundaries. Comparison is case-insensitive.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @param string $home_url Site URL to test (usually from get_option('home')).
 	 * @param string $pattern  Domain, hostname, or URL pattern configured in EXPRESSION_LAB_STAGING_URL.
@@ -506,7 +506,7 @@ class Helper {
 	/**
 	 * Normalizes a URL path for comparison: drops query/fragment, trims slashes and lowercases.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $path Raw path (with or without leading/trailing slashes).
@@ -523,7 +523,7 @@ class Helper {
 	/**
 	 * Matches a subject against a pattern where `*` stands for any run of non-slash characters.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $pattern Pattern (already normalized).
@@ -540,7 +540,7 @@ class Helper {
 	/**
 	 * Returns the implicit TCP port for a URL scheme.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $scheme URL scheme.
@@ -562,7 +562,7 @@ class Helper {
 	 *
 	 * Alias for matches_url_pattern for backward compatibility.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @param string $home_url Site URL to test (usually from get_option('home')).
 	 * @param string $pattern  Domain or pattern configured in EXPRESSION_LAB_STAGING_URL.
@@ -577,7 +577,7 @@ class Helper {
 	 *
 	 * These files can never be targeted by the storage write primitives.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @var string[]
 	 */
@@ -589,7 +589,7 @@ class Helper {
 	 * Files with this suffix can only be appended to; they can never be overwritten
 	 * or truncated through the storage API.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @var string
 	 */
@@ -601,7 +601,7 @@ class Helper {
 	 * Defaults to `wp-content/expressionlab`, but can be overridden using the
 	 * `EXPRESSION_LAB_STORAGE_PATH` constant.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @return string Canonical normalized storage directory path.
 	 * @throws \InvalidArgumentException If the custom path escapes WP_CONTENT_DIR or points to
@@ -632,7 +632,7 @@ class Helper {
 	 * Rejects stream wrappers, null bytes, traversal outside the storage boundary,
 	 * the storage directory itself and the protective guard files.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @param string $relative_filename Relative filename inside the storage directory.
 	 * @return string Canonical absolute file path.
@@ -664,7 +664,7 @@ class Helper {
 	 * Fails closed by throwing a RuntimeException if the directory or protective
 	 * files cannot be created.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @return bool True if directory exists and is secured.
 	 * @throws \RuntimeException If directory creation or securing fails.
@@ -716,7 +716,7 @@ class Helper {
 	 * An \InvalidArgumentException is propagated if the filename is invalid or
 	 * escapes the storage boundary (see {@see Helper::resolve_storage_file_path()}).
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @param string $relative_filename Relative filename inside the storage directory.
 	 * @param string $payload           Payload to append.
@@ -789,7 +789,7 @@ class Helper {
 	 * Append-only files (suffix `.log.php`, e.g. audit logs) can never be
 	 * overwritten through this method.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @param string $relative_filename Relative filename inside the storage directory.
 	 * @param string $payload           Payload to write.
@@ -828,7 +828,7 @@ class Helper {
 	/**
 	 * Writes the whole buffer to a stream, retrying on partial writes.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @param resource $handle Writable stream handle.
 	 * @param string   $data   Data to write.

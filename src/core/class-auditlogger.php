@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * administrator IDs, client IP addresses, HMAC hashes of expressions,
  * and execution telemetry into protected log files.
  *
- * @since 0.3.0
+ * @since 1.0.0
  *
  * @package ExpressionLab
  */
@@ -34,7 +34,7 @@ class AuditLogger {
 	 * If the file is ever requested over HTTP and routed through the PHP
 	 * handler, execution terminates before any record is emitted.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @var string
 	 */
@@ -48,7 +48,7 @@ class AuditLogger {
 	 * - `aborted`: The request terminated (fatal error, timeout, exit) before a
 	 *              success or error outcome could be recorded.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @var string[]
 	 */
@@ -57,7 +57,7 @@ class AuditLogger {
 	/**
 	 * Placeholder value shipped in the stock wp-config-sample.php salts.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @var string
 	 */
@@ -69,7 +69,7 @@ class AuditLogger {
 	 * Logging is enabled by default and can be suppressed only via the
 	 * `EXPRESSION_LAB_AUDIT_LOG_ENABLED` constant in wp-config.php.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @return bool True if audit logging is enabled, false otherwise.
 	 */
@@ -90,7 +90,7 @@ class AuditLogger {
 	 * browser, so using it would make log filenames predictable and expression
 	 * hashes brute-forceable offline.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @return string Secret HMAC key.
 	 */
@@ -116,7 +116,7 @@ class AuditLogger {
 	 * Prepends an HMAC-derived prefix to prevent filename guessing or enumeration attacks,
 	 * partitioning logs by month (YYYY-MM) with a .log.php extension for direct-download protection.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @param string|null $date_month Optional month string in 'Y-m' format. Defaults to current month (UTC).
 	 * @return string Protected log filename.
@@ -140,7 +140,7 @@ class AuditLogger {
 	 *
 	 * Relies on REMOTE_ADDR and validates against IPv4/IPv6 filters to avoid header spoofing.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @return string Validated IP address or '127.0.0.1' fallback.
 	 */
@@ -160,7 +160,7 @@ class AuditLogger {
 	 * The record never contains the expression in clear text, a preview of it,
 	 * or any exception message: the only expression indicator is its HMAC.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param array     $params    Event parameters. See {@see AuditLogger::log_evaluation()}.
@@ -210,7 +210,7 @@ class AuditLogger {
 	 * `WP_DEBUG` is enabled) and `false` is returned, so a logging failure can
 	 * never break the console response.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @param array $params {
 	 *     Event parameters.
@@ -253,7 +253,7 @@ class AuditLogger {
 	 * The message never contains the expression: storage-layer messages only
 	 * include file paths, and record encoding failures are reported generically.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @param string $message Failure description.
 	 * @return void
@@ -271,7 +271,7 @@ class AuditLogger {
 	 * Skips the protective PHP exit header and any malformed line, and parses
 	 * each remaining JSON line. The filename is confined to the storage directory.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @param string|null $filename Relative filename or null for current month's log.
 	 * @return array Decoded log entries.
