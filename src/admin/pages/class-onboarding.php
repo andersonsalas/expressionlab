@@ -62,6 +62,7 @@ class Onboarding extends AdminPage {
 
 		return array(
 			'version'  => EXPRESSION_LAB_VERSION,
+			'locale'   => get_user_locale(),
 			'user_id'  => get_current_user_id(),
 			'site_url' => $clean_site_url,
 			'ajax_url' => admin_url( 'admin-ajax.php' ),

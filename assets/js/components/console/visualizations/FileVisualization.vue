@@ -185,7 +185,7 @@ const matchStatusText = computed(() => {
   if (!searchText.value.trim()) return '';
   if (matchCount.value === 0) return __('No results');
   if (currentMatchIndex.value > 0) {
-    return sprintf(__('%d of %d'), currentMatchIndex.value, matchCount.value);
+    return sprintf(__('%1$d of %2$d'), currentMatchIndex.value, matchCount.value);
   }
   return sprintf(__('%d matches'), matchCount.value);
 });
