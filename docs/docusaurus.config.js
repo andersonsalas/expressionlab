@@ -76,9 +76,13 @@ const config = {
           lastVersion: 'current',
           versions: {
             current: {
-              label: '0.2.0-alpha',
+              label: '1.0.0',
               path: '',
               banner: 'none',
+            },
+            '0.2.0-alpha': {
+              label: '0.2.0-alpha',
+              path: '0.2.0-alpha',
             },
             '0.0.3-alpha': {
               label: '0.0.3-alpha',
