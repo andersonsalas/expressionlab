@@ -148,7 +148,7 @@ final class Database implements ServiceInterface {
 	 *
 	 * WARNING: Significantly increasing these values elevates the risk of server instability.
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/database#databasebuffer
+	 * @see https://docs.expressionlab.io/api-reference/database#databasebuffer
 	 *
 	 * @param int|null   $rows                The maximum number of rows to mirror (`1000` by default).
 	 * @param int|null   $memory              The maximum memory (in MB) to use for data mirroring (`50` MB by default).
@@ -309,7 +309,7 @@ final class Database implements ServiceInterface {
 	 * } ).fetch()
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/database#databasemirror
+	 * @see https://docs.expressionlab.io/api-reference/database#databasemirror
 	 *
 	 * @param string     $table   The table name (without prefix).
 	 * @param array|null $where   Recursive structure of conditions (Object = `AND`, Array = `OR`).
@@ -548,7 +548,7 @@ final class Database implements ServiceInterface {
 	 *
 	 * Mirrored tables always have the `wp_` prefix unless an alias is specified with `'as'`.
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/database#databasefetch
+	 * @see https://docs.expressionlab.io/api-reference/database#databasefetch
 	 *
 	 * @param string|null $table     Optional table name or alias to get results from. If `null`, uses last mirrored table.
 	 * @param bool        $as_object Whether to return results as objects. Default `true` returns objects, `false` returns associative arrays.
@@ -653,7 +653,7 @@ final class Database implements ServiceInterface {
 	 *
 	 * Mirrored tables always have the `wp_` prefix unless an alias is specified with `'as'`.
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/database#databaseflush
+	 * @see https://docs.expressionlab.io/api-reference/database#databaseflush
 	 *
 	 * @param string|null $table     Optional table name (without prefix) to get results from before flushing. If `null`, uses last mirrored table.
 	 * @param bool        $as_object Whether to return results as objects. Default `true` returns objects, `false` returns associative arrays.
@@ -854,7 +854,7 @@ final class Database implements ServiceInterface {
 	 *
 	 * Mirrored tables always have the `wp_` prefix unless an alias is specified with `'as'`.
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/database#databasequery
+	 * @see https://docs.expressionlab.io/api-reference/database#databasequery
 	 *
 	 * @param string $sql The SQL query.
 	 * @return array The query results.
@@ -1061,7 +1061,7 @@ final class Database implements ServiceInterface {
 	 * )
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/database#databasecount
+	 * @see https://docs.expressionlab.io/api-reference/database#databasecount
 	 *
 	 * @param string     $table   The table name (without prefix).
 	 * @param array|null $where   Recursive structure of conditions.
@@ -1103,7 +1103,7 @@ final class Database implements ServiceInterface {
 	 * ).get_queries()
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/database#databaseget_queries
+	 * @see https://docs.expressionlab.io/api-reference/database#databaseget_queries
 	 * @return array<string> List of executed SQL queries.
 	 */
 	public function get_queries(): array {
@@ -1190,7 +1190,7 @@ final class Database implements ServiceInterface {
 	 *
 	 * Returns tabular and graphical distribution visualizer data.
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/database#databasetable_list
+	 * @see https://docs.expressionlab.io/api-reference/database#databasetable_list
 	 * @return array List of tables with `name`, `engine`, `rows`, and `size` columns.
 	 */
 	public function table_list() {
@@ -1352,7 +1352,7 @@ final class Database implements ServiceInterface {
 	 * Database.table_details('users')
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/database#databasetable_details
+	 * @see https://docs.expressionlab.io/api-reference/database#databasetable_details
 	 *
 	 * @param string $table_name The name of the table (without prefix).
 	 * @return array Detailed information about the table's columns and indexes.

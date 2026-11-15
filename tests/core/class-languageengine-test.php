@@ -226,11 +226,11 @@ class LanguageEngineTest extends WP_UnitTestCase {
 
         $this->assertArrayHasKey('NetworkSites', $outline['objects']);
         $this->assertNotNull($outline['objects']['NetworkSites']['properties']['current'] ?? null);
-        $this->assertContains('https://expressionlab.io/docs/api-reference/sites#networksitescurrent', $outline['objects']['NetworkSites']['properties']['current']['doc']['see'] ?? array());
+        $this->assertContains('https://docs.expressionlab.io/api-reference/sites#networksitescurrent', $outline['objects']['NetworkSites']['properties']['current']['doc']['see'] ?? array());
 
         $this->assertArrayHasKey('Database', $outline['objects']);
         $this->assertNotNull($outline['objects']['Database']['methods']['mirror'] ?? null);
-        $this->assertContains('https://expressionlab.io/docs/api-reference/database#databasemirror', $outline['objects']['Database']['methods']['mirror']['doc']['see'] ?? array());
+        $this->assertContains('https://docs.expressionlab.io/api-reference/database#databasemirror', $outline['objects']['Database']['methods']['mirror']['doc']['see'] ?? array());
 
         $this->assertArrayHasKey('EXPRESSION_LAB_VERSION', $outline['constants']);
         $this->assertNotNull($outline['constants']['EXPRESSION_LAB_VERSION'] ?? null);

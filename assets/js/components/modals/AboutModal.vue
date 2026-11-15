@@ -132,10 +132,10 @@ onUnmounted(() => {
               @click.prevent="handleOpenUrl('https://expressionlab.io')"
             >{{ __('Website') }}</a>
             <a
-              href="https://expressionlab.io/docs"
+              href="https://docs.expressionlab.io"
               target="_blank"
               rel="noopener noreferrer"
-              @click.prevent="handleOpenUrl('https://expressionlab.io/docs')"
+              @click.prevent="handleOpenUrl('https://docs.expressionlab.io')"
             >{{ __('Docs') }}</a>
             <a
               href="https://github.com/andersonsalas/expressionlab"

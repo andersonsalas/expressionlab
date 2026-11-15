@@ -228,7 +228,7 @@ final class Files {
 	 * Files.exists('wp-content/uploads/2026/08')
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/files#filesexists
+	 * @see https://docs.expressionlab.io/api-reference/files#filesexists
 	 *
 	 * @param string $path File or directory path relative to ABSPATH or absolute within ABSPATH.
 	 * @return bool True if target exists within ABSPATH, false otherwise.
@@ -258,7 +258,7 @@ final class Files {
 	 * Files.is_file('wp-content/plugins')
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/files#filesis_file
+	 * @see https://docs.expressionlab.io/api-reference/files#filesis_file
 	 *
 	 * @param string $path File path relative to ABSPATH or absolute within ABSPATH.
 	 * @return bool True if the path exists and is a regular file, false otherwise.
@@ -289,7 +289,7 @@ final class Files {
 	 * ```
 	 *
 	 * @param string $path Directory path relative to ABSPATH or absolute within ABSPATH.
-	 * @see https://expressionlab.io/docs/api-reference/files#filesis_dir
+	 * @see https://docs.expressionlab.io/api-reference/files#filesis_dir
 	 * @return bool True if the path exists and is a directory, false otherwise.
 	 */
 	public function is_dir( string $path ): bool {
@@ -329,7 +329,7 @@ final class Files {
 	 * Files.size('wp-content/debug.log')['human']
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/files#filessize
+	 * @see https://docs.expressionlab.io/api-reference/files#filessize
 	 *
 	 * @param string $path File or directory path relative to ABSPATH or absolute within ABSPATH.
 	 * @return array Associative array containing `bytes` (int) and `human` (string).
@@ -364,7 +364,7 @@ final class Files {
 	 * Files.modified('wp-content/plugins')['formatted']
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/files#filesmodified
+	 * @see https://docs.expressionlab.io/api-reference/files#filesmodified
 	 *
 	 * @param string $path File or directory path relative to ABSPATH or absolute within ABSPATH.
 	 * @return array Associative array containing `timestamp` (int) and `formatted` (string).
@@ -397,7 +397,7 @@ final class Files {
 	 * Files.perms('wp-content/mu-plugins')
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/files#filesperms
+	 * @see https://docs.expressionlab.io/api-reference/files#filesperms
 	 *
 	 * @param string $path File or directory path relative to ABSPATH or absolute within ABSPATH.
 	 * @return array Associative array with `octal`, `symbolic`, `owner`, `group`, `readable`, `writable`, `executable`.
@@ -440,7 +440,7 @@ final class Files {
 	 * Files.read('wp-config.php', 512)
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/files#filesread
+	 * @see https://docs.expressionlab.io/api-reference/files#filesread
 	 *
 	 * @param string $path      File path relative to ABSPATH or absolute within ABSPATH.
 	 * @param int    $max_bytes Optional. Maximum number of bytes to read (clamped between `1` and `262144`). Default `Files.MAX_READ_BYTES` (`262144`).
@@ -610,7 +610,7 @@ final class Files {
 	 * Files.tail('wp-content/debug.log', 500)
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/files#filestail
+	 * @see https://docs.expressionlab.io/api-reference/files#filestail
 	 *
 	 * @param string $path  File path relative to ABSPATH or absolute within ABSPATH.
 	 * @param int    $lines Number of lines to retrieve from the end (clamped between `1` and `500`). Default `50`.
@@ -730,7 +730,7 @@ final class Files {
 	 * Files.list('wp-content/plugins')
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/files#fileslist
+	 * @see https://docs.expressionlab.io/api-reference/files#fileslist
 	 *
 	 * @param string $path Directory path relative to ABSPATH or absolute within ABSPATH. Default `'.'`.
 	 * @return array Indexed array of associative arrays with `name`, `type`, `size`, `perms`, `owner`, `group`, and `modified`.
@@ -816,7 +816,7 @@ final class Files {
 	 * Files.stats('wp-content/themes')['files']
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/files#filesstats
+	 * @see https://docs.expressionlab.io/api-reference/files#filesstats
 	 *
 	 * @param string $path Directory path relative to ABSPATH or absolute within ABSPATH. Default `'.'`.
 	 * @return array Aggregated statistics summary containing `path`, `files`, `directories`, `total_bytes`, `total_size`, and `by_ext`.

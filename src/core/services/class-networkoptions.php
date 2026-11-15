@@ -110,7 +110,7 @@ final class NetworkOptions {
 	 * NetworkOptions.get_raw('site_admins')
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/options#networkoptionsget_raw
+	 * @see https://docs.expressionlab.io/api-reference/options#networkoptionsget_raw
 	 *
 	 * @param string $key           The network option key.
 	 * @param mixed  $default_value Optional. Default value returned if the option does not exist. Default `null`.
@@ -154,7 +154,7 @@ final class NetworkOptions {
 	 * NetworkOptions.get('site_admins', [])
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/options#networkoptionsget
+	 * @see https://docs.expressionlab.io/api-reference/options#networkoptionsget
 	 *
 	 * @param string $key           The network option key.
 	 * @param mixed  $default_value Optional. Default value returned if the option does not exist. Default `null`.
@@ -187,7 +187,7 @@ final class NetworkOptions {
 	 * )
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/options#networkoptionsupdate_raw
+	 * @see https://docs.expressionlab.io/api-reference/options#networkoptionsupdate_raw
 	 *
 	 * @param string $key   The network option key.
 	 * @param string $value The raw string payload to store.
@@ -284,7 +284,7 @@ final class NetworkOptions {
 	 * NetworkOptions.update('custom_feature_flag', true)
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/options#networkoptionsupdate
+	 * @see https://docs.expressionlab.io/api-reference/options#networkoptionsupdate
 	 *
 	 * @param string $key                The network option key.
 	 * @param mixed  $value              The option value to store.
@@ -358,7 +358,7 @@ final class NetworkOptions {
 	 * NetworkOptions.delete('obsolete_network_key')
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/options#networkoptionsdelete
+	 * @see https://docs.expressionlab.io/api-reference/options#networkoptionsdelete
 	 *
 	 * @param string $key The network option key to delete.
 	 * @return bool `true` on successful deletion, `false` on failure or if option did not exist.
@@ -393,7 +393,7 @@ final class NetworkOptions {
 	 * NetworkOptions.get_transient_timeout('update_core')
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/options#networkoptionsget_transient_timeout
+	 * @see https://docs.expressionlab.io/api-reference/options#networkoptionsget_transient_timeout
 	 *
 	 * @param string $key The transient key name.
 	 * @return int|null The Unix timestamp when the transient expires, or `null` if it does not expire or does not exist.
@@ -416,7 +416,7 @@ final class NetworkOptions {
 	 * NetworkOptions.get_transient_ttl('update_plugins')
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/options#networkoptionsget_transient_ttl
+	 * @see https://docs.expressionlab.io/api-reference/options#networkoptionsget_transient_ttl
 	 *
 	 * @param string $key The transient key name.
 	 * @return int|null Remaining seconds until expiration, `0` if expired or persistent without timeout, or `null` if the transient does not exist.
@@ -453,7 +453,7 @@ final class NetworkOptions {
 	 * NetworkOptions.get_transient_raw('sitewide_api_cache')
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/options#networkoptionsget_transient_raw
+	 * @see https://docs.expressionlab.io/api-reference/options#networkoptionsget_transient_raw
 	 *
 	 * @param string $key              The transient key name.
 	 * @param mixed  $default_value    Optional. Default value returned if the transient does not exist or has expired. Default `null`.
@@ -493,7 +493,7 @@ final class NetworkOptions {
 	 * ```
 	 *
 	 * @see https://developer.wordpress.org/reference/functions/get_site_transient/
-	 * @see https://expressionlab.io/docs/api-reference/options#networkoptionsget_transient
+	 * @see https://docs.expressionlab.io/api-reference/options#networkoptionsget_transient
 	 *
 	 * @param string $key           The transient key name.
 	 * @param mixed  $default_value Optional. Default value returned if transient is not found or expired. Default `null`.
@@ -534,7 +534,7 @@ final class NetworkOptions {
 	 * ```
 	 *
 	 * @see https://developer.wordpress.org/reference/functions/set_site_transient/
-	 * @see https://expressionlab.io/docs/api-reference/options#networkoptionsset_transient
+	 * @see https://docs.expressionlab.io/api-reference/options#networkoptionsset_transient
 	 *
 	 * @param string $key                The transient key name.
 	 * @param mixed  $value              The transient value to store.
@@ -600,7 +600,7 @@ final class NetworkOptions {
 	 * NetworkOptions.set_transient_raw('raw_sitewide_data', 'raw_string', 600)
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/options#networkoptionsset_transient_raw
+	 * @see https://docs.expressionlab.io/api-reference/options#networkoptionsset_transient_raw
 	 *
 	 * @param string $key        The transient key name.
 	 * @param string $value      The raw string payload to store.
@@ -658,7 +658,7 @@ final class NetworkOptions {
 	 * ```
 	 *
 	 * @see https://developer.wordpress.org/reference/functions/delete_site_transient/
-	 * @see https://expressionlab.io/docs/api-reference/options#networkoptionsdelete_transient
+	 * @see https://docs.expressionlab.io/api-reference/options#networkoptionsdelete_transient
 	 *
 	 * @param string $key The transient key name.
 	 * @return bool `true` if either the value or timeout was deleted, `false` if neither existed or on failure.

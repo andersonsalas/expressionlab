@@ -1206,7 +1206,7 @@ class PhpExtension implements ExtensionInterface {
 					),
 					'see'         => array(
 						'https://www.php.net/manual/en/function.in-array.php',
-						'https://expressionlab.io/docs/getting-started/basic-syntax#membership-operators-in-not-in',
+						'https://docs.expressionlab.io/getting-started/basic-syntax#membership-operators-in-not-in',
 					),
 					'return'      => array(
 						'type'        => 'bool',

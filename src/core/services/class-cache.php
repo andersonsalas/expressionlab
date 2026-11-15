@@ -177,7 +177,7 @@ final class Cache implements ServiceInterface {
 	 * ```
 	 *
 	 * @see https://developer.wordpress.org/reference/functions/wp_using_ext_object_cache/
-	 * @see https://expressionlab.io/docs/api-reference/cache#cacheis_persistent
+	 * @see https://docs.expressionlab.io/api-reference/cache#cacheis_persistent
 	 *
 	 * @return bool True if an external persistent object cache is in use, false otherwise.
 	 */
@@ -198,7 +198,7 @@ final class Cache implements ServiceInterface {
 	 * Cache.status()
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/cache#cachestatus
+	 * @see https://docs.expressionlab.io/api-reference/cache#cachestatus
 	 *
 	 * @return array Status diagnostic report.
 	 */
@@ -254,7 +254,7 @@ final class Cache implements ServiceInterface {
 	 * Cache.stats()
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/cache#cachestats
+	 * @see https://docs.expressionlab.io/api-reference/cache#cachestats
 	 *
 	 * @return array Statistical report.
 	 */
@@ -371,7 +371,7 @@ final class Cache implements ServiceInterface {
 	 *
 	 * @see https://developer.wordpress.org/reference/functions/wp_cache_get/
 	 * @see https://developer.wordpress.org/reference/functions/wp_cache_get_multiple/
-	 * @see https://expressionlab.io/docs/api-reference/cache#cacheget
+	 * @see https://docs.expressionlab.io/api-reference/cache#cacheget
 	 *
 	 * @param string|int|array $key           The cache key or array of cache keys to retrieve.
 	 * @param string           $group         Optional. Where the cache contents are grouped. Default empty string.
@@ -459,7 +459,7 @@ final class Cache implements ServiceInterface {
 	 * ```
 	 *
 	 * @see https://developer.wordpress.org/reference/functions/wp_cache_get/
-	 * @see https://expressionlab.io/docs/api-reference/cache#cachehas
+	 * @see https://docs.expressionlab.io/api-reference/cache#cachehas
 	 *
 	 * @param string|int $key   The cache key to check.
 	 * @param string     $group Optional. Where the cache contents are grouped. Default empty string.
@@ -517,7 +517,7 @@ final class Cache implements ServiceInterface {
 	 *
 	 * @see https://developer.wordpress.org/reference/functions/wp_cache_set/
 	 * @see https://developer.wordpress.org/reference/functions/wp_cache_set_multiple/
-	 * @see https://expressionlab.io/docs/api-reference/cache#cacheset
+	 * @see https://docs.expressionlab.io/api-reference/cache#cacheset
 	 *
 	 * @param string|int|array $key    The cache key (string/int) or associative array pairs.
 	 * @param mixed            $data   Optional. The cache data when `key` is scalar (required if `key` is scalar), or the group name (string) when `key` is an array.
@@ -599,7 +599,7 @@ final class Cache implements ServiceInterface {
 	 *
 	 * @see https://developer.wordpress.org/reference/functions/wp_cache_delete/
 	 * @see https://developer.wordpress.org/reference/functions/wp_cache_delete_multiple/
-	 * @see https://expressionlab.io/docs/api-reference/cache#cachedelete
+	 * @see https://docs.expressionlab.io/api-reference/cache#cachedelete
 	 *
 	 * @param string|int|array $key   The cache key or array of keys to delete.
 	 * @param string           $group Optional. Where the cache contents are grouped. Default empty string.

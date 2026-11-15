@@ -58,7 +58,7 @@ Authentication operates through client-side key derivation and cryptographic req
 
 The runtime enforces strict operational boundaries. Expressions evaluate declaratively inside an isolated AST engine rather than arbitrary PHP execution, database operations default to read-only access, the console UI runs in a sandboxed iframe, and an execution timer acts as a CPU watchdog to terminate runaway requests.
 
-For an in-depth breakdown of the cryptographic model, boundary limits, and threat assumptions, see the [Security Model documentation](https://expressionlab.io/docs/security/security-and-environment).
+For an in-depth breakdown of the cryptographic model, boundary limits, and threat assumptions, see the [Security Model documentation](https://docs.expressionlab.io/security/security-and-environment).
 
 ---
 
@@ -239,17 +239,17 @@ pnpm run docs:serve     # Preview built static documentation locally
 
 ## Documentation
 
-Full syntax guides and API references are available on the project's [official website](https://expressionlab.io):
+Full syntax guides and API references are available on the [documentation site](https://docs.expressionlab.io):
 
-* **Getting Started**: [Installation & Configuration](https://expressionlab.io/docs/getting-started/installation)
-* **Language Reference**: [Basic Syntax](https://expressionlab.io/docs/getting-started/basic-syntax) &middot; [Scripting](https://expressionlab.io/docs/getting-started/scripting)
-* **API Reference**: [Database](https://expressionlab.io/docs/api-reference/database) &middot; [Options](https://expressionlab.io/docs/api-reference/options) &middot; 
-[Network Sites](https://expressionlab.io/docs/api-reference/sites) &middot; [Users](https://expressionlab.io/docs/api-reference/users) &middot; [Posts](https://expressionlab.io/docs/api-reference/posts) &middot; [Media](https://expressionlab.io/docs/api-reference/media) &middot; [Files](https://expressionlab.io/docs/api-reference/files) &middot; 
-[HTTP](https://expressionlab.io/docs/api-reference/http) &middot; [Console](https://expressionlab.io/docs/api-reference/console) &middot; [IP Lookup](https://expressionlab.io/docs/api-reference/ip-lookup) &middot; [Graph](https://expressionlab.io/docs/api-reference/graph)
+* **Getting Started**: [Installation & Configuration](https://docs.expressionlab.io/getting-started/installation)
+* **Language Reference**: [Basic Syntax](https://docs.expressionlab.io/getting-started/basic-syntax) &middot; [Scripting](https://docs.expressionlab.io/getting-started/scripting)
+* **API Reference**: [Database](https://docs.expressionlab.io/api-reference/database) &middot; [Options](https://docs.expressionlab.io/api-reference/options) &middot; [Cache](https://docs.expressionlab.io/api-reference/cache) &middot; 
+[Network Sites](https://docs.expressionlab.io/api-reference/sites) &middot; [Users](https://docs.expressionlab.io/api-reference/users) &middot; [Posts](https://docs.expressionlab.io/api-reference/posts) &middot; [Media](https://docs.expressionlab.io/api-reference/media) &middot; [Files](https://docs.expressionlab.io/api-reference/files) &middot; 
+[HTTP](https://docs.expressionlab.io/api-reference/http) &middot; [Console](https://docs.expressionlab.io/api-reference/console) &middot; [IP Lookup](https://docs.expressionlab.io/api-reference/ip-lookup) &middot; [Graph](https://docs.expressionlab.io/api-reference/graph)
 
-* **Security & Environment**: [Security Model](https://expressionlab.io/docs/security/security-and-environment)
+* **Security & Environment**: [Security Model](https://docs.expressionlab.io/security/security-and-environment)
 
-_Documentation is available in [Spanish](https://expressionlab.io/es/docs)._
+_Documentation is available in [Spanish](https://docs.expressionlab.io/es/)._
 
 ---
 

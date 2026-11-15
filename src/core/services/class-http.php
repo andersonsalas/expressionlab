@@ -251,7 +251,7 @@ final class Http {
 	 * )
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/http#httpget
+	 * @see https://docs.expressionlab.io/api-reference/http#httpget
 	 *
 	 * @param string $url     Target HTTP or HTTPS URL.
 	 * @param array  $headers Optional associative array of custom request headers. Default empty array.
@@ -316,7 +316,7 @@ final class Http {
 	 * )['json']
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/http#httppost
+	 * @see https://docs.expressionlab.io/api-reference/http#httppost
 	 *
 	 * @param string $url     Target HTTP or HTTPS URL.
 	 * @param mixed  $body    Optional request payload (array, string, or null). Default null.
@@ -365,7 +365,7 @@ final class Http {
 	 * Http.head('https://one.one.one.one')['headers']['server']
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/http#httphead
+	 * @see https://docs.expressionlab.io/api-reference/http#httphead
 	 *
 	 * @param string $url     Target HTTP or HTTPS URL.
 	 * @param array  $headers Optional associative array of custom request headers. Default empty array.
@@ -409,7 +409,7 @@ final class Http {
 	 * Http.ping('https://one.one.one.one')['latency_ms']
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/http#httpping
+	 * @see https://docs.expressionlab.io/api-reference/http#httpping
 	 *
 	 * @param string $url Target HTTP or HTTPS URL to benchmark.
 	 * @return array Diagnostic summary containing 'url', 'status', 'latency_ms', and 'is_healthy'.

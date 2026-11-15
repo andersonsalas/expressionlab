@@ -106,7 +106,7 @@ final class Posts {
 	 *     .get()
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/posts#postsget
+	 * @see https://docs.expressionlab.io/api-reference/posts#postsget
 	 *
 	 * @param int|string|null $identifier Optional. Post ID, slug name, URL/permalink, or `null` to execute query builder. Default `null`.
 	 * @return Post|array|null A `Post` model instance if resolved, an array of row objects if executing query builder, or `null` if not found.
@@ -194,7 +194,7 @@ final class Posts {
 	 * Posts.types()
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/posts#poststypes
+	 * @see https://docs.expressionlab.io/api-reference/posts#poststypes
 	 * @return array<string> An indexed array of registered post type slug strings.
 	 */
 	public function types(): array {
@@ -214,7 +214,7 @@ final class Posts {
 	 * Posts.statuses()
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/posts#postsstatuses
+	 * @see https://docs.expressionlab.io/api-reference/posts#postsstatuses
 	 * @return array<string> An indexed array of registered post status slug strings.
 	 */
 	public function statuses(): array {
@@ -238,7 +238,7 @@ final class Posts {
 	 * Posts.taxonomies('post')
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/posts#poststaxonomies
+	 * @see https://docs.expressionlab.io/api-reference/posts#poststaxonomies
 	 *
 	 * @param string $post_type Optional. Specific post type name to filter associated taxonomies for. Default empty string.
 	 * @return array<string> An indexed array of taxonomy slug strings.
@@ -269,7 +269,7 @@ final class Posts {
 	 * Posts.terms('post_tag', { orderby: 'count', order: 'DESC', number: 10 })
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/posts#poststerms
+	 * @see https://docs.expressionlab.io/api-reference/posts#poststerms
 	 *
 	 * @param string $taxonomy The taxonomy slug (e.g., `'category'`, `'post_tag'`).
 	 * @param array  $args     Optional. Additional query arguments passed to `get_terms()`. Default empty array.
@@ -314,7 +314,7 @@ final class Posts {
 	 * Posts.stats()
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/posts#postsstats
+	 * @see https://docs.expressionlab.io/api-reference/posts#postsstats
 	 * @return array Aggregated distribution list, or empty array if no posts found.
 	 */
 	public function stats(): array {
