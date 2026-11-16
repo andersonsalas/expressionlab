@@ -11,22 +11,86 @@ const addonManifestPath = path.resolve(addonDir, 'addons.json');
 const addonIntegrityPath = path.resolve(addonDir, 'integrity.json');
 const addonSignaturePath = path.resolve(addonDir, 'signature.json');
 
+/**
+ * Ed25519 public key that verifies Professional Edition addon bundles at BUILD time.
+ * Intentionally distinct from EXPRESSION_LAB_PUBLIC_KEY (expressionlab.php), which verifies
+ * plugin updates at runtime and is never used to sign addons.
+ */
+const EXPRESSION_LAB_ADDON_PUBLIC_KEY = 'a12b0b4c98d97be3491fdff944be38984664e10d8f6ecdeb1d87dea78ef0b5d5';
+
+const SEMVER_RE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
+const RELEASE_RE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+
+/** SemVer 2.0.0 precedence (build metadata unsupported). Returns -1, 0 or 1. */
+const compareSemver = (a, b) => {
+  const pa = SEMVER_RE.exec(a);
+  const pb = SEMVER_RE.exec(b);
+  for (let i = 1; i <= 3; i++) {
+    const diff = Number(pa[i]) - Number(pb[i]);
+    if (diff !== 0) {
+      return Math.sign(diff);
+    }
+  }
+  if (pa[4] === undefined || pb[4] === undefined) {
+    return pa[4] === pb[4] ? 0 : (pa[4] === undefined ? 1 : -1);
+  }
+  const ia = pa[4].split('.');
+  const ib = pb[4].split('.');
+  for (let i = 0; i < Math.max(ia.length, ib.length); i++) {
+    if (ia[i] === undefined) {
+      return -1;
+    }
+    if (ib[i] === undefined) {
+      return 1;
+    }
+    const na = /^\d+$/.test(ia[i]);
+    const nb = /^\d+$/.test(ib[i]);
+    if (na && nb && Number(ia[i]) !== Number(ib[i])) {
+      return Math.sign(Number(ia[i]) - Number(ib[i]));
+    }
+    if (na !== nb) {
+      return na ? -1 : 1;
+    }
+    if (!na && ia[i] !== ib[i]) {
+      return ia[i] < ib[i] ? -1 : 1;
+    }
+  }
+  return 0;
+};
+
+const collectAddonFiles = (rootDir, currentDir = rootDir, out = []) => {
+  for (const entry of fs.readdirSync(currentDir, { withFileTypes: true })) {
+    const fullPath = path.join(currentDir, entry.name);
+    const rel = path.relative(rootDir, fullPath).split(path.sep).join('/');
+    if (entry.isSymbolicLink()) {
+      throw new Error(`[Error] Symbolic links are not allowed in assets/addons: ${rel}`);
+    }
+    if (entry.isDirectory()) {
+      collectAddonFiles(rootDir, fullPath, out);
+    } else if (entry.isFile()) {
+      out.push(rel);
+    } else {
+      throw new Error(`[Error] Unexpected non-regular file in assets/addons: ${rel}`);
+    }
+  }
+  return out;
+};
+
 let addonManifest = null;
 
 if (withProAddon) {
   if (Encore.isProduction()) {
-    const expressionLabPublicKey = '38129953c6aabc40a5837e3b9ede6d7bb68b34ff78db004df1c9353b74e37afb';
     console.info('[Info] Starting production build for Professional Edition...');
 
-    if (typeof expressionLabPublicKey !== 'string' || !/^[0-9a-fA-F]{64}$/.test(expressionLabPublicKey)) {
-      throw new Error('[Error] Public Key is invalid');
+    if (!/^[0-9a-f]{64}$/.test(EXPRESSION_LAB_ADDON_PUBLIC_KEY)) {
+      throw new Error('[Error] Addon public key is invalid');
     }
 
     const pubKey = crypto.createPublicKey({
       key: {
         kty: 'OKP',
         crv: 'Ed25519',
-        x: Buffer.from(expressionLabPublicKey, 'hex').toString('base64url'),
+        x: Buffer.from(EXPRESSION_LAB_ADDON_PUBLIC_KEY, 'hex').toString('base64url'),
       },
       format: 'jwk',
     });
@@ -90,20 +154,29 @@ if (withProAddon) {
       throw new Error('[Error] Invalid manifest.');
     }
 
-    if (addonManifest.min_core_version) {
-      const parseSemverTuple = (v) => String(v).split('-')[0].split('.').map((n) => parseInt(n, 10) || 0);
-      const corePkg = require('./package.json');
-      const coreTuple = parseSemverTuple(corePkg.version);
-      const minTuple = parseSemverTuple(addonManifest.min_core_version);
-      const isCompatible =
-        coreTuple[0] > minTuple[0] ||
-        (coreTuple[0] === minTuple[0] && coreTuple[1] > minTuple[1]) ||
-        (coreTuple[0] === minTuple[0] && coreTuple[1] === minTuple[1] && coreTuple[2] >= minTuple[2]);
-      if (!isCompatible) {
-        throw new Error(
-          `[Error] Addon requires Core >= ${addonManifest.min_core_version}, current Core is ${corePkg.version}.`
-        );
-      }
+    const corePkg = require('./package.json');
+    if (typeof addonManifest.version !== 'string' || !SEMVER_RE.test(addonManifest.version)) {
+      throw new Error('[Error] Addon version must be strict SemVer.');
+    }
+    if (typeof corePkg.version !== 'string' || !SEMVER_RE.test(corePkg.version)) {
+      throw new Error(`[Error] Core package.json version "${corePkg.version}" is not strict SemVer.`);
+    }
+
+    // 1:1 release contract: CI (and bin/build-plugin.sh) pin the exact addon version to ship.
+    const expectedAddonVersion = process.env.EXPRESSION_LAB_EXPECTED_ADDON_VERSION;
+    if (expectedAddonVersion !== undefined && expectedAddonVersion !== '' && addonManifest.version !== expectedAddonVersion) {
+      throw new Error(
+        `[Error] Addon version ${addonManifest.version} does not match the expected version ${expectedAddonVersion}.`
+      );
+    }
+
+    if (typeof addonManifest.min_core_version !== 'string' || !RELEASE_RE.test(addonManifest.min_core_version)) {
+      throw new Error('[Error] Addon min_core_version is mandatory and must be X.Y.Z.');
+    }
+    if (compareSemver(corePkg.version, addonManifest.min_core_version) < 0) {
+      throw new Error(
+        `[Error] Addon requires Core >= ${addonManifest.min_core_version}, current Core is ${corePkg.version}.`
+      );
     }
 
     const normalizeRel = (p) => path.posix.normalize(String(p)).replace(/^(\.\/)+/, '');
@@ -113,6 +186,24 @@ if (withProAddon) {
       ...(Array.isArray(addonManifest.styles) ? addonManifest.styles.map(normalizeRel) : ['css/addon.min.css']),
       ...(addonManifest.wasm ? Object.values(addonManifest.wasm).map(normalizeRel) : []),
     ]);
+
+    // Strict whitelist: only declared assets plus the two meta files may exist in assets/addons.
+    const allowedFiles = new Set([...requiredFiles, 'integrity.json', 'signature.json']);
+    for (const rel of collectAddonFiles(addonDir)) {
+      if (!allowedFiles.has(rel)) {
+        throw new Error(`[Error] Unexpected file in assets/addons: ${rel}`);
+      }
+    }
+    for (const rel of Object.keys(integrityManifest)) {
+      if (!requiredFiles.has(rel)) {
+        throw new Error(`[Error] Undeclared entry in assets/addons/integrity.json: ${rel}`);
+      }
+    }
+    for (const rel of Object.keys(signatureManifest)) {
+      if (rel !== 'integrity.json' && !requiredFiles.has(rel)) {
+        throw new Error(`[Error] Undeclared entry in assets/addons/signature.json: ${rel}`);
+      }
+    }
 
     for (const file of requiredFiles) {
       if (!integrityManifest[file]) {
