@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -33,6 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CF_R2_BUCKET_NAME: expressionlab-updates
+      CF_R2_PRO_BUCKET_NAME: expressionlab-pro-artifacts
 
     steps:
       - name: Clone repository
@@ -68,10 +68,110 @@ jobs:
       - name: Install Node.js dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
+      - name: Resolve Pro addon build policy
+        id: addon_policy
+        env:
+          GH_REPOSITORY: ${{ github.repository }}
+          GH_REF_TYPE: ${{ github.ref_type }}
+          GH_REF_NAME: ${{ github.ref_name }}
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ "$GH_REF_TYPE" != "tag" ] || ! echo "$GH_REF_NAME" | grep -qE '^v[0-9A-Za-z.+\-]+$'; then
+            echo "ERROR: Releases must be triggered by a valid version tag (vX.Y.Z). Got ref_type='$GH_REF_TYPE' ref_name='$GH_REF_NAME'." >&2
+            exit 1
+          fi
+
+          if [ "$GH_REPOSITORY" = "andersonsalas/expressionlab" ]; then
+            if [ -z "$CF_TOKEN" ] || [ -z "$CF_ACCOUNT" ]; then
+              echo "ERROR: Missing CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID required to build Professional Edition." >&2
+              exit 1
+            fi
+            echo "with_addons=true" >> "$GITHUB_OUTPUT"
+            echo "addon_ref=$GH_REF_NAME" >> "$GITHUB_OUTPUT"
+            echo "Building Professional Edition with 1:1 R2 parity: addons/${GH_REF_NAME}/"
+          else
+            echo "External repository detected ($GH_REPOSITORY); building Community Edition without proprietary addons."
+            echo "with_addons=false" >> "$GITHUB_OUTPUT"
+            echo "addon_ref=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download Pro addon bundle from Cloudflare R2
+        if: steps.addon_policy.outputs.with_addons == 'true'
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: r2 object get ${{ env.CF_R2_PRO_BUCKET_NAME }}/addons/${{ steps.addon_policy.outputs.addon_ref }}/addon-bundle.tar.gz --file=/tmp/addon-bundle.tar.gz --remote
+
+      - name: Download Pro addon checksum from Cloudflare R2
+        if: steps.addon_policy.outputs.with_addons == 'true'
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: r2 object get ${{ env.CF_R2_PRO_BUCKET_NAME }}/addons/${{ steps.addon_policy.outputs.addon_ref }}/addon-bundle.tar.gz.sha256 --file=/tmp/addon-bundle.tar.gz.sha256 --remote
+
+      - name: Verify and extract Pro addon bundle
+        if: steps.addon_policy.outputs.with_addons == 'true'
+        run: |
+          (cd /tmp && sha256sum -c addon-bundle.tar.gz.sha256)
+          rm -rf assets/addons
+          mkdir -p assets/addons
+          tar -xzf /tmp/addon-bundle.tar.gz -C assets/addons
+          rm -f /tmp/addon-bundle.tar.gz /tmp/addon-bundle.tar.gz.sha256
+          test -f assets/addons/addons.json
+          test -f assets/addons/integrity.json
+          test -f assets/addons/signature.json
+
       - name: Build plugin release package
-        run: bash bin/build-plugin.sh
         env:
           EXPRESSION_LAB_SIGNING_KEY: ${{ secrets.EXPRESSION_LAB_SIGNING_KEY }}
+        run: |
+          if [ "${{ steps.addon_policy.outputs.with_addons }}" = "true" ]; then
+            EXPRESSION_LAB_WITH_ADDONS=1 bash bin/build-plugin.sh
+          else
+            bash bin/build-plugin.sh
+          fi
+
+      - name: Audit generated release package
+        env:
+          WITH_ADDONS: ${{ steps.addon_policy.outputs.with_addons }}
+        run: |
+          ZIP_COUNT=$(ls -1 build/expressionlab-*.zip | wc -l)
+          if [ "$ZIP_COUNT" -ne 1 ]; then
+            echo "ERROR: Expected exactly 1 release ZIP, found $ZIP_COUNT." >&2
+            exit 1
+          fi
+          ZIP_FILE=$(ls -1 build/expressionlab-*.zip)
+
+          if unzip -l "$ZIP_FILE" | grep -q "expressionlab/assets/addons"; then
+            echo "ERROR: Security violation: assets/addons/ must not exist inside $ZIP_FILE." >&2
+            exit 1
+          fi
+
+          unzip -l "$ZIP_FILE" | grep -q "expressionlab/assets/build/expressionlab-app.js"
+          unzip -l "$ZIP_FILE" | grep -q "expressionlab/assets/build/expressionlab-onboard.js"
+          unzip -l "$ZIP_FILE" | grep -q "expressionlab/assets/integrity.json"
+
+          if [ "$WITH_ADDONS" = "true" ]; then
+            unzip -p "$ZIP_FILE" expressionlab/expressionlab.php | grep -q "define( 'EXPRESSION_LAB_ADDON_ENABLED', true );"
+          else
+            unzip -p "$ZIP_FILE" expressionlab/expressionlab.php | grep -q "define( 'EXPRESSION_LAB_ADDON_ENABLED', false );"
+          fi
+
+          node -e '
+            const fs = require("fs");
+            const m = JSON.parse(fs.readFileSync("build/update.json", "utf8"));
+            if (!m.version || !/^[0-9a-f]{64}$/.test(m.sha256 || "") || !/^[0-9a-f]{128}$/.test(m.signature || "")) {
+              throw new Error("Invalid build/update.json manifest fields");
+            }
+            console.log("Audit OK:", { version: m.version, sha256: m.sha256, with_addons: process.env.WITH_ADDONS });
+          '
+
+      - name: Clean up ephemeral addon mount
+        if: always()
+        run: rm -rf assets/addons /tmp/addon-bundle.tar.gz /tmp/addon-bundle.tar.gz.sha256
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3

@@ -90,6 +90,22 @@ if (withProAddon) {
       throw new Error('[Error] Invalid manifest.');
     }
 
+    if (addonManifest.min_core_version) {
+      const parseSemverTuple = (v) => String(v).split('-')[0].split('.').map((n) => parseInt(n, 10) || 0);
+      const corePkg = require('./package.json');
+      const coreTuple = parseSemverTuple(corePkg.version);
+      const minTuple = parseSemverTuple(addonManifest.min_core_version);
+      const isCompatible =
+        coreTuple[0] > minTuple[0] ||
+        (coreTuple[0] === minTuple[0] && coreTuple[1] > minTuple[1]) ||
+        (coreTuple[0] === minTuple[0] && coreTuple[1] === minTuple[1] && coreTuple[2] >= minTuple[2]);
+      if (!isCompatible) {
+        throw new Error(
+          `[Error] Addon requires Core >= ${addonManifest.min_core_version}, current Core is ${corePkg.version}.`
+        );
+      }
+    }
+
     const normalizeRel = (p) => path.posix.normalize(String(p)).replace(/^(\.\/)+/, '');
     const requiredFiles = new Set([
       'addons.json',
