@@ -1,42 +1,206 @@
 name: Release Plugin
 
+# Release workflow contract:
+#   * Triggered only by a tag vX.Y.Z on master; tag == plugin header == EXPRESSION_LAB_VERSION == package.json.
+#   * The Pro addon is fetched from the private R2 folder addons/vX.Y.Z/ (1:1, no fallback) and must report
+#     version X.Y.Z; Core webpack re-verifies its Ed25519 signatures with EXPRESSION_LAB_ADDON_PUBLIC_KEY.
+#   * Job `build` runs all third-party build tooling WITHOUT the update-signing key.
+#   * Job `sign-and-publish` (environment: release) signs with EXPRESSION_LAB_SIGNING_KEY without installing
+#     any npm/Composer dependency, verifies against EXPRESSION_LAB_PUBLIC_KEY, publishes the GitHub Release
+#     and (stable versions only) uploads update.json.
+
 on:
   push:
     tags:
       - 'v*'
 
 permissions:
-  contents: write
-  pull-requests: read
+  contents: read
 
 concurrency:
   group: release-pipeline
   cancel-in-progress: false
 
+env:
+  NODE_VERSION: '22.23.4'
+  PNPM_VERSION: '11.28.12'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   test-php:
     name: Run PHP Tests
     uses: ./.github/workflows/test-php.yml
+    permissions:
+      contents: read
+      pull-requests: read
+    with:
+      force: true
 
   test-js:
     name: Run JS Tests
     uses: ./.github/workflows/test-js.yml
+    permissions:
+      contents: read
+      pull-requests: read
+    with:
+      force: true
 
   lint:
     name: Run Linters
     uses: ./.github/workflows/lint.yml
+    permissions:
+      contents: read
+      pull-requests: read
+    with:
+      force: true
 
-  release:
-    name: Build and Publish Release
+  build:
+    name: Build & Verify Release Package (unsigned)
     needs: [test-php, test-js, lint]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      prerelease: ${{ steps.meta.outputs.prerelease }}
+      with_addons: ${{ steps.addon_policy.outputs.with_addons }}
     env:
-      CF_R2_BUCKET_NAME: expressionlab-updates
-      CF_R2_PRO_BUCKET_NAME: expressionlab-pro-artifacts
+      CF_R2_PRO_BUCKET_NAME: ${{ vars.CF_R2_PRO_BUCKET || 'expressionlab-pro-artifacts' }}
 
     steps:
       - name: Clone repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Resolve and verify release metadata (1:1 version parity)
+        id: meta
+        env:
+          GH_REF_TYPE: ${{ github.ref_type }}
+          GH_REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ "$GH_REF_TYPE" != "tag" ]; then
+            echo "::error::Releases must be triggered by a version tag."
+            exit 1
+          fi
+          if ! [[ "$GH_REF_NAME" =~ ^v((0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(alpha|beta|rc)\.(0|[1-9][0-9]*))?)$ ]]; then
+            echo "::error::Invalid tag '${GH_REF_NAME}'. Expected vX.Y.Z or vX.Y.Z-(alpha|beta|rc).N."
+            exit 1
+          fi
+          VERSION="${BASH_REMATCH[1]}"
+          HEADER=$(grep -m1 -E '^[[:space:]]*\*[[:space:]]*Version:' expressionlab.php | awk -F: '{print $2}' | tr -d ' \r')
+          CONSTANT=$(sed -nE "s/.*define\( 'EXPRESSION_LAB_VERSION', '([^']+)' \);.*/\1/p" expressionlab.php | head -n1)
+          PACKAGE=$(jq -r '.version' package.json)
+          for pair in "plugin header:$HEADER" "EXPRESSION_LAB_VERSION:$CONSTANT" "package.json:$PACKAGE"; do
+            if [ "${pair#*:}" != "$VERSION" ]; then
+              echo "::error::Version mismatch: tag=${VERSION} but ${pair%%:*}=${pair#*:}."
+              exit 1
+            fi
+          done
+          if ! grep -qE "^## \[${VERSION//./\\.}\]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no '## [${VERSION}]' section."
+            exit 1
+          fi
+          TAG_COMMIT=$(git rev-parse "${GITHUB_SHA}^{commit}")
+          if ! git merge-base --is-ancestor "$TAG_COMMIT" origin/master; then
+            echo "::error::Tag commit ${TAG_COMMIT} is not reachable from origin/master. Tag only merged commits."
+            exit 1
+          fi
+          PRERELEASE=false
+          if [[ "$VERSION" == *-* ]]; then
+            PRERELEASE=true
+          fi
+          { echo "version=${VERSION}"; echo "prerelease=${PRERELEASE}"; } >> "$GITHUB_OUTPUT"
+          echo "Release v${VERSION} (prerelease=${PRERELEASE})"
+
+      - name: Resolve Pro addon build policy
+        id: addon_policy
+        env:
+          GH_REPOSITORY: ${{ github.repository }}
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ "$GH_REPOSITORY" = "andersonsalas/expressionlab" ]; then
+            if [ -z "$CF_TOKEN" ] || [ -z "$CF_ACCOUNT" ]; then
+              echo "::error::Missing CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID required to build the Professional Edition."
+              exit 1
+            fi
+            echo "with_addons=true" >> "$GITHUB_OUTPUT"
+            echo "Building Professional Edition (1:1 Pro artifact parity)."
+          else
+            echo "External repository detected; building Community Edition without proprietary addons."
+            echo "with_addons=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pinned Wrangler CLI (lockfile, no install scripts, no secrets)
+        if: steps.addon_policy.outputs.with_addons == 'true'
+        run: npm ci --prefix tools/wrangler --ignore-scripts --no-audit --no-fund
+
+      # Runs before any project dependency is installed, so no third-party build code coexists with the token.
+      - name: Download Pro addon bundle from Cloudflare R2
+        if: steps.addon_policy.outputs.with_addons == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          RELEASE_VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          WRANGLER="$GITHUB_WORKSPACE/tools/wrangler/node_modules/.bin/wrangler"
+          mkdir -p "$RUNNER_TEMP/pro-addon"
+          for object in addon-bundle.tar.gz addon-bundle.tar.gz.sha256; do
+            "$WRANGLER" r2 object get "${CF_R2_PRO_BUCKET_NAME}/addons/v${RELEASE_VERSION}/${object}" \
+              --file="$RUNNER_TEMP/pro-addon/${object}" --remote >/dev/null
+          done
+          echo "Downloaded the Pro artifact for v${RELEASE_VERSION}."
+
+      - name: Verify and extract Pro addon bundle
+        if: steps.addon_policy.outputs.with_addons == 'true'
+        env:
+          RELEASE_VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          SRC="$RUNNER_TEMP/pro-addon"
+          [ "$(wc -l < "$SRC/addon-bundle.tar.gz.sha256")" -eq 1 ] || { echo "::error::Unexpected checksum file format."; exit 1; }
+          EXPECTED=$(awk '{print $1}' "$SRC/addon-bundle.tar.gz.sha256")
+          [[ "$EXPECTED" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::Malformed checksum."; exit 1; }
+          ACTUAL=$(sha256sum "$SRC/addon-bundle.tar.gz" | awk '{print $1}')
+          [ "$ACTUAL" = "$EXPECTED" ] || { echo "::error::Pro addon checksum mismatch."; exit 1; }
+
+          # Member whitelist: only regular files / directories with expected names.
+          # (Listings are materialised first: `tar | grep -q` + pipefail could mask a hit via SIGPIPE.)
+          MEMBER_TYPES=$(tar -tzvf "$SRC/addon-bundle.tar.gz" | cut -c1)
+          if grep -qv '^[d-]$' <<< "$MEMBER_TYPES"; then
+            echo "::error::Pro addon archive contains links or special files."
+            exit 1
+          fi
+          MEMBERS=$(tar -tzf "$SRC/addon-bundle.tar.gz")
+          while IFS= read -r member; do
+            if ! [[ "$member" =~ ^\./((addons|integrity|signature)\.json|(js|css|wasm)/|(js|css|wasm)/[A-Za-z0-9._-]+\.(js|css|wasm))?$ ]]; then
+              echo "::error::Unexpected member in Pro addon archive."
+              exit 1
+            fi
+          done <<< "$MEMBERS"
+
+          rm -rf assets/addons
+          mkdir -p assets/addons
+          tar -xzf "$SRC/addon-bundle.tar.gz" -C assets/addons --no-same-owner --no-same-permissions
+          rm -rf "$SRC"
+          for meta in addons.json integrity.json signature.json; do
+            test -f "assets/addons/${meta}"
+          done
+          ADDON_VERSION=$(jq -r '.version' assets/addons/addons.json)
+          if [ "$ADDON_VERSION" != "$RELEASE_VERSION" ]; then
+            echo "::error::addons/v${RELEASE_VERSION}/ contains a bundle reporting version ${ADDON_VERSION} (1:1 contract violated)."
+            exit 1
+          fi
+          echo "Pro addon v${ADDON_VERSION} verified and mounted."
 
       - name: Configure PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
@@ -57,133 +221,144 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
-          version: 11
-
-      - name: Configure Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 22
-          cache: 'pnpm'
+          version: ${{ env.PNPM_VERSION }}
 
       - name: Install Node.js dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Resolve Pro addon build policy
-        id: addon_policy
-        env:
-          GH_REPOSITORY: ${{ github.repository }}
-          GH_REF_TYPE: ${{ github.ref_type }}
-          GH_REF_NAME: ${{ github.ref_name }}
-          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          if [ "$GH_REF_TYPE" != "tag" ] || ! echo "$GH_REF_NAME" | grep -qE '^v[0-9A-Za-z.+\-]+$'; then
-            echo "ERROR: Releases must be triggered by a valid version tag (vX.Y.Z). Got ref_type='$GH_REF_TYPE' ref_name='$GH_REF_NAME'." >&2
-            exit 1
-          fi
-
-          if [ "$GH_REPOSITORY" = "andersonsalas/expressionlab" ]; then
-            if [ -z "$CF_TOKEN" ] || [ -z "$CF_ACCOUNT" ]; then
-              echo "ERROR: Missing CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID required to build Professional Edition." >&2
-              exit 1
-            fi
-            echo "with_addons=true" >> "$GITHUB_OUTPUT"
-            echo "addon_ref=$GH_REF_NAME" >> "$GITHUB_OUTPUT"
-            echo "Building Professional Edition with 1:1 R2 parity: addons/${GH_REF_NAME}/"
-          else
-            echo "External repository detected ($GH_REPOSITORY); building Community Edition without proprietary addons."
-            echo "with_addons=false" >> "$GITHUB_OUTPUT"
-            echo "addon_ref=" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Download Pro addon bundle from Cloudflare R2
-        if: steps.addon_policy.outputs.with_addons == 'true'
-        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: r2 object get ${{ env.CF_R2_PRO_BUCKET_NAME }}/addons/${{ steps.addon_policy.outputs.addon_ref }}/addon-bundle.tar.gz --file=/tmp/addon-bundle.tar.gz --remote
-
-      - name: Download Pro addon checksum from Cloudflare R2
-        if: steps.addon_policy.outputs.with_addons == 'true'
-        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: r2 object get ${{ env.CF_R2_PRO_BUCKET_NAME }}/addons/${{ steps.addon_policy.outputs.addon_ref }}/addon-bundle.tar.gz.sha256 --file=/tmp/addon-bundle.tar.gz.sha256 --remote
-
-      - name: Verify and extract Pro addon bundle
-        if: steps.addon_policy.outputs.with_addons == 'true'
-        run: |
-          (cd /tmp && sha256sum -c addon-bundle.tar.gz.sha256)
-          rm -rf assets/addons
-          mkdir -p assets/addons
-          tar -xzf /tmp/addon-bundle.tar.gz -C assets/addons
-          rm -f /tmp/addon-bundle.tar.gz /tmp/addon-bundle.tar.gz.sha256
-          test -f assets/addons/addons.json
-          test -f assets/addons/integrity.json
-          test -f assets/addons/signature.json
-
-      - name: Build plugin release package
-        env:
-          EXPRESSION_LAB_SIGNING_KEY: ${{ secrets.EXPRESSION_LAB_SIGNING_KEY }}
-        run: |
-          if [ "${{ steps.addon_policy.outputs.with_addons }}" = "true" ]; then
-            EXPRESSION_LAB_WITH_ADDONS=1 bash bin/build-plugin.sh
-          else
-            bash bin/build-plugin.sh
-          fi
-
-      - name: Audit generated release package
+      - name: Build plugin release package (unsigned)
         env:
           WITH_ADDONS: ${{ steps.addon_policy.outputs.with_addons }}
+          RELEASE_VERSION: ${{ steps.meta.outputs.version }}
         run: |
-          ZIP_COUNT=$(ls -1 build/expressionlab-*.zip | wc -l)
-          if [ "$ZIP_COUNT" -ne 1 ]; then
-            echo "ERROR: Expected exactly 1 release ZIP, found $ZIP_COUNT." >&2
-            exit 1
-          fi
-          ZIP_FILE=$(ls -1 build/expressionlab-*.zip)
-
-          if unzip -l "$ZIP_FILE" | grep -q "expressionlab/assets/addons"; then
-            echo "ERROR: Security violation: assets/addons/ must not exist inside $ZIP_FILE." >&2
-            exit 1
-          fi
-
-          unzip -l "$ZIP_FILE" | grep -q "expressionlab/assets/build/expressionlab-app.js"
-          unzip -l "$ZIP_FILE" | grep -q "expressionlab/assets/build/expressionlab-onboard.js"
-          unzip -l "$ZIP_FILE" | grep -q "expressionlab/assets/integrity.json"
-
+          set -euo pipefail
           if [ "$WITH_ADDONS" = "true" ]; then
-            unzip -p "$ZIP_FILE" expressionlab/expressionlab.php | grep -q "define( 'EXPRESSION_LAB_ADDON_ENABLED', true );"
+            EXPRESSION_LAB_WITH_ADDONS=1 EXPRESSION_LAB_EXPECTED_ADDON_VERSION="$RELEASE_VERSION" bash bin/build-plugin.sh --no-sign
           else
-            unzip -p "$ZIP_FILE" expressionlab/expressionlab.php | grep -q "define( 'EXPRESSION_LAB_ADDON_ENABLED', false );"
+            bash bin/build-plugin.sh --no-sign
           fi
 
-          node -e '
-            const fs = require("fs");
-            const m = JSON.parse(fs.readFileSync("build/update.json", "utf8"));
-            if (!m.version || !/^[0-9a-f]{64}$/.test(m.sha256 || "") || !/^[0-9a-f]{128}$/.test(m.signature || "")) {
-              throw new Error("Invalid build/update.json manifest fields");
-            }
-            console.log("Audit OK:", { version: m.version, sha256: m.sha256, with_addons: process.env.WITH_ADDONS });
-          '
+      - name: Verify generated release package
+        env:
+          WITH_ADDONS: ${{ steps.addon_policy.outputs.with_addons }}
+          RELEASE_VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          ZIPS=(build/expressionlab-*.zip)
+          if [ "${#ZIPS[@]}" -ne 1 ] || [ "${ZIPS[0]}" != "build/expressionlab-${RELEASE_VERSION}.zip" ]; then
+            echo "::error::Expected exactly build/expressionlab-${RELEASE_VERSION}.zip, found: ${ZIPS[*]:-none}."
+            exit 1
+          fi
+          ZIP_FILE="${ZIPS[0]}"
+          # Materialise listings first: `producer | grep -q` + pipefail can fail on SIGPIPE.
+          LISTING=$(unzip -Z1 "$ZIP_FILE")
+
+          if grep -qvE '^expressionlab/' <<< "$LISTING"; then
+            echo "::error::Release ZIP contains entries outside expressionlab/."
+            exit 1
+          fi
+          for required in expressionlab/expressionlab.php expressionlab/assets/build/expressionlab-app.js \
+                          expressionlab/assets/build/expressionlab-onboard.js expressionlab/assets/integrity.json \
+                          expressionlab/vendor/scoper-autoload.php; do
+            grep -qxF "$required" <<< "$LISTING" || { echo "::error::Missing ${required} in release ZIP."; exit 1; }
+          done
+
+          MAIN_FILE=$(unzip -p "$ZIP_FILE" expressionlab/expressionlab.php)
+          if [ "$WITH_ADDONS" = "true" ]; then
+            grep -qF "define( 'EXPRESSION_LAB_ADDON_ENABLED', true );" <<< "$MAIN_FILE"
+          else
+            grep -qF "define( 'EXPRESSION_LAB_ADDON_ENABLED', false );" <<< "$MAIN_FILE"
+          fi
+
+          # Independent leak scan of the exact bytes that will be published.
+          VERIFY_DIR="$RUNNER_TEMP/zip-verify"
+          rm -rf "$VERIFY_DIR" && mkdir -p "$VERIFY_DIR"
+          unzip -q "$ZIP_FILE" -d "$VERIFY_DIR"
+          EXPRESSION_LAB_BUILD=1 php bin/build-verify-artifact.php --scan-only "$VERIFY_DIR/expressionlab"
+          rm -rf "$VERIFY_DIR"
+
+          grep -qx "VERSION=${RELEASE_VERSION}" build/release-meta.env
+          echo "Verify OK: $(basename "$ZIP_FILE") $(sha256sum "$ZIP_FILE" | awk '{print $1}') with_addons=${WITH_ADDONS}"
 
       - name: Clean up ephemeral addon mount
         if: always()
-        run: rm -rf assets/addons /tmp/addon-bundle.tar.gz /tmp/addon-bundle.tar.gz.sha256
+        run: rm -rf assets/addons "$RUNNER_TEMP/pro-addon"
+
+      - name: Hand the unsigned package to the signing job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-package-unsigned
+          path: |
+            build/expressionlab-${{ steps.meta.outputs.version }}.zip
+            build/release-meta.env
+          if-no-files-found: error
+          retention-days: 1
+
+  sign-and-publish:
+    name: Sign & Publish Release
+    needs: build
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+    env:
+      RELEASE_VERSION: ${{ needs.build.outputs.version }}
+      IS_PRERELEASE: ${{ needs.build.outputs.prerelease }}
+      CF_R2_BUCKET_NAME: expressionlab-updates
+
+    steps:
+      - name: Clone repository (signing scripts, CHANGELOG and plugin header only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Configure PHP (sodium)
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
+        with:
+          php-version: '8.4'
+          extensions: sodium, json
+          coverage: none
+          tools: none
+
+      - name: Download unsigned package
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-package-unsigned
+          path: build
+
+      - name: Sign release manifest (update key only, no third-party code)
+        env:
+          EXPRESSION_LAB_SIGNING_KEY: ${{ secrets.EXPRESSION_LAB_SIGNING_KEY }}
+        run: env -u BASH_ENV -u ENV bash --noprofile --norc bin/sign-release.sh build
+
+      - name: Verify manifest against EXPRESSION_LAB_PUBLIC_KEY (as installed sites will)
+        run: EXPRESSION_LAB_BUILD=1 php bin/build-verify-manifest.php build/update.json "build/expressionlab-${RELEASE_VERSION}.zip" "$RELEASE_VERSION"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
-          files: build/expressionlab-*.zip
+          files: build/expressionlab-${{ needs.build.outputs.version }}.zip
           body_path: build/RELEASE_NOTES.md
           generate_release_notes: false
-          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+          prerelease: ${{ needs.build.outputs.prerelease == 'true' }}
 
-      - name: Upload update.json to Cloudflare R2
-        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+      - name: Configure Node.js
+        if: needs.build.outputs.prerelease != 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: r2 object put ${{ env.CF_R2_BUCKET_NAME }}/update.json --file=build/update.json --content-type=application/json --remote
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pinned Wrangler CLI (lockfile, no install scripts)
+        if: needs.build.outputs.prerelease != 'true'
+        run: npm ci --prefix tools/wrangler --ignore-scripts --no-audit --no-fund
+
+      # Prereleases are never offered to installed sites: the updater has a single (stable) channel.
+      - name: Upload update.json to Cloudflare R2 (stable releases only)
+        if: needs.build.outputs.prerelease != 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          tools/wrangler/node_modules/.bin/wrangler r2 object put "${CF_R2_BUCKET_NAME}/update.json" \
+            --file=build/update.json --content-type=application/json --remote
