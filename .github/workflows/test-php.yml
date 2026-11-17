@@ -60,12 +60,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - php: '8.2'
+          - php: '8.4'
             wp: '6.4'
-          - php: '8.2'
-            wp: 'latest'
-          - php: '8.3'
-            wp: 'latest'
           - php: '8.4'
             wp: 'latest'
           - php: '8.5'

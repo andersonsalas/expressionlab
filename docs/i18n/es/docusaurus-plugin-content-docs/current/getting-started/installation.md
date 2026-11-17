@@ -20,8 +20,8 @@ Antes de instalar Expression Lab, es necesario verificar que el entorno cumpla c
 
 ### Requisitos del servidor
 
-- **WordPress**: 6.4 o superior (probado hasta 7.1)
-- **PHP**: 8.2 o superior
+- **WordPress**: 6.4 o superior
+- **PHP**: 8.4 o superior
 - **Extensiones de PHP**:
   - **[Sodium](https://www.php.net/manual/es/book.sodium.php)** (*Requerida*): Necesaria para la verificación de firmas Ed25519 en las peticiones entrantes de la consola.
   - **[SQLite3](https://www.php.net/manual/es/book.sqlite3.php)** (*Recomendada / Opcional*): Permite la replicación de tablas en memoria para consultas analíticas sin ejecutar consultas sobre la base de datos MySQL en producción.

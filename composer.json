@@ -41,6 +41,7 @@
         "php-stubs/wp-cli-stubs": "^2.12"
     },
     "require": {
+        "php": ">=8.4",
         "symfony/expression-language": "^7.4",
         "phpdocumentor/reflection-docblock": "^6.0",
         "maxmind-db/reader": "^1.14",

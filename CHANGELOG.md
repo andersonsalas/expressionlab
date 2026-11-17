@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Minor UI and UX issues.
 
 ### Changed
+- Minimum supported PHP version raised to 8.4.
 - Composer dependencies updated to latest versions.
 - Improved Settings modal.
 - Redesigned tabs and Onboarding UI.

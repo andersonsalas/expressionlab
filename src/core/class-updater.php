@@ -75,7 +75,7 @@ class Updater {
 	 *
 	 * @var string
 	 */
-	const DEFAULT_REQUIRES_PHP = '8.2';
+	const DEFAULT_REQUIRES_PHP = '8.4';
 
 	/**
 	 * Default tested WordPress version.

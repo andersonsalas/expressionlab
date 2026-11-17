@@ -37,7 +37,7 @@ $zip_file_path      = $argv[6];
 $release_notes_file = $argv[7] ?? '';
 $requires_wp        = $argv[8] ?? '6.4';
 $tested_wp          = $argv[9] ?? '7.1';
-$requires_php       = $argv[10] ?? '8.2';
+$requires_php       = $argv[10] ?? '8.4';
 
 if ( stream_isatty( STDIN ) ) {
 	fwrite( STDERR, "Error: Signing key must be provided via STDIN pipe.\n" );

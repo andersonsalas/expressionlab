@@ -14,7 +14,7 @@
   <a href="https://github.com/andersonsalas/expressionlab/actions/workflows/lint.yml"><img src="https://github.com/andersonsalas/expressionlab/actions/workflows/lint.yml/badge.svg" alt="Code Style (WPCS)"></a>
   <a href="https://github.com/andersonsalas/expressionlab/actions/workflows/test-php.yml"><img src="https://github.com/andersonsalas/expressionlab/actions/workflows/test-php.yml/badge.svg" alt="PHPUnit Test Matrix"></a>
   <a href="https://github.com/andersonsalas/expressionlab/actions/workflows/test-js.yml"><img src="https://github.com/andersonsalas/expressionlab/actions/workflows/test-js.yml/badge.svg" alt="Jest Tests"></a>
-  <img src="https://img.shields.io/badge/PHP-8.2%20--%208.5-777BB4.svg?logo=php&logoColor=white" alt="PHP 8.2 to 8.5">
+  <img src="https://img.shields.io/badge/PHP-8.4%20--%208.5-777BB4.svg?logo=php&logoColor=white" alt="PHP 8.4 to 8.5">
   <img src="https://img.shields.io/badge/WordPress-6.4%2B-21759B.svg?logo=wordpress&logoColor=white" alt="WordPress 6.4+">
   <img src="https://img.shields.io/badge/Multisite-Supported-success.svg" alt="Multisite Supported">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--2.0--or--later-blue.svg" alt="License: GPL-2.0-or-later"></a>
@@ -130,7 +130,7 @@ prog[
 
 | Component | Requirement | Note |
 | :--- | :--- | :--- |
-| **PHP** | `8.2` &ndash; `8.5` | Tested against PHP 8.2, 8.3, 8.4, and 8.5 |
+| **PHP** | `8.4` &ndash; `8.5` | Tested against PHP 8.4 and 8.5 |
 | **WordPress** | `6.4+` | Tested on modern WordPress releases and Core `trunk` |
 | **PHP Extensions** | `sodium`, `sqlite3` | `sodium` for Ed25519 signature verification; `sqlite3` for in-memory database mirroring |
 | **Environment** | Single-site & Multisite | Automated tests run against both configurations |
