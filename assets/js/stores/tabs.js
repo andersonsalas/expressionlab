@@ -15,7 +15,12 @@ const isDirtyNotebookTab = (tab) => Boolean(tab && tab.mode === 'notebook' && ta
  */
 export const isTabLocked = (tab) => {
   if (!tab || tab.mode !== 'notebook') return false;
-  const isPersisted = Boolean(tab.notebookFileHandleId || tab.notebookFileHandle);
+  const isPersisted = Boolean(
+    tab.notebookFileHandleId ||
+    tab.notebookFileHandle ||
+    tab.notebookFileName ||
+    tab.notebookFilename
+  );
   const isReadOnly = Boolean(tab.notebookMeta?.meta?.isReadOnly);
   const isUnlocked = Boolean(tab.notebookUnlockedForEditing);
   const isPersistedReadOnly = tab.notebookPersistedReadOnly !== undefined && tab.notebookPersistedReadOnly !== null

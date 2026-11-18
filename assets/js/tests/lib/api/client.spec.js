@@ -1013,6 +1013,65 @@ describe('lib/api/client.js', () => {
       document.createElement.mockRestore();
     });
 
+    it('defers download and returns pickerBlocked when deferDownloadOnPickerBlocked is true and showSaveFilePicker raises SecurityError', async () => {
+      const securityError = new Error('Cross origin sub frames are not allowed');
+      securityError.name = 'SecurityError';
+      window.showSaveFilePicker = jest.fn().mockRejectedValue(securityError);
+
+      const getBufferSpy = jest.fn(() => new Uint8Array([1, 2, 3]).buffer);
+      const clickMock = jest.fn();
+      const origCreateElement = document.createElement.bind(document);
+      jest.spyOn(document, 'createElement').mockImplementation((tag) => {
+        const el = origCreateElement(tag);
+        if (tag === 'a') el.click = clickMock;
+        return el;
+      });
+
+      const result = await handleSaveBinaryFile({
+        suggestedName: 'Untitled.elab',
+        deferDownloadOnPickerBlocked: true,
+        getBuffer: getBufferSpy,
+      });
+
+      expect(result).toEqual({ pickerBlocked: true, reason: 'SecurityError' });
+      expect(getBufferSpy).not.toHaveBeenCalled();
+      expect(clickMock).not.toHaveBeenCalled();
+
+      document.createElement.mockRestore();
+    });
+
+    it('skips window.showSaveFilePicker and downloads directly when skipNativePicker is true', async () => {
+      window.showSaveFilePicker = jest.fn();
+
+      const origCreateObjectURL = URL.createObjectURL;
+      URL.createObjectURL = jest.fn(() => 'blob:http://example.com/elab-skip');
+      const clickMock = jest.fn();
+      const origCreateElement = document.createElement.bind(document);
+      let anchor = null;
+      jest.spyOn(document, 'createElement').mockImplementation((tag) => {
+        const el = origCreateElement(tag);
+        if (tag === 'a') {
+          el.click = clickMock;
+          anchor = el;
+        }
+        return el;
+      });
+
+      const result = await handleSaveBinaryFile({
+        buffer: new Uint8Array([1, 2]).buffer,
+        suggestedName: 'ChosenName.elab',
+        skipNativePicker: true,
+      });
+
+      expect(window.showSaveFilePicker).not.toHaveBeenCalled();
+      expect(result).toEqual({ success: true, filename: 'ChosenName.elab', fileHandleId: null, fallbackDownload: true });
+      expect(clickMock).toHaveBeenCalled();
+      expect(anchor.getAttribute('download')).toBe('ChosenName.elab');
+
+      URL.createObjectURL = origCreateObjectURL;
+      document.createElement.mockRestore();
+    });
+
     it('evicts a stale handle and falls back to Save As when the direct write fails', async () => {
       const opened = { name: 'stale.elab', arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(1)) };
       const staleHandle = {

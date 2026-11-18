@@ -737,6 +737,19 @@ describe('stores/tabs.js - Tabs Management Store', () => {
       expect(isTabLocked(locked)).toBe(true);
     });
 
+    it('returns true for read-only notebooks opened or saved via filename fallback without a fileHandleId', () => {
+      const fallbackOpened = {
+        mode: 'notebook',
+        notebookFileHandleId: null,
+        notebookFileHandle: null,
+        notebookFileName: 'ReadOnlyPlayground.elab',
+        notebookMeta: { meta: { isReadOnly: true } },
+        notebookUnlockedForEditing: false,
+        notebookPersistedReadOnly: true,
+      };
+      expect(isTabLocked(fallbackOpened)).toBe(true);
+    });
+
     it('reactively evaluates isCurrentTabReadOnly from the active tab', () => {
       const store = useTabsStore();
       expect(store.isCurrentTabReadOnly).toBe(false);

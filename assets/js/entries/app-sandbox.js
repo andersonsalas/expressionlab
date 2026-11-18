@@ -932,7 +932,12 @@ document.addEventListener('DOMContentLoaded', function () {
   const handleFsSaveFileAsBinary = async (msg) => {
     debugLog('Processing fs_save_file_as_binary request from sandbox:', msg);
     const payload = msg.payload || {};
-    const { buffer, suggestedName = 'notebook.elab' } = payload;
+    const {
+      buffer,
+      suggestedName = 'notebook.elab',
+      deferDownloadOnPickerBlocked = false,
+      skipNativePicker = false,
+    } = payload;
     const description = typeof payload.description === 'string' && payload.description
       ? payload.description
       : 'Expression Lab Notebook (.elab)';
@@ -950,7 +955,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const safeSuggestedName = sanitizeBinaryFilename(suggestedName, extensions);
 
-    if (typeof window.showSaveFilePicker === 'function') {
+    if (!skipNativePicker && typeof window.showSaveFilePicker === 'function') {
       try {
         const fileHandle = await window.showSaveFilePicker({
           suggestedName: safeSuggestedName,
@@ -979,15 +984,24 @@ document.addEventListener('DOMContentLoaded', function () {
             cancelled: true,
           });
         } else if (err.name === 'SecurityError' || err.name === 'NotAllowedError') {
-          debugLog('fs_save_file_as_binary showSaveFilePicker blocked, falling back to blob download:', err, 'warn');
-          const downloadedName = triggerBinaryBlobDownload(buffer, safeSuggestedName, extensions);
-          sendToSandbox(iframe, 'response', {
-            response_to: msg.message_id,
-            success: true,
-            filename: downloadedName,
-            fileHandleId: null,
-            fallbackDownload: true,
-          });
+          if (deferDownloadOnPickerBlocked) {
+            debugLog('fs_save_file_as_binary showSaveFilePicker blocked, deferring download for filename prompt:', err, 'warn');
+            sendToSandbox(iframe, 'response', {
+              response_to: msg.message_id,
+              pickerBlocked: true,
+              reason: err.name,
+            });
+          } else {
+            debugLog('fs_save_file_as_binary showSaveFilePicker blocked, falling back to blob download:', err, 'warn');
+            const downloadedName = triggerBinaryBlobDownload(buffer, safeSuggestedName, extensions);
+            sendToSandbox(iframe, 'response', {
+              response_to: msg.message_id,
+              success: true,
+              filename: downloadedName,
+              fileHandleId: null,
+              fallbackDownload: true,
+            });
+          }
         } else {
           debugLog('fs_save_file_as_binary error:', err, 'error');
           sendToSandbox(iframe, 'response', {

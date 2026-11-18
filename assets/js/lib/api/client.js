@@ -1548,6 +1548,8 @@ export async function handleSaveBinaryFileAs(options = {}) {
     getBuffer,
     description = 'Expression Lab Notebook (.elab)',
     mimeType = 'application/octet-stream',
+    deferDownloadOnPickerBlocked = false,
+    skipNativePicker = false,
   } = options;
   const extensions = resolveBinaryExtensions(options.extensions);
   const suggestedName = sanitizeBinaryFilename(options.suggestedName || 'notebook.elab', extensions);
@@ -1562,7 +1564,7 @@ export async function handleSaveBinaryFileAs(options = {}) {
   debugLog('handleSaveBinaryFileAs invoked', { route: isDirect ? 'direct' : 'sandbox-postMessage' });
 
   if (isDirect) {
-    if (typeof window.showSaveFilePicker === 'function') {
+    if (!skipNativePicker && typeof window.showSaveFilePicker === 'function') {
       try {
         const fileHandle = await window.showSaveFilePicker({
           suggestedName,
@@ -1596,6 +1598,10 @@ export async function handleSaveBinaryFileAs(options = {}) {
           return { cancelled: true };
         }
         if (err?.name === 'SecurityError' || err?.name === 'NotAllowedError') {
+          if (deferDownloadOnPickerBlocked) {
+            debugLog('Direct FS: handleSaveBinaryFileAs picker blocked, deferring download for filename prompt:', err, 'warn');
+            return { pickerBlocked: true, reason: err.name };
+          }
           debugLog('Direct FS: handleSaveBinaryFileAs SecurityError, falling back to download:', err, 'warn');
           if (hasBufferProvider && !transferBuffer) {
             const resolved = await resolveBufferFromProvider(getBuffer, suggestedName);
@@ -1641,6 +1647,8 @@ export async function handleSaveBinaryFileAs(options = {}) {
       description,
       extensions,
       mimeType,
+      deferDownloadOnPickerBlocked: Boolean(deferDownloadOnPickerBlocked),
+      skipNativePicker: Boolean(skipNativePicker),
     },
     [transferBuffer],
     'Binary file save timed out'
@@ -1671,6 +1679,8 @@ export async function handleSaveBinaryFile(options = {}) {
     fileHandleId = null,
     description = 'Expression Lab Notebook (.elab)',
     mimeType = 'application/octet-stream',
+    deferDownloadOnPickerBlocked = false,
+    skipNativePicker = false,
   } = options;
   const extensions = resolveBinaryExtensions(options.extensions);
   const suggestedName = sanitizeBinaryFilename(options.suggestedName || 'notebook.elab', extensions);
@@ -1713,6 +1723,8 @@ export async function handleSaveBinaryFile(options = {}) {
       description,
       extensions,
       mimeType,
+      deferDownloadOnPickerBlocked,
+      skipNativePicker,
     });
   }
 
@@ -1733,6 +1745,8 @@ export async function handleSaveBinaryFile(options = {}) {
       description,
       extensions,
       mimeType,
+      deferDownloadOnPickerBlocked: Boolean(deferDownloadOnPickerBlocked),
+      skipNativePicker: Boolean(skipNativePicker),
     },
     [transferBuffer],
     'Binary file save timed out'
