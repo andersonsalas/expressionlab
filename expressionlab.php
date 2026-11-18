@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Expression Lab
  * Description: Expression Lab is a sandboxed diagnostics and data inspection environment for WordPress. It features a Domain-Specific Language for evaluating expressions and visualization capabilities.
- * Version: 0.2.0-alpha
+ * Version: 1.0.0
  * Author: Anderson Salas
  * Author URI: https://andersonsalas.com
  * Plugin URI: https://expressionlab.io
@@ -11,7 +11,7 @@
  * Text Domain: expression-lab
  * Domain Path: /languages
  * Requires at least: 6.4
- * Requires PHP: 8.2
+ * Requires PHP: 8.4
  * Tested up to: 7.1
  *
  * @package ExpressionLab
@@ -27,7 +27,7 @@ if ( ! defined( 'EXPRESSION_LAB_VERSION' ) ) {
 	 *
 	 * @var string
 	 */
-	define( 'EXPRESSION_LAB_VERSION', '0.2.0-alpha' );
+	define( 'EXPRESSION_LAB_VERSION', '1.0.0' );
 }
 
 if ( ! defined( 'EXPRESSION_LAB_PUBLIC_KEY' ) ) {
@@ -357,6 +357,16 @@ if ( ! defined( 'EXPRESSION_LAB_AUDIT_LOG_ENABLED' ) ) {
 	 * @var bool
 	 */
 	define( 'EXPRESSION_LAB_AUDIT_LOG_ENABLED', true );
+}
+
+if ( ! defined( 'EXPRESSION_LAB_ADDON_ENABLED' ) ) {
+	/**
+	 * Proprietary addon layer status.
+	 *
+	 * @internal
+	 * @var bool
+	 */
+	define( 'EXPRESSION_LAB_ADDON_ENABLED', false );
 }
 
 if ( file_exists( __DIR__ . '/vendor/scoper-autoload.php' ) ) {

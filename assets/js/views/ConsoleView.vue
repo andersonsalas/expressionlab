@@ -4,11 +4,13 @@ import { useUiStore } from '../stores/ui';
 import { useOutlineStore } from '../stores/outline.js';
 import { useTabsStore } from '../stores/tabs.js';
 import { useSettingsStore } from '../stores/settings.js';
-import { debugLog, __ } from '../lib/helpers.js';
+import { debugLog, __, hasAddons } from '../lib/helpers.js';
+import { menuRegistry, matchesShortcut } from '../lib/menuRegistry.js';
 import ConsoleTabBar from '../components/console/ConsoleTabBar.vue';
 import ConsoleSession from '../components/console/ConsoleSession.vue';
 import ConsoleSidebar from '../components/console/ConsoleSidebar.vue';
 import PaginatedSearchDropdown from '../components/ui/PaginatedSearchDropdown.vue';
+import ExpressionLabIcon from '../components/icons/ExpressionLabIcon.vue';
 
 let signatureInterval = null;
 
@@ -32,8 +34,28 @@ const sessionRefs = ref({});
 
 const activeTab = computed(() => tabsStore.activeTab);
 const isScratchpad = computed(() => activeTab.value?.mode === 'scratchpad');
+const isNotebook = computed(() => activeTab.value?.mode === 'notebook');
 const activeTabLoading = computed(() => Boolean(activeTab.value?.isEvaluating));
 const isScratchpadOutputVisible = computed(() => Boolean(activeTab.value?.isScratchpadOutputVisible));
+
+const isNotebookLocked = computed(() => Boolean(tabsStore.isCurrentTabReadOnly));
+
+const runButtonTitle = computed(() => {
+  if (activeTabLoading.value) return __('Evaluating expression...');
+  if (isNotebook.value) return __('Run all cells (Ctrl+R)');
+  if (isScratchpad.value) return __('Run (Ctrl+Enter / Cmd+Enter / Ctrl+R)');
+  return __('Run expression (Enter)');
+});
+
+const saveButtonTitle = computed(() => {
+  if (isNotebook.value) {
+    if (isNotebookLocked.value) {
+      return __('Notebook is Read-Only (Ctrl+S / Cmd+S)');
+    }
+    return __('Save Notebook (.elab) (Ctrl+S / Cmd+S)');
+  }
+  return __('Save snippet to Library (Ctrl+S / Cmd+S)');
+});
 
 const activeUser = computed({
   get: () => activeTab.value?.selectedUser ?? null,
@@ -47,6 +69,29 @@ const activeSite = computed({
 
 const getActiveSession = () => {
   return sessionRefs.value[tabsStore.activeTabId] ?? null;
+};
+
+const isMac =
+  typeof navigator !== 'undefined' &&
+  Boolean(
+    navigator.userAgentData?.platform
+      ? /mac/i.test(navigator.userAgentData.platform)
+      : /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent || '')
+  );
+const modKey = isMac ? '⌘' : 'Ctrl';
+
+const canSearch = computed(() => {
+  const mode = activeTab.value?.mode;
+  return mode === 'scratchpad' || mode === 'notebook';
+});
+
+const handleOpenFileSearch = (withReplace = false) => {
+  if (!canSearch.value) return;
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
+  getActiveSession()?.openSearch?.(withReplace);
 };
 
 const updateSignatureTime = () => {
@@ -66,6 +111,10 @@ watch(
   () => uiStore.snippetToInsert,
   (payload) => {
     if (payload) {
+      if (tabsStore.isCurrentTabReadOnly) {
+        uiStore.triggerSnippetInsert(null);
+        return;
+      }
       const code = typeof payload === 'object' && payload !== null && payload.code !== undefined ? payload.code : payload;
       const mode = typeof payload === 'object' && payload !== null && payload.mode ? payload.mode : 'insert';
       const session = getActiveSession();
@@ -107,7 +156,73 @@ const handleCreateScratchpadTab = () => {
 };
 
 const handleExecuteActiveScratchpad = () => {
-  getActiveSession()?.executeScratchpad();
+  const session = getActiveSession();
+  if (typeof session?.runPrimaryAction === 'function') {
+    session.runPrimaryAction();
+  } else {
+    session?.executeScratchpad?.();
+  }
+};
+
+const handleSavePrimary = () => {
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
+  const session = getActiveSession();
+  if (typeof session?.savePrimaryAction === 'function') {
+    session.savePrimaryAction();
+  } else if (isScratchpad.value) {
+    handleSaveScratchpadSnippet(activeTab.value?.scratchpadCode || '');
+  }
+};
+
+const handleOpenFile = () => {
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
+  const openItem = fileMenuGroups.value
+    .flatMap((g) => g.items || [])
+    .find((i) => i.id === 'open');
+  if (openItem && !openItem.disabled && typeof openItem.action === 'function') {
+    openItem.action();
+    return;
+  }
+  if (typeof window !== 'undefined' && typeof window.__elOpenNotebookFile === 'function') {
+    window.__elOpenNotebookFile({
+      tabsStore,
+      sessionRefs: sessionRefs.value,
+    });
+  } else {
+    getActiveSession()?.openNotebookFile?.();
+  }
+};
+
+const handleNewTab = () => {
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
+  tabsStore.createTab();
+};
+
+const handleCloseCurrentTab = () => {
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
+  if (tabsStore.activeTabId) {
+    tabsStore.requestCloseTab(tabsStore.activeTabId);
+  }
+};
+
+const handleCloseAllTabs = () => {
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
+  tabsStore.requestCloseAllTabs();
 };
 
 const handleSaveScratchpadSnippet = (code) => {
@@ -115,10 +230,18 @@ const handleSaveScratchpadSnippet = (code) => {
 };
 
 const handleClear = () => {
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   getActiveSession()?.clearSession();
 };
 
 const handleFormatCode = () => {
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   getActiveSession()?.formatCode();
 };
 
@@ -140,7 +263,163 @@ const handleSidebarItemClick = (item) => {
   }
 };
 
-const isToolsDropdownOpen = ref(false);
+const isFileDropdownOpen = computed(() => uiStore.activeDropdown === 'file-menu');
+const fileDropdownBtnRef = ref(null);
+const fileDropdownMenuRef = ref(null);
+const fileDropdownStyle = ref({});
+
+const updateFileDropdownPosition = () => {
+  if (!fileDropdownBtnRef.value) return;
+  const rect = fileDropdownBtnRef.value.getBoundingClientRect();
+  fileDropdownStyle.value = {
+    position: 'fixed',
+    top: `${rect.bottom + 2}px`,
+    left: `${rect.left}px`,
+    zIndex: 100000,
+  };
+};
+
+const toggleFileDropdown = () => {
+  uiStore.toggleDropdown('file-menu');
+  if (uiStore.toggleDropdown?._isMockFunction) {
+    uiStore.activeDropdown = uiStore.activeDropdown === 'file-menu' ? null : 'file-menu';
+  }
+  if (isFileDropdownOpen.value) {
+    nextTick(updateFileDropdownPosition);
+  }
+};
+
+const handleOpenFileSettings = () => {
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
+  uiStore.openModal('settings');
+};
+
+const handleOpenFileAbout = () => {
+  uiStore.closeDropdown('file-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
+  uiStore.openModal('about');
+};
+
+const fileMenuGroups = computed(() => {
+  const baseGroups = [
+    // Group 1: File & Persistence
+    {
+      id: 'file',
+      items: [
+        {
+          id: 'new',
+          label: __('New'),
+          icon: 'codicon-new-file',
+          action: handleNewTab,
+        },
+        {
+          id: 'save',
+          label: __('Save'),
+          icon: 'codicon-save',
+          shortcut: `${modKey}+S`,
+          action: handleSavePrimary,
+        },
+      ],
+    },
+
+    // Group 2: Edit & Code
+    {
+      id: 'edit',
+      items: [
+        {
+          id: 'search',
+          label: __('Search'),
+          icon: 'codicon-search',
+          shortcut: `${modKey}+F`,
+          disabled: !canSearch.value,
+          action: () => handleOpenFileSearch(false),
+        },
+        {
+          id: 'replace',
+          label: __('Replace'),
+          icon: 'codicon-replace',
+          shortcut: `${modKey}+H`,
+          disabled: !canSearch.value,
+          action: () => handleOpenFileSearch(true),
+        },
+        {
+          id: 'format-code',
+          label: __('Format Code'),
+          icon: 'codicon-json',
+          shortcut: 'Shift+Alt+F',
+          action: handleFormatCode,
+        },
+        {
+          id: 'clear-outputs',
+          label: __('Clear session'),
+          icon: 'codicon-circle-slash',
+          action: handleClear,
+        },
+      ],
+    },
+
+    // Group 3: Tabs / Window
+    {
+      id: 'tabs',
+      items: [
+        {
+          id: 'close-tab',
+          label: __('Close tab'),
+          icon: 'codicon-close',
+          shortcut: `${modKey}+W`,
+          disabled: tabsStore.tabs.length === 0,
+          action: handleCloseCurrentTab,
+        },
+        {
+          id: 'close-all-tabs',
+          label: __('Close all tabs'),
+          icon: 'codicon-close-all',
+          disabled: tabsStore.tabs.length === 0,
+          action: handleCloseAllTabs,
+        },
+      ],
+    },
+
+    // Group 4: Application
+    {
+      id: 'app',
+      items: [
+        {
+          id: 'settings',
+          label: __('Settings'),
+          icon: 'codicon-settings-gear',
+          action: handleOpenFileSettings,
+        },
+        {
+          id: 'about',
+          label: __('About'),
+          icon: 'codicon-info',
+          action: handleOpenFileAbout,
+        },
+      ],
+    },
+  ];
+
+  const context = {
+    tabsStore,
+    uiStore,
+    settingsStore,
+    activeTab: activeTab.value,
+    activeSession: getActiveSession(),
+    isNotebook: isNotebook.value,
+    sessionRefs: sessionRefs.value,
+    modKey,
+  };
+
+  return menuRegistry.apply('file', baseGroups, context);
+});
+
+const isToolsDropdownOpen = computed(() => uiStore.activeDropdown === 'tools-menu');
 const toolsDropdownBtnRef = ref(null);
 const toolsDropdownMenuRef = ref(null);
 const toolsDropdownStyle = ref({});
@@ -157,31 +436,56 @@ const updateToolsDropdownPosition = () => {
 };
 
 const toggleToolsDropdown = () => {
-  isToolsDropdownOpen.value = !isToolsDropdownOpen.value;
+  uiStore.toggleDropdown('tools-menu');
+  if (uiStore.toggleDropdown?._isMockFunction) {
+    uiStore.activeDropdown = uiStore.activeDropdown === 'tools-menu' ? null : 'tools-menu';
+  }
   if (isToolsDropdownOpen.value) {
     nextTick(updateToolsDropdownPosition);
   }
 };
 
 const handleOpenHttpRequestBuilder = () => {
-  isToolsDropdownOpen.value = false;
+  uiStore.closeDropdown('tools-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   uiStore.openModal('http-builder');
 };
 
 const handleOpenDatabaseBuilder = () => {
-  isToolsDropdownOpen.value = false;
+  uiStore.closeDropdown('tools-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   uiStore.openModal('database-builder');
 };
 
 const handleOpenEntityBuilder = () => {
-  isToolsDropdownOpen.value = false;
+  uiStore.closeDropdown('tools-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   uiStore.openModal('entity-builder');
 };
 
 const handleOpenFilesystemInspector = () => {
-  isToolsDropdownOpen.value = false;
+  uiStore.closeDropdown('tools-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   uiStore.openModal('filesystem-inspector');
 };
+
+watch(
+  () => tabsStore.activeTabId,
+  () => {
+    uiStore.closeDropdowns();
+    if (uiStore.closeDropdowns?._isMockFunction) {
+      uiStore.activeDropdown = null;
+    }
+  }
+);
 
 const handleWindowClick = (event) => {
   if (
@@ -191,14 +495,61 @@ const handleWindowClick = (event) => {
     toolsDropdownBtnRef.value &&
     !toolsDropdownBtnRef.value.contains(event.target)
   ) {
-    isToolsDropdownOpen.value = false;
+    uiStore.closeDropdown('tools-menu');
+    if (uiStore.closeDropdown?._isMockFunction) {
+      uiStore.activeDropdown = null;
+    }
+  }
+  if (
+    isFileDropdownOpen.value &&
+    fileDropdownMenuRef.value &&
+    !fileDropdownMenuRef.value.contains(event.target) &&
+    fileDropdownBtnRef.value &&
+    !fileDropdownBtnRef.value.contains(event.target)
+  ) {
+    uiStore.closeDropdown('file-menu');
+    if (uiStore.closeDropdown?._isMockFunction) {
+      uiStore.activeDropdown = null;
+    }
   }
 };
 
 const handleGlobalKeydown = (e) => {
-  if (e.key === 'Escape' && isToolsDropdownOpen.value) {
-    isToolsDropdownOpen.value = false;
-    return;
+  if (e.key === 'Escape') {
+    if (isFileDropdownOpen.value || isToolsDropdownOpen.value) {
+      uiStore.closeDropdowns();
+      if (uiStore.closeDropdowns?._isMockFunction) {
+        uiStore.activeDropdown = null;
+      }
+      return;
+    }
+  }
+
+  for (const group of fileMenuGroups.value) {
+    for (const item of group.items || []) {
+      if (item.shortcut && matchesShortcut(e, item.shortcut)) {
+        if (item.id === 'undo' || item.id === 'redo') {
+          const active = typeof document !== 'undefined' ? document.activeElement : null;
+          if (active) {
+            const tag = active.tagName?.toLowerCase();
+            if (
+              tag === 'input' ||
+              tag === 'textarea' ||
+              active.isContentEditable ||
+              active.closest?.('.cm-editor') ||
+              active.closest?.('.cm-content')
+            ) {
+              return;
+            }
+          }
+        }
+        if (!item.disabled && typeof item.action === 'function') {
+          e.preventDefault();
+          item.action();
+        }
+        return;
+      }
+    }
   }
 
   if (!e.altKey || e.ctrlKey || e.metaKey) return;
@@ -211,7 +562,7 @@ const handleGlobalKeydown = (e) => {
 
   if (e.key === 'w' || e.key === 'W') {
     e.preventDefault();
-    tabsStore.closeTab(tabsStore.activeTabId);
+    tabsStore.requestCloseTab(tabsStore.activeTabId);
     return;
   }
 
@@ -242,6 +593,16 @@ const handleGlobalKeydown = (e) => {
   }
 };
 
+const handleBeforeUnload = (event) => {
+  const hasDirtyNotebook = tabsStore.tabs.some(
+    (t) => t && t.mode === 'notebook' && t.notebookDirty
+  );
+  if (hasDirtyNotebook) {
+    event.preventDefault();
+    event.returnValue = '';
+  }
+};
+
 onMounted(() => {
   signatureInterval = setInterval(updateSignatureTime, 1000);
   debugLog('Console component mounted', { enableSandbox, settings: window.el_settings });
@@ -251,10 +612,12 @@ onMounted(() => {
     window.addEventListener('keydown', handleGlobalKeydown);
     window.addEventListener('click', handleWindowClick);
     window.addEventListener('resize', updateToolsDropdownPosition);
+    window.addEventListener('resize', updateFileDropdownPosition);
+    window.addEventListener('beforeunload', handleBeforeUnload);
   }
 
   nextTick(() => {
-    getActiveSession()?.focus();
+    getActiveSession()?.focus?.();
   });
 });
 
@@ -264,6 +627,8 @@ onUnmounted(() => {
     window.removeEventListener('keydown', handleGlobalKeydown);
     window.removeEventListener('click', handleWindowClick);
     window.removeEventListener('resize', updateToolsDropdownPosition);
+    window.removeEventListener('resize', updateFileDropdownPosition);
+    window.removeEventListener('beforeunload', handleBeforeUnload);
   }
 });
 </script>
@@ -273,32 +638,73 @@ onUnmounted(() => {
     <div class="console-main">
       <!-- 1. Top Action Toolbar -->
       <div class="console-toolbar">
-        <div class="console-toolbar-group group-tools">
+        <div class="console-toolbar-group group-file">
           <div
-            ref="toolsDropdownBtnRef"
+            ref="fileDropdownBtnRef"
             class="console-toolbar-button menu-dropdown-btn"
-            :class="{ active: isToolsDropdownOpen }"
-            :title="__('Open tools')"
-            @click.stop="toggleToolsDropdown"
+            :class="{ active: isFileDropdownOpen, 'has-subtitle': hasAddons() }"
+            :title="__('Expression Lab')"
+            @click.stop="toggleFileDropdown"
           >
-            <div class="codicon codicon-tools" />
-            <span>{{ __('Tools') }}</span>
+            <ExpressionLabIcon 
+              style="width: 26px; height: 26px; flex-shrink: 0;"
+              class="expressionlab-logo"
+            />
+            <span class="toolbar-button-label has-subtitle">
+              <span class="toolbar-button-title">{{ __('Expression Lab') }}</span>
+              <span
+                v-if="hasAddons()"
+                class="toolbar-button-subtitle"
+              >
+                {{ __('Professional Edition') }}
+              </span>
+              <span
+                v-else
+                class="toolbar-button-subtitle"
+              >
+                {{ __('Community Edition') }}
+              </span>
+            </span>
             <div class="codicon codicon-chevron-down tools-chevron" />
           </div>
         </div>
 
-        <div
-          class="console-toolbar-group group-scratchpad-actions"
-          :class="{ disabled: !isScratchpad }"
-        >
+        <div class="console-toolbar-group group-file-actions">
+          <div
+            v-if="hasAddons()"
+            class="console-toolbar-button menu btn-open-notebook"
+            :title="__('Open Notebook (.elab)... (Ctrl+O / Cmd+O)')"
+            @click="handleOpenFile"
+          >
+            <div class="codicon codicon-folder-opened" />
+          </div>
+          <div
+            class="console-toolbar-button menu btn-scratchpad-save"
+            :class="{ 'btn-save-locked': isNotebookLocked }"
+            :title="saveButtonTitle"
+            @click="handleSavePrimary"
+          >
+            <div
+              v-if="isNotebookLocked"
+              class="btn-badge btn-badge-lock"
+            >
+              <div class="codicon codicon-add" />
+            </div>
+            <div
+              class="codicon codicon-save"
+              style="color: #3858e9;"
+            />
+          </div>
+        </div>
+
+        <div class="console-toolbar-group group-scratchpad-actions">
           <div
             class="console-toolbar-button menu btn-scratchpad-run"
             :class="{
-              disabled: !isScratchpad,
               loading: activeTabLoading
             }"
-            :title="!isScratchpad ? __('Run expression (Scratchpad mode only)') : activeTabLoading ? __('Evaluating expression...') : __('Run (Ctrl+Enter / Cmd+Enter / Ctrl+R)')"
-            @click="isScratchpad && !activeTabLoading && handleExecuteActiveScratchpad()"
+            :title="runButtonTitle"
+            @click="!activeTabLoading && handleExecuteActiveScratchpad()"
           >
             <div
               v-if="activeTabLoading"
@@ -311,29 +717,15 @@ onUnmounted(() => {
             />
           </div>
           <div
-            class="console-toolbar-button menu btn-scratchpad-save"
-            :class="{ disabled: !isScratchpad }"
-            :title="isScratchpad ? __('Save snippet to Library') : __('Save snippet to Library (Scratchpad mode only)')"
-            @click="isScratchpad && handleSaveScratchpadSnippet(activeTab?.scratchpadCode || '')"
-          >
-            <div
-              class="codicon codicon-save"
-              style="color: #3858e9;"
-            />
-          </div>
-        </div>
-
-        <div class="console-toolbar-group group-actions">
-          <div
             class="console-toolbar-button menu"
-            :title="__('Clear session')"
+            :title="isNotebook ? __('Clear all cell outputs') : __('Clear session')"
             @click="handleClear"
           >
             <div class="codicon codicon-circle-slash" />
           </div>
           <div
             class="console-toolbar-button menu"
-            :title="__('Format code (Shift+Alt+F)')"
+            :title="isNotebook ? __('Format all code cells (Shift+Alt+F)') : __('Format code (Shift+Alt+F)')"
             @click="handleFormatCode"
           >
             <div class="codicon codicon-json" />
@@ -387,7 +779,18 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div class="console-toolbar-group group-library">
+        <div class="console-toolbar-group group-tools-library">
+          <div
+            ref="toolsDropdownBtnRef"
+            class="console-toolbar-button menu-dropdown-btn"
+            :class="{ active: isToolsDropdownOpen }"
+            :title="__('Open tools')"
+            @click.stop="toggleToolsDropdown"
+          >
+            <div class="codicon codicon-tools" />
+            <span>{{ __('Tools') }}</span>
+            <div class="codicon codicon-chevron-down tools-chevron" />
+          </div>
           <div
             class="console-toolbar-button"
             :title="__('Library')"
@@ -395,14 +798,6 @@ onUnmounted(() => {
           >
             <div class="codicon codicon-library" />
             <span>{{ __('Library') }}</span>
-          </div>
-          <div
-            class="console-toolbar-button"
-            :title="__('Settings')"
-            @click="uiStore.openModal('settings')"
-          >
-            <div class="codicon codicon-gear" />
-            <span>{{ __('Settings') }}</span>
           </div>
         </div>
 
@@ -426,13 +821,6 @@ onUnmounted(() => {
           >
             <div class="custom-icon custom-icon-panel-right" />
           </div>
-          <div
-            class="console-toolbar-button menu"
-            :title="__('About Expression Lab')"
-            @click="uiStore.openModal('about')"
-          >
-            <div class="codicon codicon-info" />
-          </div>
         </div>
       </div>
 
@@ -440,7 +828,8 @@ onUnmounted(() => {
       <div
         class="console-buffer"
         :class="{
-          'scratchpad-active': isScratchpad,
+          'scratchpad-active': isScratchpad || isNotebook,
+          'notebook-active': isNotebook,
           'sidebar-hidden': !isSidebarVisible
         }"
       >
@@ -576,6 +965,45 @@ onUnmounted(() => {
       </div>
     </div>
   </div>
+
+  <!-- File Dropdown Menu (Teleported to avoid clipping) -->
+  <Teleport to="body">
+    <div
+      v-if="isFileDropdownOpen"
+      ref="fileDropdownMenuRef"
+      class="console-tab-context-menu console-file-dropdown-menu"
+      :style="fileDropdownStyle"
+    >
+      <template
+        v-for="(group, gIndex) in fileMenuGroups"
+        :key="group.id"
+      >
+        <div
+          v-if="gIndex > 0 && group.items.length > 0"
+          class="tab-menu-separator"
+        />
+        <div
+          v-for="item in group.items"
+          :key="item.id"
+          class="tab-menu-item"
+          :class="{ disabled: item.disabled }"
+          :title="item.title || item.label"
+          @click="!item.disabled && item.action()"
+        >
+          <span
+            v-if="item.icon"
+            class="codicon"
+            :class="item.icon"
+          />
+          <span class="tab-menu-item-label">{{ item.label }}</span>
+          <span
+            v-if="item.shortcut"
+            class="menu-shortcut"
+          >{{ item.shortcut }}</span>
+        </div>
+      </template>
+    </div>
+  </Teleport>
 
   <!-- Tools Dropdown Menu (Teleported to avoid clipping) -->
   <Teleport to="body">

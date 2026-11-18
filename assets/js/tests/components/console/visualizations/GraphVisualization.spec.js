@@ -419,10 +419,51 @@ describe('GraphVisualization.vue', () => {
 
     // Trigger View Compiled Vega
     await links[1].trigger('click');
+    expect(handleOpenTab).toHaveBeenCalledTimes(1);
     expect(handleOpenTab).toHaveBeenCalledWith(
       JSON.stringify({ $schema: 'compiled-vega-schema' }, null, 2),
       'application/json'
     );
+    wrapper.unmount();
+  });
+
+  it('strips vega-embed internal click listeners and attributes so actions do not execute twice', async () => {
+    const vegaInternalClickSpy = jest.fn();
+
+    embed.mockImplementationOnce(async (el) => {
+      const actionsDiv = document.createElement('div');
+      actionsDiv.className = 'vega-actions';
+
+      const vegaLink = document.createElement('a');
+      vegaLink.textContent = 'View Compiled Vega';
+      vegaLink.setAttribute('href', '#');
+      vegaLink.setAttribute('target', '_blank');
+      vegaLink.addEventListener('click', vegaInternalClickSpy);
+      actionsDiv.appendChild(vegaLink);
+
+      el.appendChild(actionsDiv);
+
+      return {
+        finalize: mockFinalize,
+        view: mockView,
+        vgSpec: { $schema: 'compiled-vega-schema' },
+      };
+    });
+
+    const wrapper = await mountGraph({
+      data: {
+        type: 'graph',
+        data: { mark: 'bar' },
+      },
+    });
+
+    const link = wrapper.find('.vega-actions a');
+    expect(link.attributes('href')).toBeUndefined();
+    expect(link.attributes('target')).toBeUndefined();
+
+    await link.trigger('click');
+    expect(vegaInternalClickSpy).not.toHaveBeenCalled();
+    expect(handleOpenTab).toHaveBeenCalledTimes(1);
     wrapper.unmount();
   });
 

@@ -62,8 +62,14 @@ class Onboarding extends AdminPage {
 
 		return array(
 			'version'  => EXPRESSION_LAB_VERSION,
+			'locale'   => get_user_locale(),
 			'user_id'  => get_current_user_id(),
 			'site_url' => $clean_site_url,
+			'ajax_url' => admin_url( 'admin-ajax.php' ),
+			'settings' => array(
+				'enable_sandbox' => EXPRESSION_LAB_SANDBOX_ENABLED,
+				'debug_mode'     => false,
+			),
 			'server'   => array(
 				'sqlite_enabled' => extension_loaded( 'sqlite3' ),
 				'sodium_enabled' => extension_loaded( 'sodium' ),
@@ -94,9 +100,9 @@ class Onboarding extends AdminPage {
 			'Key generation failed: %s'                  => __( 'Key generation failed: %s', 'expression-lab' ),
 			'Welcome to Expression Lab'                  => __( 'Welcome to Expression Lab', 'expression-lab' ),
 			'Configure the environment limits and generate your cryptographic access keys to get started.' => __( 'Configure the environment limits and generate your cryptographic access keys to get started.', 'expression-lab' ),
-			'Warning: Alpha Software'                    => __( 'Warning: Alpha Software', 'expression-lab' ),
-			'Expression Lab contains diagnostic tools and evaluation engines designed for non-production environments. While built with defensive architecture (AST sandboxing, client-side cryptography), this codebase has not undergone independent third-party security audits.' => __( 'Expression Lab contains diagnostic tools and evaluation engines designed for non-production environments. While built with defensive architecture (AST sandboxing, client-side cryptography), this codebase has not undergone independent third-party security audits.', 'expression-lab' ),
-			'I understand Expression Lab is unaudited alpha software and agree to run it only in staging, testing, or local environments.' => __( 'I understand Expression Lab is unaudited alpha software and agree to run it only in staging, testing, or local environments.', 'expression-lab' ),
+			'Operational Notice: Live Environment Diagnostics' => __( 'Operational Notice: Live Environment Diagnostics', 'expression-lab' ),
+			'Expression Lab executes low-level diagnostics, AST expressions, and direct data inspections. While designed with execution boundaries and sandboxing, running complex queries on high-traffic production environments carries operational risks and is done at your own discretion without warranty.' => __( 'Expression Lab executes low-level diagnostics, AST expressions, and direct data inspections. While designed with execution boundaries and sandboxing, running complex queries on high-traffic production environments carries operational risks and is done at your own discretion without warranty.', 'expression-lab' ),
+			'I acknowledge that Expression Lab performs low-level diagnostics and accept full responsibility for running executions on production environments.' => __( 'I acknowledge that Expression Lab performs low-level diagnostics and accept full responsibility for running executions on production environments.', 'expression-lab' ),
 			'Begin install'                              => __( 'Begin install', 'expression-lab' ),
 			'SQLite3 PHP extension'                      => __( 'SQLite3 PHP extension', 'expression-lab' ),
 			'OK'                                         => __( 'OK', 'expression-lab' ),
@@ -108,6 +114,19 @@ class Onboarding extends AdminPage {
 			'<strong>SQLite3</strong> enables safe, in-memory database mirroring to prevent direct queries to the live database. <strong>Sodium</strong> and the <strong>Web Crypto API</strong> are required to generate, sign, and validate secure communications within the sandboxed environment.' => __( '<strong>SQLite3</strong> enables safe, in-memory database mirroring to prevent direct queries to the live database. <strong>Sodium</strong> and the <strong>Web Crypto API</strong> are required to generate, sign, and validate secure communications within the sandboxed environment.', 'expression-lab' ),
 			'Back'                                       => __( 'Back', 'expression-lab' ),
 			'Next'                                       => __( 'Next', 'expression-lab' ),
+			'License'                                    => __( 'License', 'expression-lab' ),
+			'Commercial use of Expression Lab Professional Edition requires a valid license key. Leave these fields blank to continue in evaluation mode.' => __( 'Commercial use of Expression Lab Professional Edition requires a valid license key. Leave these fields blank to continue in evaluation mode.', 'expression-lab' ),
+			'Email address'                              => __( 'Email address', 'expression-lab' ),
+			'johndoe@example.com'                        => __( 'johndoe@example.com', 'expression-lab' ),
+			'License key'                                => __( 'License key', 'expression-lab' ),
+			'Paste your license key here'                => __( 'Paste your license key here', 'expression-lab' ),
+			'Please enter the email address associated with your license key.' => __( 'Please enter the email address associated with your license key.', 'expression-lab' ),
+			'Please enter your license key, or clear the email field to continue without a license.' => __( 'Please enter your license key, or clear the email field to continue without a license.', 'expression-lab' ),
+			'Please enter a valid email address.'        => __( 'Please enter a valid email address.', 'expression-lab' ),
+			'Invalid or corrupted license key.'          => __( 'Invalid or corrupted license key.', 'expression-lab' ),
+			'This license key does not match the provided email address.' => __( 'This license key does not match the provided email address.', 'expression-lab' ),
+			'License verified.'                          => __( 'License verified.', 'expression-lab' ),
+			'Your license will be encrypted with your passphrase during key generation and stored locally in your browser.' => __( 'Your license will be encrypted with your passphrase during key generation and stored locally in your browser.', 'expression-lab' ),
 			'General'                                    => __( 'General', 'expression-lab' ),
 			'Staging URL or Domain'                      => __( 'Staging URL or Domain', 'expression-lab' ),
 			'If set, execution is restricted to matching URLs or domains. Verification checks the database-persisted site URL and ignores client-supplied HTTP request headers. When empty, environment checks are disabled.' => __( 'If set, execution is restricted to matching URLs or domains. Verification checks the database-persisted site URL and ignores client-supplied HTTP request headers. When empty, environment checks are disabled.', 'expression-lab' ),
@@ -149,6 +168,10 @@ class Onboarding extends AdminPage {
 			'Activation requires filesystem-level persistence. Paste the following constants into your <code>wp-config.php</code> file:' => __( 'Activation requires filesystem-level persistence. Paste the following constants into your <code>wp-config.php</code> file:', 'expression-lab' ),
 			'Once the file is saved, reload this page to validate the configuration and unlock the console.' => __( 'Once the file is saved, reload this page to validate the configuration and unlock the console.', 'expression-lab' ),
 			'Expression Lab is a free, open-source plugin by Anderson Salas and contributors.' => __( 'Expression Lab is a free, open-source plugin by Anderson Salas and contributors.', 'expression-lab' ),
+			'Expression Lab Professional Edition by Anderson Salas. Built on the open-source Expression Lab core.' => __( 'Expression Lab Professional Edition by Anderson Salas. Built on the open-source Expression Lab core.', 'expression-lab' ),
+			'I have read and accept the'                 => __( 'I have read and accept the', 'expression-lab' ),
+			'End-User License Agreement (EULA)'          => __( 'End-User License Agreement (EULA)', 'expression-lab' ),
+			'Close'                                      => __( 'Close', 'expression-lab' ),
 		);
 	}
 

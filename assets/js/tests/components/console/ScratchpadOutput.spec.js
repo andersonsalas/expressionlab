@@ -265,6 +265,18 @@ describe('ScratchpadOutput.vue', () => {
     expect(wrapper.emitted('close')).toBeTruthy();
   });
 
+  it('hides close button when showClose prop is false', () => {
+    const wrapper = mount(ScratchpadOutput, {
+      props: {
+        result: { result: 'test' },
+        showClose: false,
+      },
+    });
+
+    const closeBtn = wrapper.find('.output-action-btn[title="Hide output panel"]');
+    expect(closeBtn.exists()).toBe(false);
+  });
+
   it('copies output to clipboard when copy button is clicked', async () => {
     const wrapper = mount(ScratchpadOutput, {
       props: {

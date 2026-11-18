@@ -5,7 +5,7 @@
  * templates for CodeMirror autocompletion.
  */
 
-const documentation_url = 'https://expressionlab.io/docs/getting-started/scripting/#';
+const documentation_url = 'https://docs.expressionlab.io/getting-started/scripting/#';
 
 export const DSL_KEYWORDS = [
   {

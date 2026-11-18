@@ -10,18 +10,14 @@ import DownloadButton from '@site/src/components/DownloadButton';
 
 Expression Lab se puede instalar y activar como cualquier otro plugin estándar de WordPress.
 
-:::warning Software experimental en fase alfa
-Expression Lab es un **prototipo en fase alfa** no auditado, concebido para desarrollo local, pruebas e inspección en staging. **No es apto para entornos de producción activos**, plataformas de comercio electrónico que procesen datos confidenciales ni infraestructuras críticas. Para conocer en detalle las limitaciones operativas y los casos de uso prohibidos, se debe consultar la sección [Seguridad](../security/security-and-environment.md).
-:::
-
 ## Requisitos
 
 Antes de instalar Expression Lab, es necesario verificar que el entorno cumpla con los siguientes requisitos mínimos:
 
 ### Requisitos del servidor
 
-- **WordPress**: 6.4 o superior (probado hasta 7.1)
-- **PHP**: 8.2 o superior
+- **WordPress**: 6.4 o superior
+- **PHP**: 8.4 o superior
 - **Extensiones de PHP**:
   - **[Sodium](https://www.php.net/manual/es/book.sodium.php)** (*Requerida*): Necesaria para la verificación de firmas Ed25519 en las peticiones entrantes de la consola.
   - **[SQLite3](https://www.php.net/manual/es/book.sqlite3.php)** (*Recomendada / Opcional*): Permite la replicación de tablas en memoria para consultas analíticas sin ejecutar consultas sobre la base de datos MySQL en producción.

@@ -9,7 +9,7 @@ sidebar_position: 1
 
 **Expression Lab** is sandboxed diagnostics and data inspection environment for WordPress. It provides a declarative Domain-Specific Language (DSL) based on the **Symfony Expression Language** component to query WordPress internals, inspect data structures, and automate administrative workflows without writing raw PHP scripts or modifying code files.
 
-Expression Lab is free software distributed under the [GNU General Public License v2 (GPLv2)](https://www.gnu.org/licenses/gpl-2.0.html).
+**Expression Lab Community Edition** is free software distributed under the [GNU General Public License v2.0 or later (GPL-2.0-or-later)](https://www.gnu.org/licenses/gpl-2.0.html). **Expression Lab Professional Edition** is proprietary software governed by the [End-User License Agreement (EULA)](https://expressionlab.io/eula.html).
 
 ---
 

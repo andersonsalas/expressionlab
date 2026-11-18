@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-11-18
+
+### Added
+
+- Notebook UI (Professional Edition).
+- HTTP Request Builder.
+- Database Query Builder.
+- Entity Query Builder.
+- FileSystem Inspector.
+- Support for WordPress Playground.
+- Search and replace capabilities in the Scratchpad and Notebook mode.
+- Audit log.
+- Cache service
+- Transients support in Option service.
+
+### Fixed
+- Expression Lab Language grammar issues.
+- Minor UI and UX issues.
+
+### Changed
+- Minimum supported PHP version raised to 8.4.
+- Composer dependencies updated to latest versions.
+- Improved Settings modal.
+- Redesigned tabs and Onboarding UI.
+
 ## [0.2.0-alpha] - 2026-10-05
 
 ### Added

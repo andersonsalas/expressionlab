@@ -7,64 +7,42 @@
 <h1 align="center">Expression Lab</h1>
 
 <p align="center">
-  <strong>An interactive diagnostics console and declarative DSL for WordPress.</strong>
+  <strong>A Jupyter-like notebook interface and declarative DSL for WordPress.</strong>
 </p>
 
 <p align="center">
   <a href="https://github.com/andersonsalas/expressionlab/actions/workflows/lint.yml"><img src="https://github.com/andersonsalas/expressionlab/actions/workflows/lint.yml/badge.svg" alt="Code Style (WPCS)"></a>
   <a href="https://github.com/andersonsalas/expressionlab/actions/workflows/test-php.yml"><img src="https://github.com/andersonsalas/expressionlab/actions/workflows/test-php.yml/badge.svg" alt="PHPUnit Test Matrix"></a>
   <a href="https://github.com/andersonsalas/expressionlab/actions/workflows/test-js.yml"><img src="https://github.com/andersonsalas/expressionlab/actions/workflows/test-js.yml/badge.svg" alt="Jest Tests"></a>
-  <img src="https://img.shields.io/badge/PHP-8.2%20--%208.5-777BB4.svg?logo=php&logoColor=white" alt="PHP 8.2 to 8.5">
+  <img src="https://img.shields.io/badge/PHP-8.4%20--%208.5-777BB4.svg?logo=php&logoColor=white" alt="PHP 8.4 to 8.5">
   <img src="https://img.shields.io/badge/WordPress-6.4%2B-21759B.svg?logo=wordpress&logoColor=white" alt="WordPress 6.4+">
   <img src="https://img.shields.io/badge/Multisite-Supported-success.svg" alt="Multisite Supported">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--2.0--or--later-blue.svg" alt="License: GPL-2.0-or-later"></a>
+  <a href="#license"><img src="https://img.shields.io/badge/License-EULA%20%2F%20GPL--2.0--or--later-blue.svg" alt="License: EULA / GPL-2.0-or-later"></a>
 </p>
 
 ---
 
-**Expression Lab** is an experimental in-browser console for exploring WordPress data. Powered by a declarative Domain-Specific Language (DSL), it enables inspecting posts, options, database tables, and files without writing raw PHP snippets.
+**Expression Lab** is an in-browser, **Jupyter-like notebook interface** and diagnostics plugin for WordPress. Powered by a declarative Domain-Specific Language (DSL), it lets you inspect posts, options, database tables, caches, HTTP requests, and files-and visualize results with Vega-Lite charts-without writing raw PHP snippets or using `eval()`.
 
-<p align="center">
-  <img src="assets/img/console.gif" alt="Expression Lab Console Interface" width="95%">
-</p>
-
-In WordPress development, troubleshooting often relies on ad-hoc PHP code execution, temporary `var_dump()` calls, or console plugins based on `eval()`. In production sites, unconstrained execution carries inherent risks: accidental database writes, memory exhaustion, or security exposure.
-
-Expression Lab explores an alternative approach:
-
-* Evaluating **DSL expressions** via an **Abstract Syntax Tree (AST)** powered by an extended [Symfony Expression Language](https://symfony.com/doc/current/expression_language.html) engine, rather than executing arbitrary PHP.
-* Employing **client-side cryptographic key derivation** and server-side signature verification so credentials and private keys are never stored in the database.
-* Providing operational boundaries, including in-memory SQLite mirroring (`Database.mirror()`), read-only database defaults, filesystem path canonicalization, and CPU execution time limits.
+Key capabilities include multi-cell interactive notebooks and a scratchpad mode, visual query and HTTP request builders, in-memory SQLite analytics (`Database.mirror()`), a filesystem inspector, and encrypted `.elab` notebook storage (Professional Edition).
 
 ---
 
-## Architecture & Execution Model
+## Security Pillars
 
-The diagram below illustrates the authentication and execution lifecycle:
+Expression Lab is built around four core security pillars to protect your WordPress environment:
 
-```mermaid
-sequenceDiagram
-    participant Browser as Browser 
-    participant Server as WordPress Server
-    participant Engine as Sandbox (AST Engine)
-    Browser->>Browser: Derive Ed25519 key
-    Browser->>Server: Send signed request
-    Server->>Server: Verify signature
-    Server->>Engine: Evaluate expression
-    Engine-->>Browser: Return JSON response
-```
+* **Declarative AST Sandbox**: Expressions are parsed and evaluated through an isolated Abstract Syntax Tree (AST) engine based on [Symfony Expression Language](https://symfony.com/doc/current/expression_language.html), preventing arbitrary PHP code execution.
+* **Client-Side Cryptography**: Authentication uses browser-derived ephemeral Ed25519 keys to sign every request. Master passphrases, private keys, and credentials are never stored in the WordPress database.
+* **Operational Boundaries**: Database operations default to read-only access with in-memory SQLite mirroring, filesystem access enforces path canonicalization, and a CPU watchdog enforces execution time limits.
+* **Isolated UI & Auditability**: The notebook interface runs inside a sandboxed `iframe` with a `null` origin, and actions are recorded in a built-in audit log.
 
-Authentication operates through client-side key derivation and cryptographic request signing. The browser generates ephemeral keys in memory to sign each request, and the backend verifies the signature without storing master passphrases, private keys, or credentials in the WordPress database.
-
-The runtime enforces strict operational boundaries. Expressions evaluate declaratively inside an isolated AST engine rather than arbitrary PHP execution, database operations default to read-only access, the console UI runs in a sandboxed iframe, and an execution timer acts as a CPU watchdog to terminate runaway requests.
-
-For an in-depth breakdown of the cryptographic model, boundary limits, and threat assumptions, see the [Security Model documentation](https://expressionlab.io/docs/security/security-and-environment).
+> [!NOTE]
+> Expression Lab has not undergone a formal security audit by an independent third-party security firm. For details on the threat model and boundary limits, see the [Security Model documentation](https://docs.expressionlab.io/security/security-and-environment).
 
 ---
 
 ## The DSL at a Glance
-
-Expression Lab provides fluent query interfaces for core WordPress entities and functional pipeline helpers:
 
 ### Fluent Entity Queries
 
@@ -89,8 +67,6 @@ Options.get('cron')
 
 ### In-Memory SQLite Analytics
 
-Mirroring tables allows running SQL queries:
-
 ```javascript
 Database.mirror('posts', { 'post_author': 1 }, { 'limit': 100 })
   .query('
@@ -102,8 +78,6 @@ Database.mirror('posts', { 'post_author': 1 }, { 'limit': 100 })
 ```
 
 ### Functional Pipeline Operations
-
-Data transformations are composed using declarative special forms (`prog`, `set`, `map`, `filter`, `var`):
 
 ```javascript
 prog[
@@ -130,40 +104,37 @@ prog[
 
 | Component | Requirement | Note |
 | :--- | :--- | :--- |
-| **PHP** | `8.2` &ndash; `8.5` | Tested against PHP 8.2, 8.3, 8.4, and 8.5 |
+| **PHP** | `8.4` &ndash; `8.5` | Tested against PHP 8.4 and 8.5 |
 | **WordPress** | `6.4+` | Tested on modern WordPress releases and Core `trunk` |
 | **PHP Extensions** | `sodium`, `sqlite3` | `sodium` for Ed25519 signature verification; `sqlite3` for in-memory database mirroring |
 | **Environment** | Single-site & Multisite | Automated tests run against both configurations |
-| **Browser** | Modern Chromium, Firefox, or Safari | Requires native Web Crypto API support |
+| **Browser** | Modern Chromium, Firefox, or Safari | Requires native Web Crypto API and WebAssembly support |
+
+---
 
 ## Installation & Setup
 
-> [!WARNING]
-> Expression Lab is currently experimental alpha software intended for staging, local development, and sandboxed diagnostic environments. It has not undergone third-party security audits. Do not use in production or business-critical environments. Provided under the GPL-2.0 license without warranty.
-
 ### 1. Installation
 
-#### Pre-built ZIP Archive (Recommended)
+#### Pre-built ZIP Archive - Professional Edition (Recommended)
 
-Pre-built release packages are distributed as `.zip` archives via [GitHub Releases](https://github.com/andersonsalas/expressionlab/releases/latest). These include bundled frontend assets and scoped dependencies, installable through **Plugins &rarr; Add New Plugin &rarr; Upload Plugin** in the WordPress administration dashboard.
+Pre-built release packages compiled by the repository's CI/CD pipeline are distributed as `.zip` archives via [GitHub Releases](https://github.com/andersonsalas/expressionlab/releases/latest). These releases ship **Expression Lab Professional Edition** (governed by the [EULA](https://expressionlab.io/eula.html)) with bundled frontend assets and scoped dependencies, installable via **Plugins &rarr; Add New Plugin &rarr; Upload Plugin** in WordPress.
 
-#### From Source (Development)
+#### From Source - Community Edition (Development)
 
-For local development, source builds, or code contributions:
+To build the Community Edition from source:
 
-1. **Clone the repository** into the WordPress plugins directory:
+1. **Clone the repository** into `wp-content/plugins`:
    ```bash
    cd wp-content/plugins
    git clone https://github.com/andersonsalas/expressionlab.git
    cd expressionlab
    ```
-
 2. **Install PHP dependencies**:
    ```bash
    composer install
    ```
-   *(For a lightweight test build without development tooling, use `composer install --no-dev --optimize-autoloader`)*.
-
+   *(For a build without development tooling, use `composer install --no-dev --optimize-autoloader`.)*
 3. **Install JavaScript dependencies and compile frontend assets**:
    ```bash
    pnpm install
@@ -173,8 +144,8 @@ For local development, source builds, or code contributions:
 ### 2. Configuration
 
 1. Navigate to **Tools &rarr; Expression Lab** in the WordPress administration dashboard as an administrator.
-2. Complete the initial security onboarding wizard by defining a master passphrase.
-3. The wizard outputs the required configuration constants. Append them to `wp-config.php`:
+2. Complete the onboarding wizard by defining a master passphrase.
+3. Append the generated constants to `wp-config.php`:
 
 ```php
 define( 'EXPRESSION_LAB_ADMIN_USER_ID', 1 );
@@ -182,101 +153,61 @@ define( 'EXPRESSION_LAB_ADMIN_PUBLIC_KEY', 'your_hex_encoded_public_key' );
 define( 'EXPRESSION_LAB_ADMIN_SALT', 'your_unique_salt' );
 ```
 
-4. Once defined in `wp-config.php`, reload the administration interface.
+4. Reload the administration interface.
 
 ---
 
 ## Development & Tooling
 
-The repository provides automated validation, asset compilation, and a local documentation environment:
-
-### Code Quality & Automated Tests
-
 ```bash
-# Run all linters (PHPCS, ESLint, Stylelint)
+# Linting (PHPCS, ESLint, Stylelint)
 pnpm run lint
 
-# Run individual linters
-pnpm run lint:php       # WordPress Coding Standards (WPCS)
-pnpm run lint:js        # ESLint
-pnpm run lint:css       # Stylelint
-
-# Run unit tests
+# Automated Tests
 pnpm run test:php       # PHPUnit (Single-site)
 pnpm run test:php:ms    # PHPUnit (Multisite)
-pnpm run test:php:all   # PHPUnit (Multisite + Single-site)
+pnpm run test:php:all   # PHPUnit (Single-site + Multisite)
 pnpm run test:js        # Jest (Frontend)
-```
 
-### Frontend Assets & Live Reload
-
-```bash
+# Frontend Builds
 pnpm run dev            # Development build
-pnpm run watch          # Watch mode with incremental compilation
-pnpm run dev-server     # Webpack Encore dev server (Hot Module Replacement)
+pnpm run watch          # Incremental watch mode
+pnpm run dev-server     # Webpack Encore dev server (HMR)
 pnpm run build          # Production minified bundle
 ```
 
 > [!TIP]
-> **Frontend Development with Hot Reload**: In production, the console UI executes inside an isolated `iframe` with a unique origin (`null`). Because modern browsers block `localStorage` access in sandboxed iframes without `allow-same-origin`, tools like Vue and Pinia hot reload require disabling the iframe sandbox during local UI development:
-> ```php
-> define( 'EXPRESSION_LAB_SANDBOX_ENABLED', false );
-> ```
-> *Ensure this remains enabled outside of UI development sessions.*
+> **Frontend Hot Reload**: Because the sandboxed `iframe` blocks `localStorage` access, disable the iframe sandbox in `wp-config.php` during local UI development (`define( 'EXPRESSION_LAB_SANDBOX_ENABLED', false );`) and keep it enabled otherwise.
 
 ### Documentation (Docusaurus)
 
-The documentation site is located in the `docs/` workspace:
-
 ```bash
-pnpm run docs:dev       # Start local documentation server (English)
-pnpm run docs:dev:es    # Start local documentation server (Spanish)
-pnpm run docs:build     # Build production static documentation
-pnpm run docs:serve     # Preview built static documentation locally
+pnpm run docs:dev       # Start local docs server (English)
+pnpm run docs:dev:es    # Start local docs server (Spanish)
+pnpm run docs:build     # Build static docs
+pnpm run docs:serve     # Preview built docs
 ```
 
 ---
 
 ## Documentation
 
-Full syntax guides and API references are available on the project's [official website](https://expressionlab.io):
+Full guides and API references are available at [docs.expressionlab.io](https://docs.expressionlab.io) ([Español](https://docs.expressionlab.io/es/)):
 
-* **Getting Started**: [Installation & Configuration](https://expressionlab.io/docs/getting-started/installation)
-* **Language Reference**: [Basic Syntax](https://expressionlab.io/docs/getting-started/basic-syntax) &middot; [Scripting](https://expressionlab.io/docs/getting-started/scripting)
-* **API Reference**: [Database](https://expressionlab.io/docs/api-reference/database) &middot; [Options](https://expressionlab.io/docs/api-reference/options) &middot; 
-[Network Sites](https://expressionlab.io/docs/api-reference/sites) &middot; [Users](https://expressionlab.io/docs/api-reference/users) &middot; [Posts](https://expressionlab.io/docs/api-reference/posts) &middot; [Media](https://expressionlab.io/docs/api-reference/media) &middot; [Files](https://expressionlab.io/docs/api-reference/files) &middot; 
-[HTTP](https://expressionlab.io/docs/api-reference/http) &middot; [Console](https://expressionlab.io/docs/api-reference/console) &middot; [IP Lookup](https://expressionlab.io/docs/api-reference/ip-lookup) &middot; [Graph](https://expressionlab.io/docs/api-reference/graph)
-
-* **Security & Environment**: [Security Model](https://expressionlab.io/docs/security/security-and-environment)
-
-_Documentation is available in [Spanish](https://expressionlab.io/es/docs)._
+* **Getting Started**: [Installation & Configuration](https://docs.expressionlab.io/getting-started/installation) &middot; [Basic Syntax](https://docs.expressionlab.io/getting-started/basic-syntax) &middot; [Scripting](https://docs.expressionlab.io/getting-started/scripting)
+* **API Reference**: [Database](https://docs.expressionlab.io/api-reference/database) &middot; [Options](https://docs.expressionlab.io/api-reference/options) &middot; [Cache](https://docs.expressionlab.io/api-reference/cache) &middot; [Network Sites](https://docs.expressionlab.io/api-reference/sites) &middot; [Users](https://docs.expressionlab.io/api-reference/users) &middot; [Posts](https://docs.expressionlab.io/api-reference/posts) &middot; [Media](https://docs.expressionlab.io/api-reference/media) &middot; [Files](https://docs.expressionlab.io/api-reference/files) &middot; [HTTP](https://docs.expressionlab.io/api-reference/http) &middot; [Console](https://docs.expressionlab.io/api-reference/console) &middot; [IP Lookup](https://docs.expressionlab.io/api-reference/ip-lookup) &middot; [Graph](https://docs.expressionlab.io/api-reference/graph)
+* **Security & Environment**: [Security Model](https://docs.expressionlab.io/security/security-and-environment)
 
 ---
 
-## Contributing
+## Contributing & Security Inquiries
 
-Contributions, feedback, and technical proposals are managed according to the guidelines in [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
-
-* **Branching Strategy**:
-  - The `master` branch is the central integration branch and always reflects the latest tested code.
-  - Working branches should originate from and target `master` via Pull Requests using standard prefixes:
-    - `fix/<description>` for bug fixes.
-    - `improve/<description>` for performance, documentation, or tooling improvements.
-    - `feature/<description>` for new capabilities.
-  - Releases are cut from `master` using semantic version tags (`v*`).
-* **Pull Requests**: Pull requests should provide a clear rationale for the change. Rigid commit formats are not required; descriptive clarity is sufficient.
-* **Validation**: All pull requests must pass the automated GitHub Actions checks (linting and test suites). Running `pnpm run lint` and `pnpm run test` locally prior to submission is recommended to catch issues early.
-
----
-
-## Security Inquiries
-
-Potential security vulnerabilities should not be reported through public issue trackers. Consult [SECURITY.md](SECURITY.md) for supported versions and coordinated disclosure procedures.
-
-Reports may be submitted via the GitHub [Security Advisories](https://github.com/andersonsalas/expressionlab/security) interface or by emailing `github@andersonsalas.com`.
+* **Contributing**: See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Working branches (`fix/*`, `improve/*`, `feature/*`) target `master` via Pull Requests and must pass `pnpm run lint` and `pnpm run test`.
+* **Security Inquiries**: Do not report vulnerabilities via public issues. See [SECURITY.md](SECURITY.md) or submit reports via GitHub [Security Advisories](https://github.com/andersonsalas/expressionlab/security) or `github@andersonsalas.com`.
 
 ---
 
 ## License
 
-Expression Lab is open-source software distributed under the terms of the [GNU General Public License v2.0 or later (GPL-2.0-or-later)](LICENSE).
+* **Professional Edition**: The version distributed via [GitHub Releases](https://github.com/andersonsalas/expressionlab/releases/latest) and compiled by this repository's CI/CD pipeline is **proprietary software** and is governed by the [End-User License Agreement (EULA)](https://expressionlab.io/eula.html).
+* **Community Edition**: The standalone base source code hosted in this repository is licensed under the [GNU General Public License v2.0 or later (GPL-2.0-or-later)](LICENSE).

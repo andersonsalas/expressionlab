@@ -1,7 +1,10 @@
 <script setup>
-import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import DocTooltip from '../ui/DocTooltip.vue';
-import { __ } from '../../lib/helpers.js';
+import NotebookOutlineItem from './NotebookOutlineItem.vue';
+import { __, hasAddons } from '../../lib/helpers.js';
+import { useTabsStore } from '../../stores/tabs.js';
+import { extractNotebookOutline, smoothFastScrollTo, highlightCell } from '../../lib/notebook-outline.js';
 
 const props = defineProps({
   outlineTree: {
@@ -15,6 +18,88 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['item-click', 'clear-console']);
+
+// Active tab in sidebar ('symbols' | 'outline')
+const activeSidebarTab = ref('symbols');
+
+
+// 1. Notebook Outline (Pro Addon)
+
+let tabsStore = null;
+try {
+  tabsStore = useTabsStore();
+} catch {
+  tabsStore = null;
+}
+
+const activeTab = computed(() => tabsStore?.activeTab || null);
+const isNotebookOpen = computed(() => Boolean(activeTab.value && activeTab.value.mode === 'notebook'));
+
+const notebookOutline = ref([]);
+
+const updateNotebookOutline = () => {
+  if (!isNotebookOpen.value) {
+    notebookOutline.value = [];
+    return;
+  }
+
+  const cells = activeTab.value?.notebookMeta?.cells;
+  if (!Array.isArray(cells) || cells.length === 0) {
+    notebookOutline.value = [];
+    return;
+  }
+
+  notebookOutline.value = extractNotebookOutline(cells);
+};
+
+watch(
+  () => [tabsStore?.activeTabId, activeTab.value?.mode],
+  () => {
+    updateNotebookOutline();
+  },
+  { immediate: true }
+);
+
+watch(
+  () => activeTab.value?.notebookMeta,
+  () => {
+    updateNotebookOutline();
+  },
+  { deep: true }
+);
+
+const handleOutlineUpdateEvent = () => {
+  updateNotebookOutline();
+};
+
+const handleHeadingClick = (node) => {
+  if (!node || !node.cellId) return;
+
+  let cellEl =
+    document.getElementById(`notebook-cell-${node.cellId}`) ||
+    document.querySelector(`.notebook-cell[data-cell-id="${node.cellId}"]`);
+
+  if (!cellEl && activeTab.value?.notebookMeta?.cells) {
+    const idx = activeTab.value.notebookMeta.cells.findIndex((c) => c.id === node.cellId);
+    if (idx !== -1) {
+      const allCells = document.querySelectorAll('.notebook-cell');
+      if (allCells[idx]) {
+        cellEl = allCells[idx];
+      }
+    }
+  }
+
+  if (cellEl) {
+    const headingEls = Array.from(cellEl.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+    const matchingHeading = headingEls.find((h) => h.textContent.trim() === node.label);
+    const target = matchingHeading || cellEl;
+
+    smoothFastScrollTo(target);
+    highlightCell(cellEl);
+  }
+};
+
+// 2. Symbols Outline (Context Symbols)
 
 const searchQuery = ref('');
 const displayedOutline = ref([]);
@@ -96,11 +181,13 @@ const handleKeyUp = (e) => {
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown);
   window.addEventListener('keyup', handleKeyUp);
+  window.addEventListener('el:notebook-outline-update', handleOutlineUpdateEvent);
 });
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown);
   window.removeEventListener('keyup', handleKeyUp);
+  window.removeEventListener('el:notebook-outline-update', handleOutlineUpdateEvent);
   cancelCloseTooltip();
   stopAutoScroll();
 });
@@ -128,9 +215,9 @@ const startAutoScroll = (el) => {
 
   const animate = () => {
     // If the element is no longer in the DOM or valid
-    if (!el) { 
-        stopAutoScroll();
-        return; 
+    if (!el) {
+      stopAutoScroll();
+      return;
     }
 
     if (state === 'pause-top') {
@@ -194,16 +281,16 @@ const onMouseEnter = (item, event) => {
       const tooltipRect = tooltipRef.value.getBoundingClientRect();
       const footer = document.querySelector('.editor-footer');
       const footerTop = footer ? footer.getBoundingClientRect().top : window.innerHeight;
-      
+
       const buffer = 10;
       const maxBottom = footerTop - buffer;
-      
+
       let newTop = rect.top;
       let maxHeight = null;
 
       if (newTop + tooltipRect.height > maxBottom) {
         newTop = maxBottom - tooltipRect.height;
-        
+
         // Check top boundary
         if (newTop < buffer) {
           newTop = buffer;
@@ -216,15 +303,15 @@ const onMouseEnter = (item, event) => {
         top: `${newTop}px`,
         opacity: '1',
       };
-      
+
       tooltipStyle.value = style;
 
       if (tooltipRef.value) {
         const wrapper = tooltipRef.value.querySelector('.description-wrapper');
         if (wrapper) {
-            startAutoScroll(wrapper);
+          startAutoScroll(wrapper);
         } else {
-            stopAutoScroll();
+          stopAutoScroll();
         }
       }
     }
@@ -282,7 +369,7 @@ const filterOutline = () => {
         methods: [...n.methods].sort((a, b) => {
           if (a.kind === 'Constant' && b.kind !== 'Constant') return -1;
           if (a.kind !== 'Constant' && b.kind === 'Constant') return 1;
-          
+
           if (a.kind === 'Property' && b.kind !== 'Property') return -1;
           if (a.kind !== 'Property' && b.kind === 'Property') return 1;
 
@@ -317,7 +404,37 @@ watch(() => props.outlineTree, filterOutline, { immediate: true });
 
 <template>
   <div class="console-sidebar">
+    <!-- Two tabs (50%-50%) displayed ONLY if compilation includes Pro Addon -->
     <div
+      v-if="hasAddons()"
+      class="sidebar-tabbar"
+      role="tablist"
+    >
+      <button
+        type="button"
+        role="tab"
+        :aria-selected="activeSidebarTab === 'symbols'"
+        class="sidebar-tab-item"
+        :class="{ active: activeSidebarTab === 'symbols' }"
+        @click="activeSidebarTab = 'symbols'"
+      >
+        <span>{{ __('Symbols') }}</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        :aria-selected="activeSidebarTab === 'outline'"
+        class="sidebar-tab-item"
+        :class="{ active: activeSidebarTab === 'outline' }"
+        @click="activeSidebarTab = 'outline'"
+      >
+        <span>{{ __('Outline') }}</span>
+      </button>
+    </div>
+
+    <!-- Symbols Section (shown if !hasAddons() or activeSidebarTab === 'symbols') -->
+    <div
+      v-show="!hasAddons() || activeSidebarTab === 'symbols'"
       id="sidebar-outline"
       class="sidebar-section"
     >
@@ -461,6 +578,37 @@ watch(() => props.outlineTree, filterOutline, { immediate: true });
         class="section-content outline-empty"
       >
         <div class="codicon codicon-issue-draft" />
+        <p style="padding: 10px; color: #888">
+          {{ __('No outline available') }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Outline Section (Pro Addon: shown only when hasAddons() and activeSidebarTab === 'outline') -->
+    <div
+      v-if="hasAddons() && activeSidebarTab === 'outline'"
+      id="sidebar-notebook-outline"
+      class="sidebar-section"
+    >
+      <div
+        v-if="isNotebookOpen && notebookOutline && notebookOutline.length > 0"
+        class="section-content"
+      >
+        <ul class="outline-list notebook-outline-tree">
+          <NotebookOutlineItem
+            v-for="node in notebookOutline"
+            :key="node.id"
+            :node="node"
+            :depth="0"
+            @select="handleHeadingClick"
+          />
+        </ul>
+      </div>
+      <div
+        v-else
+        class="section-content outline-empty"
+      >
+        <div class="codicon codicon-bookmark" />
         <p style="padding: 10px; color: #888">
           {{ __('No outline available') }}
         </p>

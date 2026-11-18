@@ -6,21 +6,21 @@ sidebar_position: 2
 
 # Inicio rápido
 
-Esta guía detalla el proceso para completar la configuración inicial, registrar las credenciales en el servidor y utilizar la consola interactiva de Expression Lab.
+Esta guía detalla el proceso para completar la configuración inicial, registrar las credenciales en el servidor y utilizar el espacio de trabajo de Expression Lab.
 
 :::important Configuración inicial obligatoria
-Antes de acceder a la consola, es necesario completar el asistente de bienvenida y añadir las constantes de configuración generadas al archivo `wp-config.php`.
+Antes de acceder a Expression Lab, es necesario completar el asistente de bienvenida y añadir las constantes de configuración generadas al archivo `wp-config.php`.
 :::
 
 ## Asistente de configuración inicial (*Onboarding*)
 
-En el panel de WordPress, acceder a **Herramientas** > **Consola** (o a **Administración de la red** > **Ajustes** > **Consola** en entornos WordPress Multisite).
+En el panel de WordPress, acceder a **Herramientas** > **Expression Lab** (o a **Administración de la red** > **Ajustes** > **Consola** en entornos WordPress Multisite).
 
 Si el plugin aún no ha sido configurado, el asistente se inicia de inmediato.
 
 <div className="desktop-window">
   <img 
-    src="../../img/onboarding.png" 
+    src="../../img/1.0.0/onboarding.png" 
     alt="Asistente de configuración inicial de Expression Lab" 
   />
 </div>
@@ -28,19 +28,24 @@ Si el plugin aún no ha sido configurado, el asistente se inicia de inmediato.
 ```mermaid
 graph LR
     A["1. Bienvenida"] --> B["2. Requisitos del sistema"]
-    B --> C["3. Generación de claves"]
-    C --> D["4. Verificación"]
+    B --> C["3. Ajustes"]
+    C --> D["4. Generación de claves"]
+    D --> E["5. Verificación"]
 ```
 
-### Bienvenida y aceptación
+### 1. Bienvenida y aceptación
 
-Revisar los términos de uso y marcar la casilla de confirmación.
+Revisar el aviso operativo, marcar la casilla de confirmación (así como la aceptación del Acuerdo de Licencia de Usuario Final / EULA en Professional Edition) y pulsar **Comenzar instalación**.
 
-### Comprobación de requisitos del sistema
+### 2. Comprobación de requisitos del sistema
 
 El asistente verifica el entorno del servidor y del navegador. Si algún componente obligatorio figura como **No disponible (Missing)**, debe corregirse en la configuración del servidor (ver la sección de [Requisitos](./installation.md#requisitos)) antes de avanzar.
 
-### Generación de claves
+### 3. Ajustes
+
+Configurar los límites y opciones iniciales del entorno: bloqueos de solo lectura para Base de datos, Sistema de archivos, Red y Hooks, tiempo máximo de ejecución, duración de la firma criptográfica y, de forma opcional, clave de licencia o clave API de MaxMind.
+
+### 4. Generación de claves
 
 Definir una contraseña (*passphrase*) segura (mínimo 8 caracteres):
 
@@ -51,7 +56,7 @@ Definir una contraseña (*passphrase*) segura (mínimo 8 caracteres):
 Dado que la contraseña nunca se almacena en el servidor, no existe ningún mecanismo para recuperarla o restablecerla ante un olvido. En caso de pérdida, es necesario eliminar las constantes de configuración en `wp-config.php` y reiniciar el asistente inicial.
 :::
 
-### Verificación de propiedad del servidor
+### 5. Verificación de propiedad del servidor
 
 El asistente generará tres constantes de PHP que deben añadirse al archivo `wp-config.php`:
 
@@ -65,35 +70,21 @@ define( 'EXPRESSION_LAB_ADMIN_SALT', 'tu-salt-base64...' );
 2. Pegar las tres líneas antes del comentario `/* That's all, stop editing! Happy publishing. */`.
 3. Guardar el archivo y recargar la página de administración de Expression Lab.
 
-En cuanto WordPress detecte las tres constantes, el plugin finalizará la instalación y habilitará el acceso a la consola.
+En cuanto WordPress detecte las tres constantes, el plugin finalizará la instalación y habilitará el acceso al espacio de trabajo.
 
 ---
 
-## Acceso a la consola REPL
+## Acceso a Expression Lab
 
 ### Restricción a un administrador específico
 
-El acceso a la consola interactiva queda restringido al administrador cuyo ID coincida con `EXPRESSION_LAB_ADMIN_USER_ID`.
+El acceso a Expression Lab queda restringido al administrador cuyo ID coincida con `EXPRESSION_LAB_ADMIN_USER_ID`.
 
-Cualquier otro usuario administrador que intente acceder verá una pantalla de aviso de **Acceso Restringido** y no podrá ejecutar expresiones ni consultar datos:
-
-<div className="desktop-window">
-  <img 
-    src="../../img/other-admin.png" 
-    alt="Acceso restringido a Expression Lab" 
-  />
-</div>
+Cualquier otro usuario administrador que intente acceder verá una pantalla de aviso de **Acceso Restringido** y no podrá ejecutar expresiones ni consultar datos.
 
 ### Desbloqueo de la sesión
 
-Al acceder a **Herramientas** > **Consola**, se muestra la pantalla de desbloqueo:
-
-<div className="desktop-window">
-  <img 
-    src="../../img/password.png" 
-    alt="Pantalla de desbloqueo de Expression Lab" 
-  />
-</div>
+Al acceder a **Herramientas** > **Expression Lab**, se muestra la pantalla de desbloqueo:
 
 1. Introducir la contraseña definida durante la configuración inicial.
 2. Pulsar **Desbloquear** (o presionar <kbd>Enter</kbd>).
@@ -101,96 +92,70 @@ Al acceder a **Herramientas** > **Consola**, se muestra la pantalla de desbloque
 
 ---
 
-## Uso de la consola REPL
+## Uso del espacio de trabajo
 
-La consola de Expression Lab ofrece un entorno interactivo optimizado para la evaluación de expresiones y la inspección de datos en tiempo real.
+Expression Lab se inicia por defecto en un entorno de **notebooks tipo Jupyter**, además de incluir pestañas en modo **Scratchpad** y **Consola (REPL)** para distintos flujos de diagnóstico.
 
 <div className="desktop-window">
   <img 
-    src="../../img/0.2.0/console.png" 
-    alt="Consola de Expression Lab" 
+    src="../../img/1.0.0/console.png" 
+    alt="Espacio de trabajo de Expression Lab" 
   />
 </div>
 
-### 1. Editor y búfer de expresiones
+### 1. Celdas de notebook y editor
 
-* **Línea de entrada**: Entrada de expresiones en el editor situado en la parte inferior de la consola.
-* **Ejecución**: Pulsar <kbd>Enter</kbd> para evaluar la expresión.
-* **Modo multilínea**: Presionar <kbd>Shift</kbd> + <kbd>Enter</kbd> para insertar un salto de línea sin ejecutar.
-* **Navegación por el historial**: <kbd>Alt</kbd> + <kbd>↑</kbd> y <kbd>Alt</kbd> + <kbd>↓</kbd> para recuperar expresiones previas.
-* **Reevaluar / Editar**: En el panel de resultados, el botón **Editar entrada** carga comandos previos en el editor, mientras que **Ejecutar código** permite reevaluarlos.
+* **Celdas de código y Markdown**: Añade celdas interactivas de código DSL o de documentación Markdown mediante los botones **+ Code** y **+ Markdown** debajo de cada celda.
+* **Barra de herramientas de celda**: Cada celda de código incluye un botón de **ejecución**, contador de ejecución (`[1]`) y acciones para formatear (`{}`), guardar en la biblioteca de snippets, mover arriba/abajo, duplicar o eliminar la celda.
+* **Resultados por celda**: Los resultados se muestran debajo de cada celda con las pestañas **`Raw`** (valor bruto DSL/JSON) y **`Output`** (tablas, árboles de datos y gráficos Vega-Lite), junto con controles para ajustar línea, copiar, expandir o limpiar la salida.
+* **Otros modos de pestaña**: En pestañas **Scratchpad**, un editor completo se combina con un panel inferior de resultados; en pestañas **Consola (REPL)**, las expresiones se evalúan línea a línea con <kbd>Enter</kbd> (<kbd>Shift</kbd> + <kbd>Enter</kbd> para saltos de línea y <kbd>Alt</kbd> + <kbd>↑</kbd>/<kbd>↓</kbd> para el historial).
 
-### 2. Controles de la barra de herramientas
+### 2. Controles de la barra superior
 
-* **Creación de pestañas**: Acceso rápido para añadir una nueva pestaña de Consola (REPL) o una pestaña de Scratchpad (bloc de notas).
-* **Controles de Scratchpad**: En el modo Scratchpad, permite ejecutar el script (<kbd>Ctrl</kbd> + <kbd>Enter</kbd> / <kbd>Cmd</kbd> + <kbd>Enter</kbd> / <kbd>Ctrl</kbd> + <kbd>R</kbd>) o guardar el código directamente como fragmento en la biblioteca.
-* **Limpiar sesión**: Vacía el búfer de salida de la sesión activa y reinicia el editor.
-* **Formatear código (`{}`)**: Da formato y sangrado limpio a las expresiones del editor (<kbd>Shift</kbd> + <kbd>Alt</kbd> + <kbd>F</kbd>).
-* **Selector de contexto de usuario (`Usuario`)**: Permite evaluar expresiones simulando el contexto de cualquier cuenta de usuario de WordPress (conmutando el usuario activo de la sesión).
-* **Selector de sitio (`Sitio`)**: (*Exclusivo para Multisite*) Modifica el contexto de ejecución para consultar un subsitio específico de la red.
-* **Biblioteca de snippets (`Biblioteca`)**: Abre el panel de fragmentos de código para guardar, etiquetar, cargar, importar o exportar expresiones reutilizables. Admite sincronización local con el disco mediante la [File System Access API](https://developer.mozilla.org/es/docs/Web/API/File_System_Access_API) del navegador.
-* **Ajustes (`Engranaje`)**: Abre la configuración de preferencias de la consola, límites de ejecución y apariencia.
-* **Controles derechos**:
-  * **Conmutar panel de salida**: (*Solo en Scratchpad*) Muestra u oculta el panel inferior de resultados.
-  * **Conmutar barra lateral**: Despliega o colapsa el panel del explorador de documentación.
-  * **Acerca de (`Información`)**: Muestra información sobre la versión, licencias y enlaces al repositorio.
+* **Menú de Expression Lab**: Menú de aplicación con acciones de archivo, ajustes e información de la versión.
+* **Archivos de notebook**: Permite abrir y guardar archivos `.elab` con cifrado opcional por contraseña (Professional Edition).
+* **Ejecutar, limpiar y formatear**: Ejecuta todas las celdas del notebook activo (o el script en Scratchpad), limpia las salidas o la sesión y formatea el código DSL/JSON (<kbd>Shift</kbd> + <kbd>Alt</kbd> + <kbd>F</kbd>).
+* **Selector de contexto de usuario**: Permite evaluar expresiones simulando el contexto de otra cuenta de usuario de WordPress.
+* **Selector de sitio**: (*Exclusivo para Multisite*) Cambia el contexto de ejecución hacia un subsitio específico de la red.
+* **Herramientas**: Acceso directo a los asistentes visuales (**HTTP Request Builder**, **Database Query Builder**, **Entity Query Builder** y **Filesystem Inspector**).
+* **Biblioteca**: Abre la [Biblioteca de snippets](../features/snippet-library.md) para guardar, etiquetar, cargar, importar o exportar fragmentos reutilizables (con soporte de sincronización local mediante la [File System Access API](https://developer.mozilla.org/es/docs/Web/API/File_System_Access_API)).
+* **Conmutadores de panel (Extremo derecho)**: Muestran u ocultan el panel inferior de resultados (en modo Scratchpad) y la barra lateral derecha.
 
-### 3. Barra de pestañas (*Tabs*)
+### 3. Barra de pestañas
 
-La barra de pestañas permite gestionar múltiples entornos y sesiones simultáneas de trabajo:
+* **Trabajo multipestaña**: Mantén varios notebooks, scratchpads y consolas REPL abiertos en paralelo.
+* **Nueva pestaña**: Haz clic en `+` o en su flecha desplegable para abrir una nueva pestaña de **Notebook**, **Scratchpad** o **Consola**.
+* **Gestión de pestañas**: Cierra pestañas (`×`), haz doble clic en el título para renombrarlas o arrástralas para reordenar tu espacio de trabajo.
 
-* **Trabajo multipestaña**: Mantén varias sesiones independientes abiertas en paralelo sin perder el historial ni el estado de ejecución.
-* **Modos de pestaña**:
-  * **Consola (REPL)**: Shell interactivo tradicional con entrada línea a línea e historial de resultados.
-  * **Scratchpad (Bloc de notas)**: Editor de código completo para redactar, probar y ejecutar scripts multilínea extensos.
-* **Operaciones de pestañas**:
-  * **Añadir pestaña (`+` / Menú desplegable)**: Haz clic en el botón `+` o en la flecha para abrir una pestaña de Consola o de Scratchpad.
-  * **Cerrar pestaña (`×`)**: Cierra pestañas activas o en segundo plano.
-  * **Renombrar pestaña**: Haz doble clic sobre el título de una pestaña para darle un nombre descriptivo durante tus pruebas o diagnósticos.
-  * **Reordenar pestañas**: Arrastra y suelta pestañas para organizarlas en el orden que prefieras.
+### 4. Barra lateral derecha
 
-### 4. Explorador lateral (Outline)
-
-El panel lateral desplegable a la derecha brinda documentación contextual y autocompletado en tiempo real:
-
-* **Objetos**: Servicios globales y modelos disponibles en el entorno.
-* **Funciones**: Catálogo de funciones expuestas con sus parámetros y firmas.
-* **Constantes**: Constantes del sistema y de WordPress disponibles.
-* **Clic para insertar**: Al pulsar sobre cualquier elemento del panel lateral, su plantilla se inserta en el editor.
+* **Pestaña `Symbols`**: Explorador con buscador que lista los **Objetos** disponibles (`Cache`, `Console`, `Database`, `Files`, `Graph`, `Http`, `IPLookup`, `Media`, `NetworkOptions`, `NetworkSites`, `Options`, `Posts`, `Users`), **Funciones** y **Constantes**. Al hacer clic en cualquier símbolo se inserta en el editor activo.
+* **Pestaña `Outline`**: Muestra la estructura de celdas y encabezados Markdown del notebook activo para navegar rápidamente por documentos extensos.
 
 ### 5. Barra de estado
 
-La barra inferior ofrece información clave sobre el entorno de ejecución activo:
-
-* **Ocultar/mostrar datos sensibles** (`Icono de Ojo`): Muestra u oculta las direcciones IP del servidor y del cliente.
-* **Información del entorno**: Indica la versión activa de PHP, la versión de WordPress y el estado de `WP_DEBUG`.
-* **Indicadores de solo lectura**: Muestra si las operaciones de escritura están restringidas para **Base de datos**, **Sistema de archivos** y **Red** (por ejemplo, `Database: Bloqueado`).
-* **Validez de la firma**: Cuenta regresiva con el tiempo restante de validez del desafío criptográfico activo.
+* **Ocultar/mostrar datos sensibles**: Permite enmascarar o mostrar las direcciones IP de `Server` y `User`.
+* **Información del entorno**: Indica las versiones activas de `PHP` y `WP`, junto con el estado del modo `Debug`.
+* **Indicadores de solo lectura**: Muestra si las operaciones de escritura para **Database**, **Files** y **Network** se encuentran bloqueadas (`Locked`) o habilitadas (`Unlocked`).
+* **Validez de la firma**: Cuenta regresiva (`Signed MM:SS`) con el tiempo restante de validez del desafío criptográfico activo.
 
 ---
 
 ## Primera expresión de prueba
 
-Tras desbloquear la consola, es posible comprobar la evaluación con una operación básica:
+Tras desbloquear el entorno, introduce una operación básica en la primera celda de código:
 
 ```elscript
 2 + 2 * 10
 ```
 
-Pulsar <kbd>Enter</kbd>. El resultado se mostrará en el panel de salida:
+Pulsa el botón de ejecución de la celda (o presiona <kbd>Ctrl</kbd> + <kbd>Enter</kbd> / <kbd>Cmd</kbd> + <kbd>Enter</kbd>). El resultado aparecerá en el panel de salida inferior:
 
 ```elscript
 22
 ```
 
-<div className="desktop-window">
-  <img 
-    src="../../img/0.2.0/console-input.png" 
-    alt="Entrada en la consola de Expression Lab" 
-  />
-</div>
-
-A partir de este punto, la consola queda disponible para evaluar expresiones complejas e inspeccionar las estructuras internas de WordPress.
+A partir de este punto, puedes crear notebooks interactivos, evaluar expresiones DSL e inspeccionar las estructuras internas de WordPress.
 
 ---
 
@@ -206,10 +171,10 @@ Para cambiar la contraseña o designar a otro usuario administrador:
    // define( 'EXPRESSION_LAB_ADMIN_SALT', '...' );
    ```
 3. Guardar los cambios en `wp-config.php`.
-4. Acceder nuevamente a **Herramientas** > **Consola** para reiniciar el asistente de configuración.
+4. Acceder nuevamente a **Herramientas** > **Expression Lab** para reiniciar el asistente de configuración.
 
 ---
 
 ## Siguientes pasos
 
-* Consulta de la guía de [Sintaxis básica](./basic-syntax) para conocer los operadores, funciones y la gramática del motor de expresiones.
+* Consulta la guía de [Sintaxis básica](./basic-syntax) para conocer los operadores, funciones y la gramática del motor de expresiones.

@@ -443,6 +443,58 @@ describe('DatabaseBuilderModal.vue', () => {
     );
   });
 
+  it('displays Replace button and passes mode replace when in notebook mode', async () => {
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'database-builder' },
+        tabs: {
+          tabs: [{ id: 'tab1', mode: 'notebook' }],
+          activeTabId: 'tab1'
+        }
+      }
+    });
+
+    const wrapper = mount(DatabaseBuilderModal, {
+      global: {
+        plugins: [pinia],
+        mocks: {
+          __: (str) => str
+        }
+      }
+    });
+
+    const uiStore = useUiStore();
+    const replaceBtn = wrapper.find('.database-builder-footer .replace-btn');
+    const insertBtn = wrapper.find('.database-builder-footer .insert-btn');
+
+    expect(replaceBtn.exists()).toBe(true);
+    expect(replaceBtn.text()).toBe('Replace');
+    expect(replaceBtn.classes()).toContain('btn-primary');
+
+    expect(insertBtn.exists()).toBe(true);
+    expect(insertBtn.text()).toBe('Insert');
+    expect(insertBtn.classes()).toContain('btn-default');
+
+    wrapper.vm.steps[0].table = 'posts';
+    await wrapper.vm.$nextTick();
+
+    // Clicking Insert passes mode 'insert'
+    await insertBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'insert'
+      })
+    );
+
+    // Clicking Replace passes mode 'replace'
+    await replaceBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'replace'
+      })
+    );
+  });
+
   it('renders compound join selector and updates joinRef when changing source or column', async () => {
     const pinia = createTestingPinia({
       initialState: {
@@ -1411,6 +1463,56 @@ describe('DatabaseBuilderModal.vue', () => {
     const groupCards = wrapper.findAll('.filter-group-card');
     expect(groupCards[0].find('.filter-group-warning').exists()).toBe(false);
     expect(groupCards[1].find('.filter-group-warning').exists()).toBe(true);
+
+    wrapper.unmount();
+  });
+
+  it('disables Insert and Replace buttons when active tab is a locked read-only notebook', async () => {
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'database-builder' },
+        tabs: {
+          activeTabId: 'tab_locked_nb',
+          tabs: [
+            {
+              id: 'tab_locked_nb',
+              mode: 'notebook',
+              notebookFileHandleId: 'handle-locked',
+              notebookMeta: { meta: { isReadOnly: true } },
+              notebookUnlockedForEditing: false,
+              notebookPersistedReadOnly: true,
+            }
+          ]
+        }
+      }
+    });
+
+    const wrapper = mount(DatabaseBuilderModal, {
+      global: {
+        plugins: [pinia],
+        mocks: {
+          __: (str) => str
+        }
+      }
+    });
+
+    wrapper.vm.steps[0].table = 'posts';
+    await wrapper.vm.$nextTick();
+
+    const insertBtn = wrapper.find('.database-builder-footer .insert-btn');
+    const replaceBtn = wrapper.find('.database-builder-footer .replace-btn');
+
+    expect(insertBtn.exists()).toBe(true);
+    expect(replaceBtn.exists()).toBe(true);
+    expect(insertBtn.attributes('disabled')).toBeDefined();
+    expect(replaceBtn.attributes('disabled')).toBeDefined();
+    expect(insertBtn.attributes('title')).toBe('Notebook is in Read-Only mode');
+    expect(replaceBtn.attributes('title')).toBe('Notebook is in Read-Only mode');
+
+    const uiStore = useUiStore();
+    await insertBtn.trigger('click');
+    await replaceBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).not.toHaveBeenCalled();
 
     wrapper.unmount();
   });

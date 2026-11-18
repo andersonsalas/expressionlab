@@ -156,7 +156,7 @@ class LanguageEngine {
 	 *
 	 * Caps the maximum size of the full response to prevent browser lockup.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @var int
 	 */
@@ -167,11 +167,20 @@ class LanguageEngine {
 	 *
 	 * Limits cumulative Base64-encoded image payloads within an evaluation.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @var int
 	 */
 	const MAX_EMBEDDED_BINARY_BYTES = 2097152; // 2 MB
+
+	/**
+	 * Maximum number of expressions allowed in a single sequential batch evaluation.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var int
+	 */
+	const MAX_BATCH_EXPRESSIONS = 25;
 
 	/**
 	 * Extension classes.
@@ -244,11 +253,23 @@ class LanguageEngine {
 	/**
 	 * Total accumulated binary bytes across all visualizations in the current evaluation.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 *
 	 * @var int
 	 */
 	private $accumulated_binary_bytes = 0;
+
+	/**
+	 * Binary bytes already committed by previous evaluations sharing the same response (batch mode).
+	 *
+	 * Counted against `MAX_EMBEDDED_BINARY_BYTES` together with `$accumulated_binary_bytes`, and
+	 * deliberately preserved by `evaluate()` so the embedded binary budget spans the whole batch.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var int
+	 */
+	private $binary_bytes_baseline = 0;
 
 	/**
 	 * Silenced visualizations collected in non-interactive mode.
@@ -387,6 +408,7 @@ class LanguageEngine {
 		$this->operations               = 0;
 		$this->call_depth               = 0;
 		$this->accumulated_binary_bytes = 0;
+		$this->binary_bytes_baseline    = 0;
 		$this->user_id                  = null;
 		$this->site_id                  = null;
 		if ( $this->are_hooks_enabled() ) {
@@ -847,20 +869,34 @@ class LanguageEngine {
 	/**
 	 * Checks if the requested binary byte count can be accommodated within the embedded binary budget.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param int $bytes Number of raw binary bytes.
 	 * @return bool True if within budget, false if budget would be exceeded.
 	 */
 	public function can_allocate_binary( int $bytes ): bool {
-		return ( $this->accumulated_binary_bytes + $bytes ) <= self::MAX_EMBEDDED_BINARY_BYTES;
+		return ( $this->binary_bytes_baseline + $this->accumulated_binary_bytes + $bytes ) <= self::MAX_EMBEDDED_BINARY_BYTES;
+	}
+
+	/**
+	 * Sets the binary bytes already committed by previous evaluations of the same batch response.
+	 *
+	 * @since 1.0.0
+	 * @internal
+	 *
+	 * @param int $bytes Binary bytes consumed by previous cells (negative values are clamped to zero).
+	 * @return self The engine instance.
+	 */
+	public function set_binary_bytes_baseline( int $bytes ): self {
+		$this->binary_bytes_baseline = max( 0, $bytes );
+		return $this;
 	}
 
 	/**
 	 * Allocates binary bytes against the embedded binary budget.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param int $bytes Number of raw binary bytes.
@@ -877,7 +913,7 @@ class LanguageEngine {
 	/**
 	 * Retrieves the total accumulated binary bytes in the current evaluation.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @return int Total accumulated binary bytes.
@@ -1412,7 +1448,13 @@ class LanguageEngine {
 		}
 
 		$this->execution_start          = microtime( true );
+		$this->operations               = 0;
+		$this->call_depth               = 0;
+		$this->active_progs             = 0;
 		$this->accumulated_binary_bytes = 0;
+		$this->clear_messages();
+		$this->clear_visualizations();
+		$this->clear_silenced_visualizations();
 
 		$language = new \ExpressionLab\Core\ExpressionLanguage();
 		$context  = $this->get_context( $language );

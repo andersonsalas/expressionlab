@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { handleLocalStorage, isSandboxEnabled } from '../lib/api/client.js';
-import { debugLog } from '../lib/helpers.js';
+import { debugLog, hasAddons } from '../lib/helpers.js';
 import { FILESYSTEM_CACHE_KEY, useFilesystemStore } from './filesystem.js';
 
 export const USER_SETTINGS_STORAGE_KEY = 'el_user_settings';
@@ -27,9 +27,16 @@ export const getSafeLocalStorage = () => {
 };
 
 /**
+ * Resolves the fallback default tab mode when no user preference is stored.
+ *
+ * @returns {'console'|'notebook'}
+ */
+export const getFallbackDefaultTabMode = () => (hasAddons() ? 'notebook' : 'console');
+
+/**
  * Synchronously retrieves stored default tab mode from localStorage if available.
  *
- * @returns {'console'|'scratchpad'}
+ * @returns {'console'|'scratchpad'|'notebook'}
  */
 export const getStoredDefaultTabMode = () => {
   try {
@@ -41,12 +48,18 @@ export const getStoredDefaultTabMode = () => {
         if (parsed?.defaultTabMode === 'scratchpad') {
           return 'scratchpad';
         }
+        if (parsed?.defaultTabMode === 'console') {
+          return 'console';
+        }
+        if (parsed?.defaultTabMode === 'notebook' && hasAddons()) {
+          return 'notebook';
+        }
       }
     }
   } catch {
     // Fall back to default
   }
-  return 'console';
+  return getFallbackDefaultTabMode();
 };
 
 /**
@@ -90,14 +103,24 @@ export const useSettingsStore = defineStore('settings', {
         const raw = await handleLocalStorage('getItem', USER_SETTINGS_STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (parsed && typeof parsed === 'object') {
-            if (parsed.defaultTabMode === 'scratchpad' || parsed.defaultTabMode === 'console') {
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            if (
+              parsed.defaultTabMode === 'scratchpad' ||
+              parsed.defaultTabMode === 'console' ||
+              (parsed.defaultTabMode === 'notebook' && hasAddons())
+            ) {
               this.defaultTabMode = parsed.defaultTabMode;
+            } else {
+              this.defaultTabMode = getFallbackDefaultTabMode();
             }
             if (typeof parsed.isSidebarVisible === 'boolean') {
               this.isSidebarVisible = parsed.isSidebarVisible;
             }
+          } else {
+            this.defaultTabMode = getFallbackDefaultTabMode();
           }
+        } else {
+          this.defaultTabMode = getFallbackDefaultTabMode();
         }
       } catch (err) {
         debugLog('Failed to load user settings', err);
@@ -124,10 +147,17 @@ export const useSettingsStore = defineStore('settings', {
     /**
      * Updates and persists the default tab mode.
      *
-     * @param {'console'|'scratchpad'} mode
+     * @param {'console'|'scratchpad'|'notebook'} mode
      */
     async setDefaultTabMode(mode) {
-      const validMode = mode === 'scratchpad' ? 'scratchpad' : 'console';
+      let validMode = getFallbackDefaultTabMode();
+      if (mode === 'console') {
+        validMode = 'console';
+      } else if (mode === 'scratchpad') {
+        validMode = 'scratchpad';
+      } else if (mode === 'notebook' && hasAddons()) {
+        validMode = 'notebook';
+      }
       this.defaultTabMode = validMode;
 
       try {

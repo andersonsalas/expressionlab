@@ -156,6 +156,46 @@ describe('ConsoleTabBar.vue', () => {
     wrapper.unmount();
   });
 
+  it('shows Notebook option in dropdown when addons are enabled and renders dirty indicator for dirty notebooks', async () => {
+    const prevAddons = global.__WITH_ADDONS__;
+    global.__WITH_ADDONS__ = true;
+
+    const wrapper = mount(ConsoleTabBar, {
+      global: {
+        plugins: [pinia],
+        mocks: {
+          __: (str) => str,
+        },
+      },
+      attachTo: document.body,
+    });
+
+    await wrapper.find('.btn-add-dropdown').trigger('click');
+    const menuItems = document.body.querySelectorAll('.tab-add-menu-item');
+    expect(menuItems.length).toBe(3);
+    expect(menuItems[1].querySelector('.codicon-new-session')).not.toBeNull();
+    expect(menuItems[2].querySelector('.codicon-notebook')).not.toBeNull();
+    expect(menuItems[2].textContent).toContain('Notebook');
+
+    // Click Notebook option
+    menuItems[2].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await wrapper.vm.$nextTick();
+
+    expect(tabsStore.tabCount).toBe(2);
+    expect(tabsStore.activeTab.mode).toBe('notebook');
+    expect(tabsStore.activeTab.title).toBe('Untitled.elab');
+    expect(wrapper.find('.tab-subtitle-eval').exists()).toBe(true);
+    expect(wrapper.find('.tab-subtitle-eval').text()).toBe('Evaluation');
+    expect(wrapper.find('.tab-dirty-indicator').exists()).toBe(false);
+
+    tabsStore.updateTabNotebook(tabsStore.activeTabId, { notebookDirty: true });
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find('.tab-dirty-indicator').exists()).toBe(true);
+
+    wrapper.unmount();
+    global.__WITH_ADDONS__ = prevAddons;
+  });
+
   it('hides add button when 12 tabs limit is reached', async () => {
     for (let i = 0; i < 11; i++) {
       tabsStore.createTab();
@@ -217,6 +257,52 @@ describe('ConsoleTabBar.vue', () => {
     expect(wrapper.find('.tab-title-input').exists()).toBe(false);
     expect(tabsStore.activeTab.title).toBe('Renamed Query');
     expect(tabsStore.activeTab.isCustomTitle).toBe(true);
+  });
+
+  it('does not allow in-place rename on double click for a notebook tab with an existing filename or handle', async () => {
+    tabsStore.createTab({
+      mode: 'notebook',
+      title: 'my-notes.elab',
+      notebookFileName: 'my-notes.elab',
+      notebookFileHandleId: 'handle-123',
+    });
+
+    const wrapper = mount(ConsoleTabBar, {
+      global: {
+        plugins: [pinia],
+        mocks: {
+          __: (str) => str,
+        },
+      },
+    });
+
+    const notebookTab = wrapper.findAll('.console-tab-item')[1];
+    await notebookTab.trigger('dblclick');
+
+    expect(wrapper.find('.tab-title-input').exists()).toBe(false);
+  });
+
+  it('allows in-place rename for an unsaved new notebook tab', async () => {
+    tabsStore.createTab({
+      mode: 'notebook',
+      title: 'Untitled.elab',
+      notebookFileName: null,
+      notebookFileHandleId: null,
+    });
+
+    const wrapper = mount(ConsoleTabBar, {
+      global: {
+        plugins: [pinia],
+        mocks: {
+          __: (str) => str,
+        },
+      },
+    });
+
+    const notebookTab = wrapper.findAll('.console-tab-item')[1];
+    await notebookTab.trigger('dblclick');
+
+    expect(wrapper.find('.tab-title-input').exists()).toBe(true);
   });
 
   it('cancels in-place rename on escape key', async () => {
@@ -304,6 +390,34 @@ describe('ConsoleTabBar.vue', () => {
       // With only 1 tab, "close other" and "close right" are disabled
       expect(menu.querySelector('.btn-close-other').classList.contains('disabled')).toBe(true);
       expect(menu.querySelector('.btn-close-right').classList.contains('disabled')).toBe(true);
+
+      wrapper.unmount();
+    });
+
+    it('hides rename button in context menu for notebook tabs with existing files', async () => {
+      tabsStore.createTab({
+        mode: 'notebook',
+        title: 'saved.elab',
+        notebookFileName: 'saved.elab',
+        notebookFileHandleId: 'handle-456',
+      });
+
+      const wrapper = mount(ConsoleTabBar, {
+        global: {
+          plugins: [pinia],
+          mocks: {
+            __: (str) => str,
+          },
+        },
+        attachTo: document.body,
+      });
+
+      const tabItems = wrapper.findAll('.console-tab-item');
+      await tabItems[1].trigger('contextmenu', { clientX: 100, clientY: 50 });
+
+      const menu = document.body.querySelector('.console-tab-context-menu');
+      expect(menu).not.toBeNull();
+      expect(menu.querySelector('.btn-rename')).toBeNull();
 
       wrapper.unmount();
     });
@@ -762,6 +876,47 @@ describe('ConsoleTabBar.vue', () => {
 
       jest.advanceTimersByTime(100);
       expect(scrollToSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Encrypted notebook icon badge', () => {
+    const mountComponent = () =>
+      mount(ConsoleTabBar, {
+        global: {
+          plugins: [pinia],
+          mocks: {
+            __: (str) => str,
+          },
+        },
+      });
+
+    it('renders codicon-lock-small prefix when notebook tab is encrypted', async () => {
+      tabsStore.setTabMode(tabsStore.activeTabId, 'notebook');
+      tabsStore.updateTabNotebook(tabsStore.activeTabId, {
+        isEncrypted: true,
+        notebookOpenPassword: 'secret-password',
+      });
+
+      const wrapper = mountComponent();
+      const lockIcon = wrapper.find('.console-tab-item.active .tab-title-line .tab-encrypted-icon');
+      expect(lockIcon.exists()).toBe(true);
+      expect(lockIcon.classes()).toContain('codicon-lock-small');
+
+      wrapper.unmount();
+    });
+
+    it('does not render lock-small when notebook tab is not encrypted', async () => {
+      tabsStore.setTabMode(tabsStore.activeTabId, 'notebook');
+      tabsStore.updateTabNotebook(tabsStore.activeTabId, {
+        isEncrypted: false,
+        notebookOpenPassword: null,
+      });
+
+      const wrapper = mountComponent();
+      const lockIcon = wrapper.find('.console-tab-item.active .tab-title-line .tab-encrypted-icon');
+      expect(lockIcon.exists()).toBe(false);
+
+      wrapper.unmount();
     });
   });
 });

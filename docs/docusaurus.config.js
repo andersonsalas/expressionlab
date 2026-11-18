@@ -2,7 +2,6 @@
 // `@type` JSDoc annotations allow editor autocompletion and type checking
 // (when paired with `@ts-check`).
 
-const path = require('path');
 const { themes: prismThemes } = require('prism-react-renderer');
 const packageJson = require('./package.json');
 
@@ -33,7 +32,7 @@ const config = {
   },
 
   // Set the production url of your site here
-  url: 'https://expressionlab.io',
+  url: 'https://docs.expressionlab.io',
   // Set the /<baseUrl>/ pathname under which your site is served
   baseUrl: '/',
 
@@ -72,13 +71,17 @@ const config = {
       ({
         docs: {
           sidebarPath: './sidebars.js',
-          routeBasePath: 'docs', // Serve documentation under /docs/
+          routeBasePath: '/', // Serve documentation at the site root
           lastVersion: 'current',
           versions: {
             current: {
-              label: '0.2.0-alpha',
+              label: '1.0.0',
               path: '',
               banner: 'none',
+            },
+            '0.2.0-alpha': {
+              label: '0.2.0-alpha',
+              path: '0.2.0-alpha',
             },
             '0.0.3-alpha': {
               label: '0.0.3-alpha',
@@ -95,7 +98,6 @@ const config = {
   ],
 
   plugins: [
-    path.resolve(__dirname, './plugins/blog-recent-posts'),
     function webpackFallbackPlugin() {
       return {
         name: 'webpack-fallback-plugin',
@@ -122,11 +124,10 @@ const config = {
       {
         hashed: true,
         language: ['en', 'es'],
-        docsRouteBasePath: '/docs',
+        docsRouteBasePath: '/',
         indexDocs: true,
-        indexBlog: true,
-        blogRouteBasePath: '/blog',
-        indexPages: true,
+        indexBlog: false,
+        indexPages: false,
         highlightSearchTermsOnTargetPage: true,
       },
     ],
@@ -149,13 +150,13 @@ const config = {
             label: 'Documentation',
           },
           {
-            to: '/blog',
-            label: 'Blog',
+            href: 'https://expressionlab.io',
+            label: 'Website',
             position: 'left',
           },
           {
-            href: 'https://github.com/andersonsalas/expressionlab/discussions',
-            label: 'Community',
+            href: 'https://blog.expressionlab.io',
+            label: 'Blog',
             position: 'left',
           },
           {

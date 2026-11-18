@@ -90,9 +90,17 @@ Updates an existing option or creates a new one, applying strict pre-flight seri
 Options.update(
   string:key,
   mixed:value,
-  string:serialization_type = Options.FORMAT_SERIALIZED
+  string:serialization_type = Options.FORMAT_SERIALIZED,
+  string|bool|null:autoload = null
 ): bool
 ```
+
+#### Parameters
+
+* **`key`** (`string`, _required_): Option name.
+* **`value`** (`mixed`, _required_): Value to store.
+* **`serialization_type`** (`string`, _optional_): Storage format constant. Default `Options.FORMAT_SERIALIZED`.
+* **`autoload`** (`string|bool|null`, _optional_): Controls whether WordPress loads the option on every request (`'yes'` / `true`, `'no'` / `false`, or `null` to keep default WordPress behavior).
 
 #### Serialization Format Constants
 
@@ -283,12 +291,156 @@ Options.stats(50000, 10)
 
 ---
 
+## Transients
+
+The `Options` service includes dedicated helpers to read, inspect expiration, write, and delete WordPress transients (`_transient_*` records). On single-site installations, read and delete helpers also fall back to `_site_transient_*` records when no standard transient exists.
+
+### Options.get_transient()
+
+Retrieves a transient value if it exists and has not expired, decoding JSON or unserializing arrays, scalars, and `stdClass` values.
+
+```elscriptsignature
+Options.get_transient(
+  string:key,
+  mixed:default_value = null
+): mixed
+```
+
+#### Example
+
+```elscript
+/* Read a transient or fall back to an empty array */
+Options.get_transient('cached_user_stats', [])
+```
+
+---
+
+### Options.get_transient_raw()
+
+Retrieves the unmodified string stored for a transient without JSON decoding or unserialization. By default, expired transients return `default_value`; passing `false` as the third argument returns the stored string even after expiration.
+
+```elscriptsignature
+Options.get_transient_raw(
+  string:key,
+  mixed:default_value = null,
+  bool:check_expiration = true
+): mixed
+```
+
+#### Example
+
+```elscript
+/* Inspect the raw stored payload, ignoring expiration */
+Options.get_transient_raw('remote_api_payload', null, false)
+```
+
+---
+
+### Options.get_transient_timeout()
+
+Returns the Unix expiration timestamp for a transient, or `null` when the transient does not expire or does not exist.
+
+```elscriptsignature
+Options.get_transient_timeout(string:key): ?int
+```
+
+#### Example
+
+```elscript
+/* Check the Unix timestamp when a transient expires */
+Options.get_transient_timeout('feed_cache')
+```
+
+---
+
+### Options.get_transient_ttl()
+
+Calculates the remaining time to live (TTL) in seconds for a transient. Returns `0` when expired or configured without expiration, and `null` when the transient does not exist.
+
+```elscriptsignature
+Options.get_transient_ttl(string:key): ?int
+```
+
+#### Example
+
+```elscript
+/* Check how many seconds remain before expiration */
+Options.get_transient_ttl('feed_cache')
+```
+
+---
+
+### Options.set_transient()
+
+Creates or updates a transient with optional expiration in seconds and serialization format control. Passing `0` for `expiration` stores a non-expiring transient and removes any prior timeout record. Enforces `EXPRESSION_LAB_DATABASE_READONLY`.
+
+```elscriptsignature
+Options.set_transient(
+  string:key,
+  mixed:value,
+  int:expiration = 0,
+  string:serialization_type = Options.FORMAT_SERIALIZED
+): bool
+```
+
+#### Examples
+
+```elscript
+/* Store a string transient for 1 hour (3600 seconds) */
+Options.set_transient('api_token', 'xyz123', 3600)
+```
+
+```elscript
+/* Store structured data as JSON for 2 hours */
+Options.set_transient('cached_stats', { 'views': 1200 }, 7200, Options.FORMAT_JSON)
+```
+
+---
+
+### Options.set_transient_raw()
+
+Stores a raw string transient without serialization or format conflict checks, along with an optional expiration in seconds. Enforces `EXPRESSION_LAB_DATABASE_READONLY`.
+
+```elscriptsignature
+Options.set_transient_raw(
+  string:key,
+  string:value,
+  int:expiration = 0
+): bool
+```
+
+#### Example
+
+```elscript
+/* Write a raw string transient with a 10-minute expiration */
+Options.set_transient_raw('raw_cache', 'precomputed_string', 600)
+```
+
+---
+
+### Options.delete_transient()
+
+Deletes a transient and its timeout record from the database. On single-site installations, matching `_site_transient_*` fallback records are removed as well. Enforces `EXPRESSION_LAB_DATABASE_READONLY`.
+
+```elscriptsignature
+Options.delete_transient(string:key): bool
+```
+
+#### Example
+
+```elscript
+/* Remove a transient and its expiration timeout */
+Options.delete_transient('feed_cache')
+```
+
+---
+
 ## Multisite Network Options
 
 On WordPress Multisite installations, network-wide configuration is stored in the `wp_sitemeta` table. Expression Lab provides the **NetworkOptions** service for managing network options across the entire multisite network.
 
-:::note Multisite Only & Network Scoping
-`NetworkOptions` is exclusively functional in WordPress Multisite environments and always targets the main network (`wp_sitemeta` / `site_id`). When evaluating expressions on individual subsites, use `Options` (or `Site.options`) to operate on site-specific `wp_{blog_id}_options` tables.
+:::note Multisite Scoping & Universal Transients
+Regular `NetworkOptions` methods (`get`, `get_raw`, `update`, `update_raw`, `delete`) require a Multisite environment and target the main network (`wp_sitemeta`). Transient methods (`*_transient*`) work on both Multisite (`wp_sitemeta`) and single-site installations (`_site_transient_*` in `wp_options`). When working with subsite options, use `Options` (or `Site.options`).
 :::
 
 ### NetworkOptions.get()
@@ -387,4 +539,144 @@ NetworkOptions.delete(
 ```elscript
 /* Delete a network option */
 NetworkOptions.delete('obsolete_network_key')
+```
+
+---
+
+### NetworkOptions.get_transient()
+
+Retrieves a network (site) transient if present and active, decoding JSON or unserializing allowed types.
+
+```elscriptsignature
+NetworkOptions.get_transient(
+  string:key,
+  mixed:default_value = null
+): mixed
+```
+
+#### Example
+
+```elscript
+/* Read the cached plugin update transient */
+NetworkOptions.get_transient('update_plugins')
+```
+
+---
+
+### NetworkOptions.get_transient_raw()
+
+Retrieves the unmodified raw string for a network transient without decoding or unserialization. Pass `false` as the third argument to return the stored string even if expired.
+
+```elscriptsignature
+NetworkOptions.get_transient_raw(
+  string:key,
+  mixed:default_value = null,
+  bool:check_expiration = true
+): mixed
+```
+
+#### Example
+
+```elscript
+/* Read the raw network transient string */
+NetworkOptions.get_transient_raw('sitewide_api_cache')
+```
+
+---
+
+### NetworkOptions.get_transient_timeout()
+
+Returns the Unix expiration timestamp for a network transient, or `null` when it has no expiration or does not exist.
+
+```elscriptsignature
+NetworkOptions.get_transient_timeout(string:key): ?int
+```
+
+#### Example
+
+```elscript
+/* Inspect expiration timestamp for a network transient */
+NetworkOptions.get_transient_timeout('update_core')
+```
+
+---
+
+### NetworkOptions.get_transient_ttl()
+
+Calculates the remaining seconds before a network transient expires. Returns `0` when expired or persistent without a timeout, and `null` when absent.
+
+```elscriptsignature
+NetworkOptions.get_transient_ttl(string:key): ?int
+```
+
+#### Example
+
+```elscript
+/* Check remaining TTL in seconds */
+NetworkOptions.get_transient_ttl('update_plugins')
+```
+
+---
+
+### NetworkOptions.set_transient()
+
+Creates or updates a network transient with optional expiration in seconds and serialization format (`Options.FORMAT_SERIALIZED`, `Options.FORMAT_SERIALIZED_OBJECT`, or `Options.FORMAT_JSON`). Enforces `EXPRESSION_LAB_DATABASE_READONLY`.
+
+```elscriptsignature
+NetworkOptions.set_transient(
+  string:key,
+  mixed:value,
+  int:expiration = 0,
+  string:serialization_type = Options.FORMAT_SERIALIZED
+): bool
+```
+
+#### Examples
+
+```elscript
+/* Store a network-wide alert for 1 hour */
+NetworkOptions.set_transient('global_alert', 'Maintenance at 22:00', 3600)
+```
+
+```elscript
+/* Store structured network stats as JSON for 2 hours */
+NetworkOptions.set_transient('network_stats', { 'sites': 50 }, 7200, Options.FORMAT_JSON)
+```
+
+---
+
+### NetworkOptions.set_transient_raw()
+
+Stores a raw string network transient without serialization or format checks, with optional expiration in seconds. Enforces `EXPRESSION_LAB_DATABASE_READONLY`.
+
+```elscriptsignature
+NetworkOptions.set_transient_raw(
+  string:key,
+  string:value,
+  int:expiration = 0
+): bool
+```
+
+#### Example
+
+```elscript
+/* Store a raw network transient for 10 minutes */
+NetworkOptions.set_transient_raw('raw_sitewide_data', 'raw_string', 600)
+```
+
+---
+
+### NetworkOptions.delete_transient()
+
+Deletes a network transient and its timeout record. Enforces `EXPRESSION_LAB_DATABASE_READONLY`.
+
+```elscriptsignature
+NetworkOptions.delete_transient(string:key): bool
+```
+
+#### Example
+
+```elscript
+/* Remove a network transient */
+NetworkOptions.delete_transient('update_plugins')
 ```

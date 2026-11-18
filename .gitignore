@@ -11,6 +11,7 @@ Thumbs.db
 # Node & Frontend Build Artifacts
 node_modules/
 assets/build/
+/assets/addons/
 *.log
 npm-debug.log*
 pnpm-debug.log*

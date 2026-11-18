@@ -8,13 +8,6 @@ sidebar_position: 1
 
 Permite guardar, organizar, exportar y reejecutar expresiones habituales, rutinas de diagnóstico y consultas de base de datos desde la consola.
 
-<div className="desktop-window">
-  <img 
-    src="../../img/0.2.0/snippetlibrary.png" 
-    alt="Modal de la biblioteca de snippets de Expression Lab" 
-  />
-</div>
-
 El modal de la Biblioteca de Snippets se compone de las siguientes áreas:
 
 ### Lista de snippets y búsqueda

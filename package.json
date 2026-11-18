@@ -1,6 +1,6 @@
 {
   "name": "expressionlab",
-  "version": "0.2.0-alpha",
+  "version": "1.0.0",
   "description": "Expression Lab is a sandboxed diagnostics and data inspection environment for WordPress.",
   "main": "index.js",
   "scripts": {
@@ -9,10 +9,15 @@
     "predev": "pnpm build:grammar",
     "prewatch": "pnpm build:grammar",
     "dev-server": "encore dev-server",
+    "dev-server:addons": "EXPRESSION_LAB_WITH_ADDONS=1 encore dev-server",
     "dev": "encore dev",
+    "dev:addons": "EXPRESSION_LAB_WITH_ADDONS=1 encore dev",
     "watch": "encore dev --watch",
+    "watch:addons": "EXPRESSION_LAB_WITH_ADDONS=1 encore dev --watch",
     "build": "encore production --progress",
+    "build:addons": "EXPRESSION_LAB_WITH_ADDONS=1 encore production --progress",
     "build:zip": "bash bin/build-plugin.sh",
+    "build:zip:addons": "EXPRESSION_LAB_WITH_ADDONS=1 bash bin/build-plugin.sh",
     "lint": "pnpm lint:js && pnpm lint:php && pnpm lint:css",
     "lint:js": "eslint",
     "lint:js:fix": "eslint --fix",
@@ -79,8 +84,7 @@
     "vue-loader": "^17.4.2",
     "vue-template-compiler": "^2.7.16",
     "wawoff2": "^2.0.1",
-    "webpack-dev-server": "^5.2.2",
-    "wrangler": "^4.130.0"
+    "webpack-dev-server": "^5.2.2"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.0",

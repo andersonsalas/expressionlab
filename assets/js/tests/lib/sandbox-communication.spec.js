@@ -49,6 +49,20 @@ describe('sandbox-communication.js', () => {
       expect(() => sendToSandbox({}, 'test')).not.toThrow();
       expect(mockPostMessage).not.toHaveBeenCalled();
     });
+
+    it('forwards transferable objects array when provided', () => {
+      const buffer = new ArrayBuffer(8);
+      sendToSandbox(mockIframe, 'response', { data: { buffer } }, [buffer]);
+      expect(mockPostMessage).toHaveBeenCalledWith(
+        {
+          action: 'response',
+          payload: { data: { buffer } },
+          data: { buffer },
+        },
+        '*',
+        [buffer]
+      );
+    });
   });
 
   describe('createSandboxMessageHandler', () => {

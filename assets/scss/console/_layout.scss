@@ -7,6 +7,7 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
+	gap: 0;
 
 	span {
 		display: none;
@@ -14,6 +15,15 @@
 
 	.codicon {
 		margin-right: 0;
+	}
+
+	.tools-chevron {
+		display: none;
+	}
+
+	svg.expressionlab-logo {
+		margin: 0;
+		margin-left: 3px !important;
 	}
 }
 
@@ -177,11 +187,38 @@
 						color: #fff !important;
 					}
 				}
+			}
 
-				&:hover:not(.disabled) {
+			&.btn-save-locked {
+				position: relative;
+
+				.btn-badge-lock {
+					position: absolute;
+					bottom: 3px;
+					right: 3px;
+					width: 11px;
+					height: 11px;
+					background-color: $wordpress-primary;
+					border-radius: 50%;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					pointer-events: none;
+					box-shadow: 0 0 0 1.5px #fff;
+					z-index: 2;
+
 					.codicon {
-						color: #000;
+						font-size: 8px !important;
+						line-height: 1 !important;
+						margin: 0 !important;
+						color: #fff !important;
 					}
+				}
+			}
+
+			&.btn-tab-creator:hover:not(.disabled) {
+				.codicon {
+					color: #000;
 				}
 			}
 
@@ -192,7 +229,62 @@
 			}
 		}
 
-		&.group-tools {
+		&.group-file {
+			.console-toolbar-button {
+				padding: 4px;
+
+				svg {
+					margin-right: 4px;
+				}
+
+				.toolbar-button-label {
+					display: inline-flex;
+					align-items: center;
+					font-weight: normal;
+
+					.toolbar-button-title {
+						font-weight: bold;
+					}
+
+					&.has-subtitle {
+						flex-direction: column;
+						align-items: flex-start;
+						justify-content: center;
+						gap: 1px;
+						line-height: normal;
+
+						.toolbar-button-title {
+							line-height: 1.2;
+						}
+
+						.toolbar-button-subtitle {
+							font-size: 11px;
+							line-height: 1;
+							color: #555;
+							white-space: nowrap;
+							user-select: none;
+							letter-spacing: 0.2px;
+							font-weight: normal;
+						}
+					}
+				}
+
+				&:active,
+				&.active {
+					.toolbar-button-label.has-subtitle .toolbar-button-subtitle {
+						color: #646970;
+					}
+				}
+
+				& > span:not(.toolbar-button-label) {
+					font-weight: bold !important;
+				}
+			}
+		}
+
+		&.group-tools,
+		&.group-tools-library,
+		&.group-file {
 			.console-toolbar-button {
 				display: inline-flex;
 				align-items: center;
@@ -224,9 +316,17 @@
 	// Responsive Container Queries
 	@container toolbar (max-width: 1200px) {
 		.group-actions,
-		.group-library {
+		.group-library,
+		.group-tools-library,
+		.group-file {
 			.console-toolbar-button {
 				@include toolbar-button-compact;
+			}
+		}
+
+		.group-file {
+			.console-toolbar-button {
+				padding: 3px;
 			}
 		}
 	}
@@ -260,6 +360,7 @@
 	}
 }
 
-.console-tools-dropdown-menu {
+.console-tools-dropdown-menu,
+.console-file-dropdown-menu {
 	min-width: 195px;
 }

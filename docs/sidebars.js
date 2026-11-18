@@ -23,6 +23,7 @@ const sidebars = {
       items: [
         'api-reference/database',
         'api-reference/options',
+        'api-reference/cache',
         'api-reference/sites',
         'api-reference/users',
         'api-reference/posts',

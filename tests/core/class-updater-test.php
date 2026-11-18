@@ -581,6 +581,67 @@ class UpdaterTest extends WP_UnitTestCase {
 		$this->assertNull( $result );
 	}
 
+	public function test_get_cached_update_status_reads_only_from_transient_without_http() {
+		$http_called = false;
+		add_filter(
+			'pre_http_request',
+			function () use ( &$http_called ) {
+				$http_called = true;
+				return new WP_Error( 'unexpected_http', 'Should not perform HTTP requests' );
+			}
+		);
+
+		// 1. Empty transient
+		delete_site_transient( Updater::TRANSIENT_KEY );
+		$status = $this->updater->get_cached_update_status();
+		$this->assertFalse( $http_called );
+		$this->assertSame(
+			array(
+				'has_update'     => false,
+				'latest_version' => EXPRESSION_LAB_VERSION,
+			),
+			$status
+		);
+
+		// 2. Transient with current version
+		set_site_transient(
+			Updater::TRANSIENT_KEY,
+			array(
+				'version'      => EXPRESSION_LAB_VERSION,
+				'download_url' => 'https://example.com/test.zip',
+			),
+			HOUR_IN_SECONDS
+		);
+		$status = $this->updater->get_cached_update_status();
+		$this->assertFalse( $http_called );
+		$this->assertSame(
+			array(
+				'has_update'     => false,
+				'latest_version' => EXPRESSION_LAB_VERSION,
+			),
+			$status
+		);
+
+		// 3. Transient with newer version
+		set_site_transient(
+			Updater::TRANSIENT_KEY,
+			array(
+				'version'      => '99.0.0',
+				'download_url' => 'https://example.com/test.zip',
+			),
+			HOUR_IN_SECONDS
+		);
+		$status = $this->updater->get_cached_update_status();
+		$this->assertFalse( $http_called );
+		$this->assertSame(
+			array(
+				'has_update'     => true,
+				'latest_version' => '99.0.0',
+			),
+			$status
+		);
+	}
+
 	public function test_get_manifest_reads_local_file_in_debug_mode() {
 		$temp_file = wp_tempnam( 'updater_manifest_' );
 		file_put_contents( $temp_file, json_encode( array( 'version' => '2.5.0' ) ) );

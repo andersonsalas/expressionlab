@@ -4,6 +4,8 @@ import { useUiStore } from '../stores/ui';
 import { useSettingsStore } from '../stores/settings.js';
 import { useTabsStore } from '../stores/tabs.js';
 import { handleUnlock } from '../lib/unlock-handler.js';
+import { ensureStorageCryptoContext } from '../lib/storage-crypto.js';
+import { hasAddons } from '../lib/helpers.js';
 import { setupCodeActionListeners, removeCodeActionListeners } from '../lib/code-actions.js';
 import AboutModal from '../components/modals/AboutModal.vue';
 import SettingsModal from '../components/modals/SettingsModal.vue';
@@ -22,13 +24,27 @@ const tabsStore = useTabsStore();
 
 onMounted(async () => {
   setupCodeActionListeners();
-  await settingsStore.loadSettings();
 
-  // If in sandbox mode where settings are loaded asynchronously:
-  if (settingsStore.defaultTabMode === 'scratchpad' && tabsStore.tabs.length === 1) {
-    const firstTab = tabsStore.tabs[0];
-    if (firstTab.mode === 'repl' && !firstTab.isCustomTitle && firstTab.history.length <= 1 && !firstTab.scratchpadCode && !firstTab.replDraft) {
-      tabsStore.setTabMode(firstTab.id, 'scratchpad');
+  // When the console starts unlocked (e.g. EXPRESSION_LAB_SANDBOX_ENABLED === false),
+  // initialize dev-mode storage encryption and hydrate settings & license immediately.
+  if (!uiStore.isLocked) {
+    await ensureStorageCryptoContext();
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(new CustomEvent('expressionlab:unlocked'));
+    }
+    await settingsStore.loadSettings();
+
+    if (tabsStore.tabs.length === 1) {
+      const firstTab = tabsStore.tabs[0];
+      const targetMode =
+        settingsStore.defaultTabMode === 'notebook' && hasAddons()
+          ? 'notebook'
+          : settingsStore.defaultTabMode === 'scratchpad'
+            ? 'scratchpad'
+            : 'repl';
+      if (firstTab.mode !== targetMode && tabsStore.isTabCleanAndEmpty(firstTab)) {
+        tabsStore.setTabMode(firstTab.id, targetMode);
+      }
     }
   }
 });
@@ -71,6 +87,14 @@ onUnmounted(() => {
     />
     <FilesystemInspectorModal
       :close-on-outside-click="false"
+    />
+    <component
+      :is="'ProNagModal'"
+      v-if="hasAddons()"
+    />
+    <component
+      :is="'NotebookPropertiesModal'"
+      v-if="hasAddons()"
     />
     <!-- /Base Modals -->
 

@@ -5,7 +5,7 @@
  **/
 import '../../scss/expressionlab-app-sandbox.scss';
 import { sendToSandbox } from '../lib/sandbox-communication.js';
-import { debugLog } from '../lib/helpers.js';
+import { debugLog, resolveBinaryExtensions, sanitizeBinaryFilename } from '../lib/helpers.js';
 
 document.addEventListener('DOMContentLoaded', function () {
   const iframe = document.getElementById('expressionlab-sandbox');
@@ -207,13 +207,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const { method, key, value } = msg.payload;
     let result = null;
 
+    // Confine the sandboxed frame to the Expression Lab namespace of the shared wp-admin origin.
+    const isAllowedKey = typeof key === 'string' && (key.startsWith('el_') || key.startsWith('expressionlab_'));
+
     try {
-      if (typeof localStorage !== 'undefined') {
-        if (method === 'getItem') {
+      if (isAllowedKey && typeof localStorage !== 'undefined') {
+        if (method === 'getItem' || method === 'get') {
           result = localStorage.getItem(key);
-        } else if (method === 'setItem') {
+        } else if (method === 'setItem' || method === 'set') {
           localStorage.setItem(key, value);
-        } else if (method === 'removeItem') {
+        } else if (method === 'removeItem' || method === 'remove') {
           localStorage.removeItem(key);
         }
       }
@@ -731,6 +734,334 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   /**
+   * In-memory registry of FileSystemFileHandle objects for open binary files (.elab)
+   * keyed by a handle ID so subsequent saves write directly without re-prompting.
+   * Bounded so long sessions cannot grow it indefinitely (oldest handles are evicted).
+   */
+  const MAX_BINARY_FILE_HANDLES = 32;
+  const binaryFileHandles = new Map();
+  let binaryHandleCounter = 0;
+
+  const registerBinaryFileHandle = async (fileHandle) => {
+    if (fileHandle && typeof fileHandle.isSameEntry === 'function') {
+      for (const [existingId, existingHandle] of binaryFileHandles.entries()) {
+        try {
+          if (await existingHandle.isSameEntry(fileHandle)) {
+            return existingId;
+          }
+        } catch {
+          // Ignore stale handle comparison errors
+        }
+      }
+    }
+    binaryHandleCounter += 1;
+    const handleId = `elab_fh_${Date.now()}_${binaryHandleCounter}`;
+    binaryFileHandles.set(handleId, fileHandle);
+    while (binaryFileHandles.size > MAX_BINARY_FILE_HANDLES) {
+      binaryFileHandles.delete(binaryFileHandles.keys().next().value);
+    }
+    return handleId;
+  };
+
+  const resolveBinaryMimeType = (mimeType) => (
+    typeof mimeType === 'string' && /^[a-z]+\/[a-z0-9.+-]+$/i.test(mimeType) ? mimeType : 'application/octet-stream'
+  );
+
+  const writeBinaryToHandle = async (fileHandle, buffer) => {
+    const writable = await fileHandle.createWritable();
+    try {
+      await writable.write(buffer);
+      await writable.close();
+    } catch (err) {
+      if (typeof writable.abort === 'function') {
+        await writable.abort().catch(() => {});
+      }
+      throw err;
+    }
+  };
+
+  const triggerBinaryBlobDownload = (buffer, filename, extensions) => {
+    const safeFilename = sanitizeBinaryFilename(filename, extensions);
+    const blob = new Blob([buffer], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', safeFilename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    return safeFilename;
+  };
+
+  /**
+   * Handle opening a binary file (.elab) and transferring its ArrayBuffer to the sandbox.
+   */
+  const handleFsOpenFileBinary = async (msg) => {
+    debugLog('Processing fs_open_file_binary request from sandbox:', msg);
+    const payload = msg.payload || {};
+    const description = typeof payload.description === 'string' && payload.description
+      ? payload.description
+      : 'Expression Lab Notebook (.elab)';
+    const extensions = resolveBinaryExtensions(payload.extensions);
+    const mimeType = resolveBinaryMimeType(payload.mimeType);
+
+    const fallbackBinaryInput = () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = extensions.join(',');
+      input.style.display = 'none';
+      document.body.appendChild(input);
+
+      const cleanup = () => {
+        if (input.parentNode) {
+          input.parentNode.removeChild(input);
+        }
+      };
+
+      input.oncancel = () => {
+        cleanup();
+        sendToSandbox(iframe, 'response', {
+          response_to: msg.message_id,
+          cancelled: true,
+        });
+      };
+
+      input.onchange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) {
+          cleanup();
+          sendToSandbox(iframe, 'response', {
+            response_to: msg.message_id,
+            cancelled: true,
+          });
+          return;
+        }
+
+        try {
+          const buffer = typeof file.arrayBuffer === 'function'
+            ? await file.arrayBuffer()
+            : await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (ev) => resolve(ev.target.result);
+                reader.onerror = (err) => reject(err);
+                reader.readAsArrayBuffer(file);
+              });
+          cleanup();
+          sendToSandbox(
+            iframe,
+            'response',
+            {
+              response_to: msg.message_id,
+              success: true,
+              buffer,
+              filename: file.name,
+              fileHandleId: null,
+            },
+            [buffer]
+          );
+        } catch (err) {
+          cleanup();
+          sendToSandbox(iframe, 'response', {
+            response_to: msg.message_id,
+            error: 'read_error',
+            message: err?.message || 'Failed to read binary file',
+          });
+        }
+      };
+
+      input.click();
+    };
+
+    if (typeof window.showOpenFilePicker === 'function') {
+      try {
+        const [fileHandle] = await window.showOpenFilePicker({
+          types: [
+            {
+              description,
+              accept: {
+                [mimeType]: extensions,
+              },
+            },
+          ],
+          multiple: false,
+        });
+        const file = await fileHandle.getFile();
+        const buffer = await file.arrayBuffer();
+        const fileHandleId = await registerBinaryFileHandle(fileHandle);
+
+        sendToSandbox(
+          iframe,
+          'response',
+          {
+            response_to: msg.message_id,
+            success: true,
+            buffer,
+            filename: file.name,
+            fileHandleId,
+          },
+          [buffer]
+        );
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          sendToSandbox(iframe, 'response', {
+            response_to: msg.message_id,
+            cancelled: true,
+          });
+        } else if (err.name === 'SecurityError' || err.name === 'NotAllowedError') {
+          debugLog('fs_open_file_binary showOpenFilePicker blocked by frame policy, falling back to input[type=file]:', err, 'warn');
+          fallbackBinaryInput();
+        } else {
+          debugLog('fs_open_file_binary error:', err, 'error');
+          sendToSandbox(iframe, 'response', {
+            response_to: msg.message_id,
+            error: err.name || 'error',
+            message: err.message,
+          });
+        }
+      }
+    } else {
+      fallbackBinaryInput();
+    }
+  };
+
+  /**
+   * Handle saving a binary file (.elab) via "Save As" picker or fallback download.
+   */
+  const handleFsSaveFileAsBinary = async (msg) => {
+    debugLog('Processing fs_save_file_as_binary request from sandbox:', msg);
+    const payload = msg.payload || {};
+    const {
+      buffer,
+      suggestedName = 'notebook.elab',
+      deferDownloadOnPickerBlocked = false,
+      skipNativePicker = false,
+    } = payload;
+    const description = typeof payload.description === 'string' && payload.description
+      ? payload.description
+      : 'Expression Lab Notebook (.elab)';
+    const extensions = resolveBinaryExtensions(payload.extensions);
+    const mimeType = resolveBinaryMimeType(payload.mimeType);
+
+    if (!buffer || !(buffer instanceof ArrayBuffer || ArrayBuffer.isView(buffer))) {
+      sendToSandbox(iframe, 'response', {
+        response_to: msg.message_id,
+        error: 'invalid_buffer',
+        message: 'Binary buffer is required to save file.',
+      });
+      return;
+    }
+
+    const safeSuggestedName = sanitizeBinaryFilename(suggestedName, extensions);
+
+    if (!skipNativePicker && typeof window.showSaveFilePicker === 'function') {
+      try {
+        const fileHandle = await window.showSaveFilePicker({
+          suggestedName: safeSuggestedName,
+          types: [
+            {
+              description,
+              accept: {
+                [mimeType]: extensions,
+              },
+            },
+          ],
+        });
+        await writeBinaryToHandle(fileHandle, buffer);
+
+        const fileHandleId = await registerBinaryFileHandle(fileHandle);
+        sendToSandbox(iframe, 'response', {
+          response_to: msg.message_id,
+          success: true,
+          filename: fileHandle.name || safeSuggestedName,
+          fileHandleId,
+        });
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          sendToSandbox(iframe, 'response', {
+            response_to: msg.message_id,
+            cancelled: true,
+          });
+        } else if (err.name === 'SecurityError' || err.name === 'NotAllowedError') {
+          if (deferDownloadOnPickerBlocked) {
+            debugLog('fs_save_file_as_binary showSaveFilePicker blocked, deferring download for filename prompt:', err, 'warn');
+            sendToSandbox(iframe, 'response', {
+              response_to: msg.message_id,
+              pickerBlocked: true,
+              reason: err.name,
+            });
+          } else {
+            debugLog('fs_save_file_as_binary showSaveFilePicker blocked, falling back to blob download:', err, 'warn');
+            const downloadedName = triggerBinaryBlobDownload(buffer, safeSuggestedName, extensions);
+            sendToSandbox(iframe, 'response', {
+              response_to: msg.message_id,
+              success: true,
+              filename: downloadedName,
+              fileHandleId: null,
+              fallbackDownload: true,
+            });
+          }
+        } else {
+          debugLog('fs_save_file_as_binary error:', err, 'error');
+          sendToSandbox(iframe, 'response', {
+            response_to: msg.message_id,
+            error: err.name || 'error',
+            message: err.message,
+          });
+        }
+      }
+    } else {
+      const downloadedName = triggerBinaryBlobDownload(buffer, safeSuggestedName, extensions);
+      sendToSandbox(iframe, 'response', {
+        response_to: msg.message_id,
+        success: true,
+        filename: downloadedName,
+        fileHandleId: null,
+        fallbackDownload: true,
+      });
+    }
+  };
+
+  /**
+   * Handle saving a binary file (.elab) directly to an existing handle if present,
+   * or delegating to Save As otherwise (stale or revoked handles are evicted).
+   */
+  const handleFsSaveFileBinary = async (msg) => {
+    debugLog('Processing fs_save_file_binary request from sandbox:', msg);
+    const payload = msg.payload || {};
+    const { buffer, fileHandleId } = payload;
+
+    if (!buffer || !(buffer instanceof ArrayBuffer || ArrayBuffer.isView(buffer))) {
+      sendToSandbox(iframe, 'response', {
+        response_to: msg.message_id,
+        error: 'invalid_buffer',
+        message: 'Binary buffer is required to save file.',
+      });
+      return;
+    }
+
+    if (fileHandleId && binaryFileHandles.has(fileHandleId)) {
+      const fileHandle = binaryFileHandles.get(fileHandleId);
+      try {
+        await writeBinaryToHandle(fileHandle, buffer);
+        sendToSandbox(iframe, 'response', {
+          response_to: msg.message_id,
+          success: true,
+          filename: fileHandle.name,
+          fileHandleId,
+        });
+        return;
+      } catch (err) {
+        binaryFileHandles.delete(fileHandleId);
+        debugLog('fs_save_file_binary direct write failed, falling back to Save As:', err, 'warn');
+      }
+    }
+
+    await handleFsSaveFileAsBinary(msg);
+  };
+
+  /**
    * Message type to handler mapping.
    */
   const handlers = {
@@ -744,6 +1075,9 @@ document.addEventListener('DOMContentLoaded', function () {
     fs_read_snippets: handleFsReadSnippets,
     fs_write_snippets: handleFsWriteSnippets,
     fs_import_file: handleFsImportFile,
+    fs_open_file_binary: handleFsOpenFileBinary,
+    fs_save_file_binary: handleFsSaveFileBinary,
+    fs_save_file_as_binary: handleFsSaveFileAsBinary,
     fs_status: handleFsStatus,
     fs_disconnect: handleFsDisconnect,
     fs_request_permission: handleFsRequestPermission,

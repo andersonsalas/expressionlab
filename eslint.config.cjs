@@ -20,6 +20,8 @@ module.exports = defineConfig([
 		ignores: [
 			'assets/build/**',
 			'**/assets/build/**',
+			'assets/addons/**',
+			'**/assets/addons/**',
 			'assets/js/lib/codemirror/grammar/parser*.js',
 			'coverage/**',
 			'docs/**',
@@ -33,6 +35,7 @@ module.exports = defineConfig([
 				...globals.browser,
 				...globals.node,
 				...globals.jest,
+				__WITH_ADDONS__: 'readonly',
 			},
 
 			ecmaVersion: 'latest',

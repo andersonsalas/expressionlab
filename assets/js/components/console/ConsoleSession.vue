@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted, nextTick, watch, computed } from 'vue';
 import { useTabsStore } from '../../stores/tabs.js';
 import { handleFetch } from '../../lib/api/client.js';
-import { __ } from '../../lib/helpers.js';
+import { __, hasAddons } from '../../lib/helpers.js';
 import ConsoleLog from './ConsoleLog.vue';
 import ConsoleEditor from './ConsoleEditor.vue';
 import ScratchpadOutput from './ScratchpadOutput.vue';
@@ -36,6 +36,7 @@ const tab = computed(() => {
 
 const editorRef = ref(null);
 const scratchpadEditorRef = ref(null);
+const notebookWorkspaceRef = ref(null);
 const isDraggingSplitter = ref(false);
 const isAutoAdjusting = ref(false);
 
@@ -65,10 +66,17 @@ const scrollBufferToBottom = (force = false) => {
 };
 
 const getActiveEditor = () => {
+  if (tab.value.mode === 'notebook') {
+    return notebookWorkspaceRef.value?.getActiveEditor?.() ?? null;
+  }
   return tab.value.mode === 'scratchpad' ? scratchpadEditorRef.value : editorRef.value;
 };
 
 const clearSession = () => {
+  if (tab.value.mode === 'notebook') {
+    notebookWorkspaceRef.value?.clearAllOutputs?.();
+    return;
+  }
   if (tab.value.mode === 'scratchpad') {
     scratchpadEditorRef.value?.clearEditor();
     tabsStore.updateTabScratchpad(props.tabId, {
@@ -90,11 +98,18 @@ const clearSession = () => {
 };
 
 const formatCode = () => {
+  if (tab.value.mode === 'notebook') {
+    return notebookWorkspaceRef.value?.formatAllCodeCells?.();
+  }
   const activeEditor = getActiveEditor();
   return activeEditor?.formatCode();
 };
 
 const insertSnippet = (code, options = {}) => {
+  if (tab.value.mode === 'notebook') {
+    notebookWorkspaceRef.value?.insertSnippet?.(code, options);
+    return;
+  }
   const activeEditor = getActiveEditor();
   if (activeEditor) {
     activeEditor.insertSnippet(code, options);
@@ -102,6 +117,10 @@ const insertSnippet = (code, options = {}) => {
 };
 
 const replaceContent = (code) => {
+  if (tab.value.mode === 'notebook') {
+    notebookWorkspaceRef.value?.replaceContent?.(code);
+    return;
+  }
   const activeEditor = getActiveEditor();
   if (activeEditor) {
     activeEditor.setEditorValue(code);
@@ -112,7 +131,75 @@ const replaceContent = (code) => {
 };
 
 const focus = () => {
+  if (tab.value.mode === 'notebook') {
+    notebookWorkspaceRef.value?.focus?.();
+    return;
+  }
   getActiveEditor()?.focus();
+};
+
+const runPrimaryAction = () => {
+  if (tab.value.isEvaluating) return;
+  if (tab.value.mode === 'notebook') {
+    return notebookWorkspaceRef.value?.runAllCells?.();
+  }
+  if (tab.value.mode === 'scratchpad') {
+    return executeScratchpad();
+  }
+  const input = editorRef.value?.getEditorValue() ?? '';
+  if (!input.trim()) return;
+  if (input.toLowerCase().trim() === 'clear') {
+    clearSession();
+    return;
+  }
+  handleExecute(input);
+  editorRef.value?.setEditorValue('');
+};
+
+const savePrimaryAction = () => {
+  if (tab.value.mode === 'notebook') {
+    return notebookWorkspaceRef.value?.saveNotebook?.();
+  }
+  if (tab.value.mode === 'scratchpad') {
+    return handleSaveScratchpadSnippet();
+  }
+  let code = editorRef.value?.getEditorValue() || '';
+  if (!code.trim() && Array.isArray(tab.value.history)) {
+    for (let i = tab.value.history.length - 1; i >= 0; i--) {
+      if (tab.value.history[i]?.input) {
+        code = tab.value.history[i].input;
+        break;
+      }
+    }
+  }
+  emit('save-snippet', code);
+};
+
+const saveAsPrimaryAction = () => {
+  if (tab.value.mode === 'notebook') {
+    return notebookWorkspaceRef.value?.saveNotebookAs?.();
+  }
+  return null;
+};
+
+const openNotebookFile = () => {
+  return notebookWorkspaceRef.value?.openNotebookFile?.();
+};
+
+const undoCellAction = () => {
+  return notebookWorkspaceRef.value?.undo?.();
+};
+
+const redoCellAction = () => {
+  return notebookWorkspaceRef.value?.redo?.();
+};
+
+const openSearch = (withReplace = false) => {
+  if (tab.value.mode === 'scratchpad') {
+    scratchpadEditorRef.value?.openSearch?.(withReplace);
+  } else if (tab.value.mode === 'notebook') {
+    notebookWorkspaceRef.value?.openSearch?.(withReplace);
+  }
 };
 
 const handleHistoryNav = (direction) => {
@@ -175,7 +262,9 @@ const handleRunCode = (code) => {
       ? JSON.stringify(code, null, 2)
       : String(code);
 
-  if (tab.value.mode === 'scratchpad') {
+  if (tab.value.mode === 'notebook') {
+    notebookWorkspaceRef.value?.runExternalCode?.(text);
+  } else if (tab.value.mode === 'scratchpad') {
     if (scratchpadEditorRef.value) {
       scratchpadEditorRef.value.setEditorValue(text);
       nextTick(() => {
@@ -635,6 +724,13 @@ onUnmounted(() => {
 defineExpose({
   executeScratchpad,
   handleExecute,
+  runPrimaryAction,
+  savePrimaryAction,
+  saveAsPrimaryAction,
+  openNotebookFile,
+  undoCellAction,
+  redoCellAction,
+  openSearch,
   clearSession,
   formatCode,
   insertSnippet,
@@ -649,11 +745,17 @@ defineExpose({
 <template>
   <div
     class="console-session-container"
-    :class="[`console-session-${tabId}`, { 'mode-scratchpad': tab.mode === 'scratchpad' }]"
+    :class="[
+      `console-session-${tabId}`,
+      {
+        'mode-scratchpad': tab.mode === 'scratchpad',
+        'mode-notebook': tab.mode === 'notebook'
+      }
+    ]"
   >
     <!-- REPL Entries Buffer -->
     <ul
-      v-show="tab.mode !== 'scratchpad'"
+      v-show="tab.mode === 'repl'"
       class="entries"
     >
       <ConsoleLog
@@ -720,6 +822,23 @@ defineExpose({
         />
       </div>
     </div>
+
+    <!-- Notebook Workspace (Pro Addon) -->
+    <div
+      v-if="hasAddons()"
+      v-show="tab.mode === 'notebook'"
+      class="notebook-session-wrapper"
+    >
+      <component
+        :is="'NotebookWorkspace'"
+        ref="notebookWorkspaceRef"
+        :tab-id="tabId"
+        :is-active="isActive"
+        :outline-flat="outlineFlat"
+        :outline-chained="outlineChained"
+        @save-snippet="(code) => emit('save-snippet', code)"
+      />
+    </div>
   </div>
 </template>
 
@@ -732,6 +851,16 @@ defineExpose({
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: hidden;
+}
+
+.notebook-session-wrapper {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 </style>

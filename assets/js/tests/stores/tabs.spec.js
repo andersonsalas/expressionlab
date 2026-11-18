@@ -1,6 +1,7 @@
 import { setActivePinia, createPinia } from 'pinia';
-import { useTabsStore, MAX_TABS } from '../../stores/tabs.js';
+import { useTabsStore, MAX_TABS, isTabLocked } from '../../stores/tabs.js';
 import { useSettingsStore } from '../../stores/settings.js';
+import { useUiStore } from '../../stores/ui.js';
 
 describe('stores/tabs.js - Tabs Management Store', () => {
   beforeEach(() => {
@@ -9,6 +10,10 @@ describe('stores/tabs.js - Tabs Management Store', () => {
       multisite: true,
       site: {
         sites: [{ id: 10, name: 'Main Site' }, { id: 20, name: 'Sub Site' }],
+      },
+      settings: {
+        enable_sandbox: false,
+        debug_mode: false,
       },
       banner: 'Welcome to Expression Lab',
     };
@@ -551,6 +556,271 @@ describe('stores/tabs.js - Tabs Management Store', () => {
 
       expect(newTab.mode).toBe('scratchpad');
       expect(newTab.title).toBe('Scratchpad');
+    });
+
+    it('initializes in notebook mode on a clean install of Professional Edition and initializes banner if switched to repl', () => {
+      const prevAddons = global.__WITH_ADDONS__;
+      global.__WITH_ADDONS__ = true;
+      localStorage.removeItem('el_user_settings');
+      setActivePinia(createPinia());
+
+      const store = useTabsStore();
+      expect(store.activeTab.mode).toBe('notebook');
+      expect(store.activeTab.title).toBe('Untitled.elab');
+      expect(store.activeTab.history).toEqual([]);
+
+      // Switching clean initial tab to repl (e.g. after unlocking with saved console setting)
+      store.setTabMode(store.activeTab.id, 'repl');
+      expect(store.activeTab.mode).toBe('repl');
+      expect(store.activeTab.title).toBe('Console');
+      expect(store.activeTab.history.length).toBe(1);
+      expect(store.activeTab.history[0].messages).toEqual(['Welcome to Expression Lab']);
+
+      global.__WITH_ADDONS__ = prevAddons;
+    });
+
+    it('supports notebook mode creation, updateTabNotebook, and isTabCleanAndEmpty checks', () => {
+      setActivePinia(createPinia());
+      const store = useTabsStore();
+
+      // Fresh repl tab is clean and empty
+      expect(store.isTabCleanAndEmpty(store.activeTab)).toBe(true);
+
+      // Creating a notebook tab
+      const nbTab = store.createTab({ mode: 'notebook' });
+      expect(nbTab.mode).toBe('notebook');
+      expect(nbTab.title).toBe('Untitled.elab');
+      expect(nbTab.notebookDirty).toBe(false);
+      expect(store.isTabCleanAndEmpty(nbTab)).toBe(true);
+
+      // Creating a second notebook tab increments numbering
+      const nbTab2 = store.createTab({ mode: 'notebook' });
+      expect(nbTab2.title).toBe('Untitled-2.elab');
+
+      // Renaming without extension auto-appends .elab
+      store.setTabTitle(nbTab2.id, 'my-analysis');
+      expect(nbTab2.title).toBe('my-analysis.elab');
+
+      // Renaming with extension preserves it
+      store.setTabTitle(nbTab2.id, 'custom.elab');
+      expect(nbTab2.title).toBe('custom.elab');
+
+      // Updating notebook state marks it non-empty when dirty or multi-cell
+      store.updateTabNotebook(nbTab.id, {
+        notebookDocHandle: 1,
+        notebookFileName: 'report.elab',
+        notebookDirty: true,
+      });
+      expect(nbTab.notebookDocHandle).toBe(1);
+      expect(nbTab.notebookFileName).toBe('report.elab');
+      expect(nbTab.notebookDirty).toBe(true);
+      expect(store.isTabCleanAndEmpty(nbTab)).toBe(false);
+    });
+
+    it('prompts confirmation before closing dirty notebook tabs and cancels when user declines', async () => {
+      setActivePinia(createPinia());
+      const store = useTabsStore();
+      const uiStore = useUiStore();
+
+      const nbTab = store.createTab({
+        mode: 'notebook',
+        title: 'My Audit',
+        notebookDirty: true,
+      });
+
+      expect(store.tabCount).toBe(2);
+
+      // Decline closing dirty notebook
+      const closePromise1 = store.requestCloseTab(nbTab.id);
+      expect(uiStore.activeDialog).toBe('dialog');
+      expect(uiStore.activeDialogData.type).toBe('confirm');
+      expect(uiStore.activeDialogData.message).toContain('My Audit');
+      uiStore.activeDialogData.onCancel();
+
+      const closed1 = await closePromise1;
+      expect(closed1).toBe(false);
+      expect(store.tabCount).toBe(2);
+
+      // Confirm closing dirty notebook
+      const closePromise2 = store.requestCloseTab(nbTab.id);
+      expect(uiStore.activeDialog).toBe('dialog');
+      uiStore.activeDialogData.onConfirm();
+
+      const closed2 = await closePromise2;
+      expect(closed2).toBe(true);
+      expect(store.tabCount).toBe(1);
+    });
+
+    it('prompts confirmation for requestCloseAllTabs, requestCloseOtherTabs, and requestCloseTabsToTheRight when dirty notebooks exist', async () => {
+      setActivePinia(createPinia());
+      const store = useTabsStore();
+      const uiStore = useUiStore();
+
+      const tab1 = store.activeTab;
+      const nb1 = store.createTab({ mode: 'notebook', title: 'NB 1', notebookDirty: true });
+      const nb2 = store.createTab({ mode: 'notebook', title: 'NB 2', notebookDirty: true });
+
+      // Cancel requestCloseAllTabs
+      const allPromise = store.requestCloseAllTabs();
+      expect(uiStore.activeDialog).toBe('dialog');
+      uiStore.activeDialogData.onCancel();
+      expect(await allPromise).toBe(false);
+      expect(store.tabCount).toBe(3);
+
+      // Confirm requestCloseTabsToTheRight from nb1 (closes nb2)
+      const rightPromise = store.requestCloseTabsToTheRight(nb1.id);
+      expect(uiStore.activeDialog).toBe('dialog');
+      uiStore.activeDialogData.onConfirm();
+      expect(await rightPromise).toBe(true);
+      expect(store.tabCount).toBe(2);
+
+      // Confirm requestCloseOtherTabs keeping tab1 (closes nb1)
+      const otherPromise = store.requestCloseOtherTabs(tab1.id);
+      expect(uiStore.activeDialog).toBe('dialog');
+      uiStore.activeDialogData.onConfirm();
+      expect(await otherPromise).toBe(true);
+      expect(store.tabCount).toBe(1);
+      expect(store.activeTabId).toBe(tab1.id);
+    });
+  });
+
+  describe('isTabLocked() and isCurrentTabReadOnly getter', () => {
+    it('returns false for non-notebook modes', () => {
+      const replTab = { mode: 'repl' };
+      const scratchpadTab = { mode: 'scratchpad' };
+
+      expect(isTabLocked(replTab)).toBe(false);
+      expect(isTabLocked(scratchpadTab)).toBe(false);
+      expect(isTabLocked(null)).toBe(false);
+    });
+
+    it('returns false for unpersisted or unlocked notebooks', () => {
+      // Unpersisted notebook with readOnly flag (staged protection)
+      const unpersisted = {
+        mode: 'notebook',
+        notebookFileHandleId: null,
+        notebookFileHandle: null,
+        notebookMeta: { meta: { isReadOnly: true } },
+        notebookUnlockedForEditing: false,
+      };
+      expect(isTabLocked(unpersisted)).toBe(false);
+
+      // Persisted notebook that is unlocked for editing
+      const unlocked = {
+        mode: 'notebook',
+        notebookFileHandleId: 'handle-123',
+        notebookMeta: { meta: { isReadOnly: true } },
+        notebookUnlockedForEditing: true,
+        notebookPersistedReadOnly: true,
+      };
+      expect(isTabLocked(unlocked)).toBe(false);
+
+      // Persisted notebook without readOnly flag
+      const writable = {
+        mode: 'notebook',
+        notebookFileHandleId: 'handle-123',
+        notebookMeta: { meta: { isReadOnly: false } },
+        notebookUnlockedForEditing: false,
+        notebookPersistedReadOnly: false,
+      };
+      expect(isTabLocked(writable)).toBe(false);
+    });
+
+    it('returns true for persisted, locked, and locked-in-baseline notebooks', () => {
+      const locked = {
+        mode: 'notebook',
+        notebookFileHandleId: 'handle-123',
+        notebookMeta: { meta: { isReadOnly: true } },
+        notebookUnlockedForEditing: false,
+        notebookPersistedReadOnly: true,
+      };
+      expect(isTabLocked(locked)).toBe(true);
+    });
+
+    it('returns true for read-only notebooks opened or saved via filename fallback without a fileHandleId', () => {
+      const fallbackOpened = {
+        mode: 'notebook',
+        notebookFileHandleId: null,
+        notebookFileHandle: null,
+        notebookFileName: 'ReadOnlyPlayground.elab',
+        notebookMeta: { meta: { isReadOnly: true } },
+        notebookUnlockedForEditing: false,
+        notebookPersistedReadOnly: true,
+      };
+      expect(isTabLocked(fallbackOpened)).toBe(true);
+    });
+
+    it('reactively evaluates isCurrentTabReadOnly from the active tab', () => {
+      const store = useTabsStore();
+      expect(store.isCurrentTabReadOnly).toBe(false);
+
+      const nbTab = store.createTab({
+        mode: 'notebook',
+        notebookFileHandleId: 'nb-locked-id',
+      });
+      store.updateTabNotebook(nbTab.id, {
+        notebookMeta: { meta: { isReadOnly: true } },
+        notebookPersistedReadOnly: true,
+        notebookUnlockedForEditing: false,
+      });
+
+      expect(store.activeTabId).toBe(nbTab.id);
+      expect(store.isCurrentTabReadOnly).toBe(true);
+
+      // Unlock notebook
+      store.updateTabNotebook(nbTab.id, {
+        notebookUnlockedForEditing: true,
+      });
+      expect(store.isCurrentTabReadOnly).toBe(false);
+    });
+
+    it('returns false when write protection is newly staged on an already-persisted file (notebookPersistedReadOnly is false)', () => {
+      const stagedOnPersisted = {
+        mode: 'notebook',
+        notebookFileHandleId: 'handle-existing-file',
+        notebookMeta: { meta: { isReadOnly: true, hasEditPassword: true } },
+        notebookUnlockedForEditing: false,
+        notebookPersistedReadOnly: false,
+      };
+      expect(isTabLocked(stagedOnPersisted)).toBe(false);
+    });
+
+    it('preserves security metadata (isEncrypted, notebookClonedFromDocHandle, notebookPersistedReadOnly), omits plaintext notebookOpenPassword from public store, and isolates session unlock state when duplicating/cloning a notebook tab', () => {
+      setActivePinia(createPinia());
+      const store = useTabsStore();
+
+      const sourceTab = store.createTab({
+        mode: 'notebook',
+        notebookDocHandle: 'doc-source-1',
+        notebookFileHandleId: 'file-handle-1',
+        notebookOpenPassword: 'open-secret-password',
+        isEncrypted: true,
+        notebookPersistedReadOnly: true,
+      });
+      store.updateTabNotebook(sourceTab.id, {
+        notebookUnlockedForEditing: true,
+        notebookMeta: { meta: { isReadOnly: true, hasEditPassword: true }, cells: [] },
+      });
+
+      // Plaintext password is never retained in public store state (Directive D3-2)
+      expect(sourceTab.notebookOpenPassword).toBeUndefined();
+      expect(sourceTab.isEncrypted).toBe(true);
+
+      const cloned = store.cloneTab(sourceTab.id);
+      expect(cloned).not.toBeNull();
+      expect(cloned.id).not.toBe(sourceTab.id);
+      expect(cloned.mode).toBe('notebook');
+      // Untitled source tab (Untitled.elab) should produce Untitled-2.elab
+      expect(cloned.title).toBe('Untitled-2.elab');
+      // Security properties are preserved on the cloned tab without exposing plaintext credentials
+      expect(cloned.isEncrypted).toBe(true);
+      expect(cloned.notebookOpenPassword).toBeUndefined();
+      expect(cloned.notebookClonedFromDocHandle).toBe('doc-source-1');
+      expect(cloned.notebookPersistedReadOnly).toBe(true);
+      // Session unlock state and file handles are isolated from the source tab
+      expect(cloned.notebookUnlockedForEditing).toBe(false);
+      expect(cloned.notebookDocHandle).toBeNull();
+      expect(cloned.notebookFileHandleId).toBeNull();
     });
   });
 });

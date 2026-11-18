@@ -1,4 +1,6 @@
 import { defineStore } from 'pinia';
+import { useTabsStore } from './tabs';
+import { clearStorageCrypto } from '../lib/storage-crypto.js';
 
 export const useUiStore = defineStore('ui', {
   state: () => ({
@@ -13,17 +15,59 @@ export const useUiStore = defineStore('ui', {
     activeDialogData: null,
     snippetToInsert: null,
     librarySnippetToInsert: null,
-    isLocked: window.el_settings.settings.enable_sandbox || window.el_settings.settings.debug_mode || false,
+    isLocked: window.el_settings?.settings?.enable_sandbox || window.el_settings?.settings?.debug_mode || false,
+    activeDropdown: null,
   }),
 
   actions: {
+    openDropdown(dropdownId) {
+      this.activeDropdown = dropdownId;
+    },
+    closeDropdown(dropdownId = null) {
+      if (!dropdownId || this.activeDropdown === dropdownId) {
+        this.activeDropdown = null;
+      }
+    },
+    closeDropdowns() {
+      this.activeDropdown = null;
+    },
+    toggleDropdown(dropdownId) {
+      if (this.activeDropdown === dropdownId) {
+        this.activeDropdown = null;
+      } else {
+        this.activeDropdown = dropdownId;
+      }
+    },
     triggerSnippetInsert(snippet) {
+      if (snippet !== null && snippet !== undefined) {
+        try {
+          const tabsStore = useTabsStore();
+          if (tabsStore?.isCurrentTabReadOnly) {
+            return false;
+          }
+        } catch {
+          // Proceed if Pinia context is unavailable
+        }
+      }
       this.snippetToInsert = snippet;
+      return true;
     },
     triggerLibrarySnippetInsert(snippet) {
+      if (snippet !== null && snippet !== undefined) {
+        try {
+          const tabsStore = useTabsStore();
+          if (tabsStore?.isCurrentTabReadOnly) {
+            return false;
+          }
+        } catch {
+          // Proceed if Pinia context is unavailable
+        }
+      }
       this.librarySnippetToInsert = snippet;
+      return true;
     },
     openModal(modalName, modalData = null) {
+      this.closeDropdowns();
       this.activeModal = modalName;
       this.activeModalData = modalData;
     },
@@ -32,14 +76,20 @@ export const useUiStore = defineStore('ui', {
       this.activeModalData = null;
     },
     showDialog(options) {
+      this.closeDropdowns();
+      const hasDeny = Boolean(options?.denyText || options?.denyLabel);
       return new Promise((resolve) => {
         this.activeDialog = 'dialog';
         this.activeDialogData = {
           ...options,
-          onConfirm: () => {
+          onConfirm: (payload) => {
             this.activeDialog = null;
             this.activeDialogData = null;
-            resolve(options.denyText ? 'confirm' : true);
+            if (options.type === 'prompt') {
+              resolve(payload !== undefined ? payload : '');
+            } else {
+              resolve(hasDeny ? 'confirm' : true);
+            }
           },
           onDeny: () => {
             this.activeDialog = null;
@@ -49,10 +99,24 @@ export const useUiStore = defineStore('ui', {
           onCancel: () => {
             this.activeDialog = null;
             this.activeDialogData = null;
-            resolve(options.denyText ? 'cancel' : false);
+            if (options.type === 'prompt') {
+              resolve(null);
+            } else {
+              resolve(hasDeny ? 'cancel' : false);
+            }
           }
         };
       });
+    },
+    showBusyDialog(options = {}) {
+      this.closeDropdowns();
+      this.activeDialog = 'dialog';
+      this.activeDialogData = {
+        icon: 'codicon-clockface',
+        ...options,
+        type: 'busy',
+        closable: false,
+      };
     },
     closeDialog() {
       this.activeDialog = null;
@@ -74,6 +138,7 @@ export const useUiStore = defineStore('ui', {
     lock() {
       this.privateKey = null;
       this.isLocked = true;
+      clearStorageCrypto();
     },
     unlock(seed) {
       this.privateKey = seed;

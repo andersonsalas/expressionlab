@@ -1,9 +1,11 @@
 import { setActivePinia, createPinia } from 'pinia';
 import { useUiStore } from '../../stores/ui.js';
 import { handleUnlock } from '../../lib/unlock-handler.js';
+import { isStorageCryptoReady, clearStorageCrypto } from '../../lib/storage-crypto.js';
 
 jest.mock('../../lib/api/client.js', () => ({
   requestChallenge: jest.fn(),
+  handleLocalStorage: jest.fn().mockResolvedValue(null),
 }));
 
 jest.mock('../../lib/helpers.js', () => {
@@ -143,5 +145,27 @@ describe('handleUnlock - Security Flow', () => {
 
     expect(unlockSpy).not.toHaveBeenCalled();
     unlockSpy.mockRestore();
+  });
+
+  it('initializes storage crypto from seed and dispatches expressionlab:unlocked event on success', async () => {
+    clearStorageCrypto();
+    requestChallenge.mockResolvedValueOnce(true);
+
+    let unlockedEventFired = false;
+    const onUnlocked = () => {
+      unlockedEventFired = true;
+    };
+    window.addEventListener('expressionlab:unlocked', onUnlocked);
+
+    const mockSeed = new Uint8Array(32).fill(9);
+    const err = await new Promise((resolve) => {
+      handleUnlock(mockSeed, (e) => resolve(e));
+    });
+
+    window.removeEventListener('expressionlab:unlocked', onUnlocked);
+
+    expect(err).toBeNull();
+    expect(isStorageCryptoReady()).toBe(true);
+    expect(unlockedEventFired).toBe(true);
   });
 });

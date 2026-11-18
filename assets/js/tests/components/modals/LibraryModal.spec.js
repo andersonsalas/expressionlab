@@ -1186,6 +1186,56 @@ describe('LibraryModal.vue', () => {
     expect(savedSnippet.id).toBe('Test');
     expect(savedSnippet.isDraft).toBeUndefined();
   });
+
+  it('disables Insert button when active tab is a locked read-only notebook', async () => {
+    const { handleLocalStorage } = require('../../../lib/api/client.js');
+    handleLocalStorage.mockImplementation((method, key) => {
+      if (method === 'getItem' && key === 'el_snippets') {
+        return JSON.stringify([
+          { id: 'snip1', name: 'My Snippet', code: 'testCode()', tags: [] }
+        ]);
+      }
+      return null;
+    });
+
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'library' },
+        tabs: {
+          activeTabId: 'tab_locked_nb',
+          tabs: [
+            {
+              id: 'tab_locked_nb',
+              mode: 'notebook',
+              notebookFileHandleId: 'handle-locked',
+              notebookMeta: { meta: { isReadOnly: true } },
+              notebookUnlockedForEditing: false,
+              notebookPersistedReadOnly: true,
+            }
+          ]
+        }
+      },
+      stubActions: false
+    });
+
+    const wrapper = mount(LibraryModal, {
+      global: {
+        plugins: [pinia]
+      }
+    });
+
+    await flushPromises();
+    await nextTick();
+
+    const insertBtn = wrapper.find('.btn-insert');
+    expect(insertBtn.exists()).toBe(true);
+    expect(insertBtn.attributes('disabled')).toBeDefined();
+    expect(insertBtn.attributes('title')).toBe('Notebook is in Read-Only mode');
+
+    const uiStore = useUiStore();
+    await insertBtn.trigger('click');
+    expect(uiStore.snippetToInsert).toBeNull();
+  });
 });
 
 

@@ -674,3 +674,77 @@ a.cm-docblock.doc-link {
 		}
 	}
 }
+
+.cm-panel.cm-search {
+	padding: 5px 8px;
+	background: #f8f9fa;
+	border-bottom: 1px solid #d0d7de;
+	font-size: 12px;
+	font-family: vars.$font-family-sans;
+
+	input {
+		padding: 2px 6px;
+		font-size: 12px;
+		border: 1px solid vars.$border-color;
+		border-radius: 3px;
+		outline: none;
+
+		&:focus {
+			border-color: vars.$wordpress-primary;
+		}
+	}
+
+	button {
+		font-size: 12px;
+		padding: 2px 8px;
+		margin: 0 2px;
+		background: #fff;
+		border: 1px solid vars.$border-color;
+		border-radius: 3px;
+		cursor: pointer;
+
+		&:hover {
+			background: #f0f0f0;
+		}
+	}
+
+	label {
+		font-size: 11px;
+		margin: 0 4px;
+	}
+}
+
+/* stylelint-disable no-descending-specificity */
+.cm-searchMatch {
+	background-color: #ff9632 !important;
+	border-color: #ff9632 !important;
+	color: #fff !important;
+	border-radius: 0 !important;
+	outline-color: #ff9632 !important;
+
+	span {
+		color: #fff !important;
+	}
+
+	&.cm-searchMatch-selected {
+		background-color: #ffe600 !important;
+		color: #000 !important;
+
+		span {
+			color: #000 !important;
+		}
+	}
+}
+
+.cm-searchMatch-selected {
+	background-color: #ffe600 !important;
+	border-color: #ffe600 !important;
+	outline-color: #ffe600 !important;
+	color: #000 !important;
+	padding: 0 !important;
+
+	span {
+		color: #000 !important;
+	}
+}
+/* stylelint-enable no-descending-specificity */

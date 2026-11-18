@@ -16,6 +16,7 @@ use ExpressionLab\Core\LanguageEngine;
 use ExpressionLab\Core\Helper;
 use ExpressionLab\Core\AdminPage;
 use ExpressionLab\Core\AuditLogger;
+use ExpressionLab\Core\Updater;
 use ExpressionLab\Core\Exceptions\SecurityException;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -43,6 +44,15 @@ class Console extends AdminPage {
 	 * @var string
 	 */
 	public const NONCE_ACTION = 'fpw_nonce';
+
+	/**
+	 * Maximum length of a client-supplied cell identifier in batch evaluations.
+	 *
+	 * @since 1.0.0
+	 * @internal
+	 * @var int
+	 */
+	public const MAX_BATCH_CELL_ID_LENGTH = 64;
 
 	/**
 	 * Determines whether the console page should load.
@@ -210,6 +220,7 @@ class Console extends AdminPage {
 
 		return array(
 			'version'    => EXPRESSION_LAB_VERSION,
+			'locale'     => get_user_locale(),
 			'user_id'    => get_current_user_id(),
 			'salt'       => defined( 'EXPRESSION_LAB_ADMIN_SALT' ) ? EXPRESSION_LAB_ADMIN_SALT : '',
 			'public_key' => defined( 'EXPRESSION_LAB_ADMIN_PUBLIC_KEY' ) ? EXPRESSION_LAB_ADMIN_PUBLIC_KEY : '',
@@ -228,6 +239,7 @@ class Console extends AdminPage {
 				'enable_sandbox'      => EXPRESSION_LAB_SANDBOX_ENABLED,
 				'is_playground'       => Helper::is_playground(),
 				'hooks_enabled'       => defined( 'EXPRESSION_LAB_HOOKS_ENABLED' ) && EXPRESSION_LAB_HOOKS_ENABLED,
+				'addon_enabled'       => defined( 'EXPRESSION_LAB_ADDON_ENABLED' ) && EXPRESSION_LAB_ADDON_ENABLED,
 				'enable_cache'        => EXPRESSION_LAB_CACHE,
 				'debug_mode'          => EXPRESSION_LAB_DEBUG_MODE,
 				'browser_log'         => EXPRESSION_LAB_BROWSER_LOG,
@@ -250,6 +262,7 @@ class Console extends AdminPage {
 				'sodium_enabled' => extension_loaded( 'sodium' ),
 				'is_playground'  => Helper::is_playground(),
 			),
+			'updates'    => Updater::get()->get_cached_update_status(),
 			'i18n'       => $this->get_i18n_strings(),
 		);
 	}
@@ -265,238 +278,583 @@ class Console extends AdminPage {
 	protected function get_i18n_strings(): array {
 		return array(
 			// Toolbar & Controls.
-			'Clear'                                      => __( 'Clear', 'expression-lab' ),
-			'Clear session'                              => __( 'Clear session', 'expression-lab' ),
-			'Format code (Shift+Alt+F)'                  => __( 'Format code (Shift+Alt+F)', 'expression-lab' ),
-			'Settings'                                   => __( 'Settings', 'expression-lab' ),
-			'About Expression Lab'                       => __( 'About Expression Lab', 'expression-lab' ),
-			'Toggle sidebar outline'                     => __( 'Toggle sidebar outline', 'expression-lab' ),
-			'User'                                       => __( 'User', 'expression-lab' ),
-			'Search users...'                            => __( 'Search users...', 'expression-lab' ),
-			'Site'                                       => __( 'Site', 'expression-lab' ),
-			'Search by domain/path...'                   => __( 'Search by domain/path...', 'expression-lab' ),
-			'Current site'                               => __( 'Current site', 'expression-lab' ),
-			'Library'                                    => __( 'Library', 'expression-lab' ),
-			'Loading...'                                 => __( 'Loading...', 'expression-lab' ),
-			'Error evaluating expression.'               => __( 'Error evaluating expression.', 'expression-lab' ),
-			'Copy to clipboard'                          => __( 'Copy to clipboard', 'expression-lab' ),
-			'Edit input'                                 => __( 'Edit input', 'expression-lab' ),
-			'Search...'                                  => __( 'Search...', 'expression-lab' ),
-			'Objects'                                    => __( 'Objects', 'expression-lab' ),
-			'Functions'                                  => __( 'Functions', 'expression-lab' ),
-			'Constants'                                  => __( 'Constants', 'expression-lab' ),
-			'No results found'                           => __( 'No results found', 'expression-lab' ),
-			'Loading outline'                            => __( 'Loading outline', 'expression-lab' ),
-			'No outline available'                       => __( 'No outline available', 'expression-lab' ),
+			'Clear'                                       => __( 'Clear', 'expression-lab' ),
+			'Clear session'                               => __( 'Clear session', 'expression-lab' ),
+			'Format code (Shift+Alt+F)'                   => __( 'Format code (Shift+Alt+F)', 'expression-lab' ),
+			'Settings'                                    => __( 'Settings', 'expression-lab' ),
+			'About Expression Lab'                        => __( 'About Expression Lab', 'expression-lab' ),
+			'Toggle sidebar outline'                      => __( 'Toggle sidebar outline', 'expression-lab' ),
+			'User'                                        => __( 'User', 'expression-lab' ),
+			'Search users...'                             => __( 'Search users...', 'expression-lab' ),
+			'Site'                                        => __( 'Site', 'expression-lab' ),
+			'Search by domain/path...'                    => __( 'Search by domain/path...', 'expression-lab' ),
+			'Current site'                                => __( 'Current site', 'expression-lab' ),
+			'Library'                                     => __( 'Library', 'expression-lab' ),
+			'Loading...'                                  => __( 'Loading...', 'expression-lab' ),
+			'Error evaluating expression.'                => __( 'Error evaluating expression.', 'expression-lab' ),
+			'Copy to clipboard'                           => __( 'Copy to clipboard', 'expression-lab' ),
+			'Edit input'                                  => __( 'Edit input', 'expression-lab' ),
+			'Search...'                                   => __( 'Search...', 'expression-lab' ),
+			'Objects'                                     => __( 'Objects', 'expression-lab' ),
+			'Functions'                                   => __( 'Functions', 'expression-lab' ),
+			'Constants'                                   => __( 'Constants', 'expression-lab' ),
+			'No results found'                            => __( 'No results found', 'expression-lab' ),
+			'Loading outline'                             => __( 'Loading outline', 'expression-lab' ),
+			'No outline available'                        => __( 'No outline available', 'expression-lab' ),
 
 			// Tabs & Workspaces.
-			'New Console tab'                            => __( 'New Console tab', 'expression-lab' ),
-			'New Scratchpad tab'                         => __( 'New Scratchpad tab', 'expression-lab' ),
-			'New tab options'                            => __( 'New tab options', 'expression-lab' ),
-			'Close tab'                                  => __( 'Close tab', 'expression-lab' ),
-			'Close all tabs'                             => __( 'Close all tabs', 'expression-lab' ),
-			'Close all except current'                   => __( 'Close all except current', 'expression-lab' ),
-			'Close all to the right'                     => __( 'Close all to the right', 'expression-lab' ),
-			'Rename'                                     => __( 'Rename', 'expression-lab' ),
-			'Scroll tabs left'                           => __( 'Scroll tabs left', 'expression-lab' ),
-			'Scroll tabs right'                          => __( 'Scroll tabs right', 'expression-lab' ),
-			'Console'                                    => __( 'Console', 'expression-lab' ),
-			'Scratchpad'                                 => __( 'Scratchpad', 'expression-lab' ),
+			'New Console tab'                             => __( 'New Console tab', 'expression-lab' ),
+			'New Scratchpad tab'                          => __( 'New Scratchpad tab', 'expression-lab' ),
+			'New tab options'                             => __( 'New tab options', 'expression-lab' ),
+			'Close tab'                                   => __( 'Close tab', 'expression-lab' ),
+			'Close all tabs'                              => __( 'Close all tabs', 'expression-lab' ),
+			'Close all except current'                    => __( 'Close all except current', 'expression-lab' ),
+			'Close all to the right'                      => __( 'Close all to the right', 'expression-lab' ),
+			'Rename'                                      => __( 'Rename', 'expression-lab' ),
+			'Scroll tabs left'                            => __( 'Scroll tabs left', 'expression-lab' ),
+			'Scroll tabs right'                           => __( 'Scroll tabs right', 'expression-lab' ),
+			'Console'                                     => __( 'Console', 'expression-lab' ),
+			'Scratchpad'                                  => __( 'Scratchpad', 'expression-lab' ),
+			'Unsaved Notebook'                            => __( 'Unsaved Notebook', 'expression-lab' ),
+			'Unsaved Notebooks'                           => __( 'Unsaved Notebooks', 'expression-lab' ),
+			/* translators: %s: notebook title */
+			'The notebook "%s" has unsaved changes. Are you sure you want to close it without saving?' => __( 'The notebook "%s" has unsaved changes. Are you sure you want to close it without saving?', 'expression-lab' ),
+			/* translators: %d: number of unsaved notebooks */
+			'You have %d notebooks with unsaved changes. Are you sure you want to close them without saving?' => __( 'You have %d notebooks with unsaved changes. Are you sure you want to close them without saving?', 'expression-lab' ),
+			'Discard'                                     => __( 'Discard', 'expression-lab' ),
 
 			// Scratchpad & Execution.
-			'Run (Ctrl+Enter / Cmd+Enter / Ctrl+R)'      => __( 'Run (Ctrl+Enter / Cmd+Enter / Ctrl+R)', 'expression-lab' ),
-			'Run expression (Scratchpad mode only)'      => __( 'Run expression (Scratchpad mode only)', 'expression-lab' ),
-			'Save snippet to Library'                    => __( 'Save snippet to Library', 'expression-lab' ),
+			'Run (Ctrl+Enter / Cmd+Enter / Ctrl+R)'       => __( 'Run (Ctrl+Enter / Cmd+Enter / Ctrl+R)', 'expression-lab' ),
+			'Run expression (Scratchpad mode only)'       => __( 'Run expression (Scratchpad mode only)', 'expression-lab' ),
+			'Save snippet to Library'                     => __( 'Save snippet to Library', 'expression-lab' ),
 			'Save snippet to Library (Scratchpad mode only)' => __( 'Save snippet to Library (Scratchpad mode only)', 'expression-lab' ),
-			'Toggle output panel'                        => __( 'Toggle output panel', 'expression-lab' ),
-			'Toggle output panel (Scratchpad mode only)' => __( 'Toggle output panel (Scratchpad mode only)', 'expression-lab' ),
-			'Evaluating expression...'                   => __( 'Evaluating expression...', 'expression-lab' ),
-			'Clear output'                               => __( 'Clear output', 'expression-lab' ),
-			'Hide output panel'                          => __( 'Hide output panel', 'expression-lab' ),
-			'Output'                                     => __( 'Output', 'expression-lab' ),
+			'Toggle output panel'                         => __( 'Toggle output panel', 'expression-lab' ),
+			'Toggle output panel (Scratchpad mode only)'  => __( 'Toggle output panel (Scratchpad mode only)', 'expression-lab' ),
+			'Evaluating expression...'                    => __( 'Evaluating expression...', 'expression-lab' ),
+			'Clear output'                                => __( 'Clear output', 'expression-lab' ),
+			'Hide output panel'                           => __( 'Hide output panel', 'expression-lab' ),
+			'Output'                                      => __( 'Output', 'expression-lab' ),
 			/* translators: %s: object type */
-			'Object Type: %s'                            => __( 'Object Type: %s', 'expression-lab' ),
-			'No deferred console messages available.'    => __( 'No deferred console messages available.', 'expression-lab' ),
+			'Object Type: %s'                             => __( 'Object Type: %s', 'expression-lab' ),
+			'No deferred console messages available.'     => __( 'No deferred console messages available.', 'expression-lab' ),
 			'Run an expression (Ctrl+Enter or Play) to view results here.' => __( 'Run an expression (Ctrl+Enter or Play) to view results here.', 'expression-lab' ),
-			'Drag to resize / Double-click to auto-fit'  => __( 'Drag to resize / Double-click to auto-fit', 'expression-lab' ),
-			'Scratchpad Snippet'                         => __( 'Scratchpad Snippet', 'expression-lab' ),
+			'Drag to resize / Double-click to auto-fit'   => __( 'Drag to resize / Double-click to auto-fit', 'expression-lab' ),
+			'Scratchpad Snippet'                          => __( 'Scratchpad Snippet', 'expression-lab' ),
 
 			// Documentation Tooltips.
-			'Parameters:'                                => __( 'Parameters:', 'expression-lab' ),
-			'Returns:'                                   => __( 'Returns:', 'expression-lab' ),
-			'See also:'                                  => __( 'See also:', 'expression-lab' ),
-			'Type:'                                      => __( 'Type:', 'expression-lab' ),
-			'Value:'                                     => __( 'Value:', 'expression-lab' ),
-			'Default:'                                   => __( 'Default:', 'expression-lab' ),
+			'Parameters:'                                 => __( 'Parameters:', 'expression-lab' ),
+			'Returns:'                                    => __( 'Returns:', 'expression-lab' ),
+			'See also:'                                   => __( 'See also:', 'expression-lab' ),
+			'Type:'                                       => __( 'Type:', 'expression-lab' ),
+			'Value:'                                      => __( 'Value:', 'expression-lab' ),
+			'Default:'                                    => __( 'Default:', 'expression-lab' ),
 
 			// Footer Badges.
-			'Hide Sensitive Info'                        => __( 'Hide Sensitive Info', 'expression-lab' ),
-			'Show Sensitive Info'                        => __( 'Show Sensitive Info', 'expression-lab' ),
-			'Server:'                                    => __( 'Server:', 'expression-lab' ),
-			'User:'                                      => __( 'User:', 'expression-lab' ),
-			'PHP:'                                       => __( 'PHP:', 'expression-lab' ),
-			'WP:'                                        => __( 'WP:', 'expression-lab' ),
-			'Debug:'                                     => __( 'Debug:', 'expression-lab' ),
-			'Enabled'                                    => __( 'Enabled', 'expression-lab' ),
-			'Disabled'                                   => __( 'Disabled', 'expression-lab' ),
-			'Database:'                                  => __( 'Database:', 'expression-lab' ),
-			'Files:'                                     => __( 'Files:', 'expression-lab' ),
-			'Network:'                                   => __( 'Network:', 'expression-lab' ),
-			'Locked'                                     => __( 'Locked', 'expression-lab' ),
-			'Unlocked'                                   => __( 'Unlocked', 'expression-lab' ),
-			'Requesting signature...'                    => __( 'Requesting signature...', 'expression-lab' ),
-			'Signature expired'                          => __( 'Signature expired', 'expression-lab' ),
-			'Signed'                                     => __( 'Signed', 'expression-lab' ),
-			'Sandbox disabled'                           => __( 'Sandbox disabled', 'expression-lab' ),
+			'Hide Sensitive Info'                         => __( 'Hide Sensitive Info', 'expression-lab' ),
+			'Show Sensitive Info'                         => __( 'Show Sensitive Info', 'expression-lab' ),
+			'Server:'                                     => __( 'Server:', 'expression-lab' ),
+			'User:'                                       => __( 'User:', 'expression-lab' ),
+			'PHP:'                                        => __( 'PHP:', 'expression-lab' ),
+			'WP:'                                         => __( 'WP:', 'expression-lab' ),
+			'Debug:'                                      => __( 'Debug:', 'expression-lab' ),
+			'Enabled'                                     => __( 'Enabled', 'expression-lab' ),
+			'Disabled'                                    => __( 'Disabled', 'expression-lab' ),
+			'Database:'                                   => __( 'Database:', 'expression-lab' ),
+			'Files:'                                      => __( 'Files:', 'expression-lab' ),
+			'Network:'                                    => __( 'Network:', 'expression-lab' ),
+			'Locked'                                      => __( 'Locked', 'expression-lab' ),
+			'Unlocked'                                    => __( 'Unlocked', 'expression-lab' ),
+			'Requesting signature...'                     => __( 'Requesting signature...', 'expression-lab' ),
+			'Signature expired'                           => __( 'Signature expired', 'expression-lab' ),
+			'Signed'                                      => __( 'Signed', 'expression-lab' ),
+			'Sandbox disabled'                            => __( 'Sandbox disabled', 'expression-lab' ),
 
 			// Password Screen.
-			'Enter your passphrase:'                     => __( 'Enter your passphrase:', 'expression-lab' ),
-			'Please enter your passphrase.'              => __( 'Please enter your passphrase.', 'expression-lab' ),
-			'Password too short.'                        => __( 'Password too short.', 'expression-lab' ),
-			'Salt not found in configuration.'           => __( 'Salt not found in configuration.', 'expression-lab' ),
-			'Invalid passphrase.'                        => __( 'Invalid passphrase.', 'expression-lab' ),
-			'Failed: '                                   => __( 'Failed: ', 'expression-lab' ),
+			'Enter your passphrase:'                      => __( 'Enter your passphrase:', 'expression-lab' ),
+			'Please enter your passphrase.'               => __( 'Please enter your passphrase.', 'expression-lab' ),
+			'Password too short.'                         => __( 'Password too short.', 'expression-lab' ),
+			'Salt not found in configuration.'            => __( 'Salt not found in configuration.', 'expression-lab' ),
+			'Invalid passphrase.'                         => __( 'Invalid passphrase.', 'expression-lab' ),
+			'Failed: '                                    => __( 'Failed: ', 'expression-lab' ),
 			/* translators: %s: error message */
-			'Failed: %s'                                 => __( 'Failed: %s', 'expression-lab' ),
-			'Unlocking...'                               => __( 'Unlocking...', 'expression-lab' ),
-			'Unlock'                                     => __( 'Unlock', 'expression-lab' ),
+			'Failed: %s'                                  => __( 'Failed: %s', 'expression-lab' ),
+			'Unlocking...'                                => __( 'Unlocking...', 'expression-lab' ),
+			'Unlock'                                      => __( 'Unlock', 'expression-lab' ),
 			'If you forgot this passphrase, you must delete the Expression Lab constants from your <code>wp-config.php</code> to trigger a new installation.' => __( 'If you forgot this passphrase, you must delete the Expression Lab constants from your <code>wp-config.php</code> to trigger a new installation.', 'expression-lab' ),
-			'An error occurred during verification.'     => __( 'An error occurred during verification.', 'expression-lab' ),
+			'An error occurred during verification.'      => __( 'An error occurred during verification.', 'expression-lab' ),
 
 			// Settings Modal.
-			'Default new tab layout'                     => __( 'Default new tab layout', 'expression-lab' ),
+			'General'                                     => __( 'General', 'expression-lab' ),
+			'Updates'                                     => __( 'Updates', 'expression-lab' ),
+			'License'                                     => __( 'License', 'expression-lab' ),
+			'Default new tab layout'                      => __( 'Default new tab layout', 'expression-lab' ),
 			'Choose the default layout for newly created tabs. This also affects the action of the New Tab button in the tab bar.' => __( 'Choose the default layout for newly created tabs. This also affects the action of the New Tab button in the tab bar.', 'expression-lab' ),
 			'Interactive single-expression evaluation with immediate output.' => __( 'Interactive single-expression evaluation with immediate output.', 'expression-lab' ),
 			'Multi-line script editor with dedicated execution and output inspection panels.' => __( 'Multi-line script editor with dedicated execution and output inspection panels.', 'expression-lab' ),
-			'Browser cache'                              => __( 'Browser cache', 'expression-lab' ),
+			'Browser cache'                               => __( 'Browser cache', 'expression-lab' ),
 			'Clear cached WordPress functions, classes, and outline symbols stored in your browser.' => __( 'Clear cached WordPress functions, classes, and outline symbols stored in your browser.', 'expression-lab' ),
-			'Clear cache'                                => __( 'Clear cache', 'expression-lab' ),
-			'Clearing...'                                => __( 'Clearing...', 'expression-lab' ),
-			'Refresh filesystem cache'                   => __( 'Refresh filesystem cache', 'expression-lab' ),
+			'Clear cache'                                 => __( 'Clear cache', 'expression-lab' ),
+			'Clearing...'                                 => __( 'Clearing...', 'expression-lab' ),
+			'Refresh filesystem cache'                    => __( 'Refresh filesystem cache', 'expression-lab' ),
+			'You are using the latest version.'           => __( 'You are using the latest version.', 'expression-lab' ),
+			/* translators: 1: new available version number, 2: currently installed version number */
+			'A new version is available: %1$s (Installed: %2$s)' => __( 'A new version is available: %1$s (Installed: %2$s)', 'expression-lab' ),
 
 			// About Modal.
-			'About'                                      => __( 'About', 'expression-lab' ),
-			'Close'                                      => __( 'Close', 'expression-lab' ),
-			'© Anderson Salas and contributors.'         => __( '© Anderson Salas and contributors.', 'expression-lab' ),
-			'Website'                                    => __( 'Website', 'expression-lab' ),
-			'Docs'                                       => __( 'Docs', 'expression-lab' ),
-			'GitHub'                                     => __( 'GitHub', 'expression-lab' ),
+			'About'                                       => __( 'About', 'expression-lab' ),
+			'Close'                                       => __( 'Close', 'expression-lab' ),
+			'Professional Edition'                        => __( 'Professional Edition', 'expression-lab' ),
+			'© Anderson Salas and contributors.'          => __( '© Anderson Salas and contributors.', 'expression-lab' ),
+			'Website'                                     => __( 'Website', 'expression-lab' ),
+			'Docs'                                        => __( 'Docs', 'expression-lab' ),
+			'GitHub'                                      => __( 'GitHub', 'expression-lab' ),
+			'Expression Lab Professional Edition includes proprietary add-on components and WebAssembly modules governed by the End-User License Agreement (EULA). Commercial use requires a valid license; unlicensed evaluation is subject to the terms of the EULA.' => __( 'Expression Lab Professional Edition includes proprietary add-on components and WebAssembly modules governed by the End-User License Agreement (EULA). Commercial use requires a valid license; unlicensed evaluation is subject to the terms of the EULA.', 'expression-lab' ),
+			'The core Expression Lab plugin is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.' => __( 'The core Expression Lab plugin is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.', 'expression-lab' ),
+			'This software is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the EULA and the GNU General Public License for more details.' => __( 'This software is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the EULA and the GNU General Public License for more details.', 'expression-lab' ),
 			'This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.' => __( 'This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.', 'expression-lab' ),
 			'This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.' => __( 'This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.', 'expression-lab' ),
 			'You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.' => __( 'You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.', 'expression-lab' ),
 
 			// Dialog Modal.
-			'Accept'                                     => __( 'Accept', 'expression-lab' ),
-			'Cancel'                                     => __( 'Cancel', 'expression-lab' ),
+			'Accept'                                      => __( 'Accept', 'expression-lab' ),
+			'Cancel'                                      => __( 'Cancel', 'expression-lab' ),
 
 			// Library Modal.
-			'Save changes?'                              => __( 'Save changes?', 'expression-lab' ),
+			'Save changes?'                               => __( 'Save changes?', 'expression-lab' ),
 			'You have unsaved changes in the current snippet. Do you want to save them?' => __( 'You have unsaved changes in the current snippet. Do you want to save them?', 'expression-lab' ),
-			'Save'                                       => __( 'Save', 'expression-lab' ),
-			"Don't save"                                 => __( "Don't save", 'expression-lab' ),
-			'Snippet library'                            => __( 'Snippet library', 'expression-lab' ),
+			'Save'                                        => __( 'Save', 'expression-lab' ),
+			"Don't save"                                  => __( "Don't save", 'expression-lab' ),
+			'Snippet library'                             => __( 'Snippet library', 'expression-lab' ),
 			'Save your frequent snippets here to reuse them easily.' => __( 'Save your frequent snippets here to reuse them easily.', 'expression-lab' ),
-			'Pro tip:'                                   => __( 'Pro tip:', 'expression-lab' ),
+			'Pro tip:'                                    => __( 'Pro tip:', 'expression-lab' ),
 			'select Use local file system to save snippets to your hard drive.' => __( 'select Use local file system to save snippets to your hard drive.', 'expression-lab' ),
 			/* translators: %s: directory name */
-			'Permission required to access folder "%s".' => __( 'Permission required to access folder "%s".', 'expression-lab' ),
-			'Grant Access'                               => __( 'Grant Access', 'expression-lab' ),
-			'File System Error'                          => __( 'File System Error', 'expression-lab' ),
-			'Could not connect to local folder.'         => __( 'Could not connect to local folder.', 'expression-lab' ),
-			'Import Error'                               => __( 'Import Error', 'expression-lab' ),
-			'Failed to select file.'                     => __( 'Failed to select file.', 'expression-lab' ),
-			'Invalid JSON'                               => __( 'Invalid JSON', 'expression-lab' ),
+			'Permission required to access folder "%s".'  => __( 'Permission required to access folder "%s".', 'expression-lab' ),
+			'Grant Access'                                => __( 'Grant Access', 'expression-lab' ),
+			'File System Error'                           => __( 'File System Error', 'expression-lab' ),
+			'Could not connect to local folder.'          => __( 'Could not connect to local folder.', 'expression-lab' ),
+			'Import Error'                                => __( 'Import Error', 'expression-lab' ),
+			'Failed to select file.'                      => __( 'Failed to select file.', 'expression-lab' ),
+			'Invalid JSON'                                => __( 'Invalid JSON', 'expression-lab' ),
 			'The selected file is not a valid JSON document.' => __( 'The selected file is not a valid JSON document.', 'expression-lab' ),
-			'Empty File'                                 => __( 'Empty File', 'expression-lab' ),
-			'No snippets found in the selected file.'    => __( 'No snippets found in the selected file.', 'expression-lab' ),
-			'Import Complete'                            => __( 'Import Complete', 'expression-lab' ),
+			'Empty File'                                  => __( 'Empty File', 'expression-lab' ),
+			'No snippets found in the selected file.'     => __( 'No snippets found in the selected file.', 'expression-lab' ),
+			'Import Complete'                             => __( 'Import Complete', 'expression-lab' ),
 			/* translators: %d: count of imported snippets */
-			'Successfully imported %d snippet(s).'       => __( 'Successfully imported %d snippet(s).', 'expression-lab' ),
-			'New Snippet'                                => __( 'New Snippet', 'expression-lab' ),
-			'Delete Snippet'                             => __( 'Delete Snippet', 'expression-lab' ),
+			'Successfully imported %d snippet(s).'        => __( 'Successfully imported %d snippet(s).', 'expression-lab' ),
+			'New Snippet'                                 => __( 'New Snippet', 'expression-lab' ),
+			'Delete Snippet'                              => __( 'Delete Snippet', 'expression-lab' ),
 			'Are you sure you want to delete this snippet?' => __( 'Are you sure you want to delete this snippet?', 'expression-lab' ),
-			'Delete'                                     => __( 'Delete', 'expression-lab' ),
-			'Search'                                     => __( 'Search', 'expression-lab' ),
-			'Add Snippet'                                => __( 'Add Snippet', 'expression-lab' ),
-			'Duplicate Snippet Name'                     => __( 'Duplicate Snippet Name', 'expression-lab' ),
+			'Delete'                                      => __( 'Delete', 'expression-lab' ),
+			'Search'                                      => __( 'Search', 'expression-lab' ),
+			'Add Snippet'                                 => __( 'Add Snippet', 'expression-lab' ),
+			'Duplicate Snippet Name'                      => __( 'Duplicate Snippet Name', 'expression-lab' ),
 			/* translators: %s: snippet name */
 			'A snippet named "%s" already exists. Please choose a different name.' => __( 'A snippet named "%s" already exists. Please choose a different name.', 'expression-lab' ),
-			'Syntax error in snippet'                    => __( 'Syntax error in snippet', 'expression-lab' ),
-			'Add tags...'                                => __( 'Add tags...', 'expression-lab' ),
-			'Remove tag'                                 => __( 'Remove tag', 'expression-lab' ),
-			'(Untitled)'                                 => __( '(Untitled)', 'expression-lab' ),
-			'Untitled'                                   => __( 'Untitled', 'expression-lab' ),
-			'No snippets found.'                         => __( 'No snippets found.', 'expression-lab' ),
+			'Syntax error in snippet'                     => __( 'Syntax error in snippet', 'expression-lab' ),
+			'Add tags...'                                 => __( 'Add tags...', 'expression-lab' ),
+			'Remove tag'                                  => __( 'Remove tag', 'expression-lab' ),
+			'(Untitled)'                                  => __( '(Untitled)', 'expression-lab' ),
+			'Untitled'                                    => __( 'Untitled', 'expression-lab' ),
+			'No snippets found.'                          => __( 'No snippets found.', 'expression-lab' ),
 			'Store snippets in a local folder using native File System API' => __( 'Store snippets in a local folder using native File System API', 'expression-lab' ),
-			'Use local file system'                      => __( 'Use local file system', 'expression-lab' ),
-			'Not available'                              => __( 'Not available', 'expression-lab' ),
+			'Use local file system'                       => __( 'Use local file system', 'expression-lab' ),
+			'Not available'                               => __( 'Not available', 'expression-lab' ),
 			'Local file system access is not available in this environment' => __( 'Local file system access is not available in this environment', 'expression-lab' ),
-			'Import or export snippets'                  => __( 'Import or export snippets', 'expression-lab' ),
-			'Import/Export'                              => __( 'Import/Export', 'expression-lab' ),
-			'Import JSON'                                => __( 'Import JSON', 'expression-lab' ),
-			'Export JSON'                                => __( 'Export JSON', 'expression-lab' ),
-			'Snippet title'                              => __( 'Snippet title', 'expression-lab' ),
-			'No snippet selected.'                       => __( 'No snippet selected.', 'expression-lab' ),
-			'Insert'                                     => __( 'Insert', 'expression-lab' ),
-			'OK'                                         => __( 'OK', 'expression-lab' ),
+			'Import or export snippets'                   => __( 'Import or export snippets', 'expression-lab' ),
+			'Import/Export'                               => __( 'Import/Export', 'expression-lab' ),
+			'Import JSON'                                 => __( 'Import JSON', 'expression-lab' ),
+			'Export JSON'                                 => __( 'Export JSON', 'expression-lab' ),
+			'Snippet title'                               => __( 'Snippet title', 'expression-lab' ),
+			'No snippet selected.'                        => __( 'No snippet selected.', 'expression-lab' ),
+			'Insert'                                      => __( 'Insert', 'expression-lab' ),
+			'OK'                                          => __( 'OK', 'expression-lab' ),
 
 			// Dropdown UI.
-			'Select'                                     => __( 'Select', 'expression-lab' ),
-			'No results found.'                          => __( 'No results found.', 'expression-lab' ),
+			'Select'                                      => __( 'Select', 'expression-lab' ),
+			'No results found.'                           => __( 'No results found.', 'expression-lab' ),
 
 			// Accessibility & UI Elements.
-			'Site Icon'                                  => __( 'Site Icon', 'expression-lab' ),
-			'User Avatar'                                => __( 'User Avatar', 'expression-lab' ),
-			'Avatar'                                     => __( 'Avatar', 'expression-lab' ),
+			'Site Icon'                                   => __( 'Site Icon', 'expression-lab' ),
+			'User Avatar'                                 => __( 'User Avatar', 'expression-lab' ),
+			'Avatar'                                      => __( 'Avatar', 'expression-lab' ),
 
 			// Visualizations & Data Viewer.
-			'Raw'                                        => __( 'Raw', 'expression-lab' ),
-			'Preview'                                    => __( 'Preview', 'expression-lab' ),
-			'Data viewer'                                => __( 'Data viewer', 'expression-lab' ),
+			'Raw'                                         => __( 'Raw', 'expression-lab' ),
+			'Preview'                                     => __( 'Preview', 'expression-lab' ),
+			'Data viewer'                                 => __( 'Data viewer', 'expression-lab' ),
 			/* translators: %s: column name */
-			'Data viewer - %s'                           => __( 'Data viewer - %s', 'expression-lab' ),
-			'View data...'                               => __( 'View data...', 'expression-lab' ),
-			'Copy cell value'                            => __( 'Copy cell value', 'expression-lab' ),
-			'Word Wrap'                                  => __( 'Word Wrap', 'expression-lab' ),
-			'Auto'                                       => __( 'Auto', 'expression-lab' ),
-			'No highlighting'                            => __( 'No highlighting', 'expression-lab' ),
-			'No preview available'                       => __( 'No preview available', 'expression-lab' ),
-			'Copied!'                                    => __( 'Copied!', 'expression-lab' ),
-			'Expand all'                                 => __( 'Expand all', 'expression-lab' ),
-			'Collapse all'                               => __( 'Collapse all', 'expression-lab' ),
-			'Search in data...'                          => __( 'Search in data...', 'expression-lab' ),
-			'Search path (e.g. response.args[0])...'     => __( 'Search path (e.g. response.args[0])...', 'expression-lab' ),
-			'Free text search'                           => __( 'Free text search', 'expression-lab' ),
-			'Path expression (Symfony / Dot-syntax)'     => __( 'Path expression (Symfony / Dot-syntax)', 'expression-lab' ),
-			'Clear search'                               => __( 'Clear search', 'expression-lab' ),
-			'No matches found'                           => __( 'No matches found', 'expression-lab' ),
-			'Path found'                                 => __( 'Path found', 'expression-lab' ),
-			'Path not found'                             => __( 'Path not found', 'expression-lab' ),
-			'1 match'                                    => __( '1 match', 'expression-lab' ),
+			'Data viewer - %s'                            => __( 'Data viewer - %s', 'expression-lab' ),
+			'View data...'                                => __( 'View data...', 'expression-lab' ),
+			'Copy cell value'                             => __( 'Copy cell value', 'expression-lab' ),
+			'Word Wrap'                                   => __( 'Word Wrap', 'expression-lab' ),
+			'Auto'                                        => __( 'Auto', 'expression-lab' ),
+			'No highlighting'                             => __( 'No highlighting', 'expression-lab' ),
+			'No preview available'                        => __( 'No preview available', 'expression-lab' ),
+			'Copied!'                                     => __( 'Copied!', 'expression-lab' ),
+			'Expand all'                                  => __( 'Expand all', 'expression-lab' ),
+			'Collapse all'                                => __( 'Collapse all', 'expression-lab' ),
+			'Search in data...'                           => __( 'Search in data...', 'expression-lab' ),
+			'Search path (e.g. response.args[0])...'      => __( 'Search path (e.g. response.args[0])...', 'expression-lab' ),
+			'Free text search'                            => __( 'Free text search', 'expression-lab' ),
+			'Path expression (Symfony / Dot-syntax)'      => __( 'Path expression (Symfony / Dot-syntax)', 'expression-lab' ),
+			'Clear search'                                => __( 'Clear search', 'expression-lab' ),
+			'No matches found'                            => __( 'No matches found', 'expression-lab' ),
+			'Path found'                                  => __( 'Path found', 'expression-lab' ),
+			'Path not found'                              => __( 'Path not found', 'expression-lab' ),
+			'1 match'                                     => __( '1 match', 'expression-lab' ),
 			/* translators: %d: number of search matches */
-			'%d matches'                                 => __( '%d matches', 'expression-lab' ),
+			'%d matches'                                  => __( '%d matches', 'expression-lab' ),
 			/* translators: %s: PHP class that declares the private property */
-			'Declared in %s'                             => __( 'Declared in %s', 'expression-lab' ),
-			'Table'                                      => __( 'Table', 'expression-lab' ),
-			'Visualization'                              => __( 'Visualization', 'expression-lab' ),
+			'Declared in %s'                              => __( 'Declared in %s', 'expression-lab' ),
+			'Table'                                       => __( 'Table', 'expression-lab' ),
+			'Visualization'                               => __( 'Visualization', 'expression-lab' ),
 			/* translators: %s: visualization type */
-			'Unknown visualization type: %s'             => __( 'Unknown visualization type: %s', 'expression-lab' ),
-			'Paginate'                                   => __( 'Paginate', 'expression-lab' ),
+			'Unknown visualization type: %s'              => __( 'Unknown visualization type: %s', 'expression-lab' ),
+			'Paginate'                                    => __( 'Paginate', 'expression-lab' ),
 			/* translators: %d: page size */
-			'%d per page'                                => __( '%d per page', 'expression-lab' ),
+			'%d per page'                                 => __( '%d per page', 'expression-lab' ),
 			/* translators: %d: number of rows */
-			'%d rows'                                    => __( '%d rows', 'expression-lab' ),
+			'%d rows'                                     => __( '%d rows', 'expression-lab' ),
 			/* translators: %d: total number of rows before filtering */
-			'(filtered from %d)'                         => __( '(filtered from %d)', 'expression-lab' ),
-			'&laquo; Prev'                               => __( '&laquo; Prev', 'expression-lab' ),
-			'Next &raquo;'                               => __( 'Next &raquo;', 'expression-lab' ),
+			'(filtered from %d)'                          => __( '(filtered from %d)', 'expression-lab' ),
+			'&laquo; Prev'                                => __( '&laquo; Prev', 'expression-lab' ),
+			'Next &raquo;'                                => __( 'Next &raquo;', 'expression-lab' ),
 			/* translators: 1: current page number, 2: total pages */
-			'Page %1$d / %2$d'                           => __( 'Page %1$d / %2$d', 'expression-lab' ),
-			'Export CSV'                                 => __( 'Export CSV', 'expression-lab' ),
+			'Page %1$d / %2$d'                            => __( 'Page %1$d / %2$d', 'expression-lab' ),
+			'Export CSV'                                  => __( 'Export CSV', 'expression-lab' ),
 			/* translators: %s: column name */
-			'Search %s'                                  => __( 'Search %s', 'expression-lab' ),
-			'Click to expand/collapse'                   => __( 'Click to expand/collapse', 'expression-lab' ),
-			'No data to display.'                        => __( 'No data to display.', 'expression-lab' ),
+			'Search %s'                                   => __( 'Search %s', 'expression-lab' ),
+			'Click to expand/collapse'                    => __( 'Click to expand/collapse', 'expression-lab' ),
+			'No data to display.'                         => __( 'No data to display.', 'expression-lab' ),
+
+			// Find & Replace Widget.
+			'Hide Replace'                                => __( 'Hide Replace', 'expression-lab' ),
+			'Show Replace'                                => __( 'Show Replace', 'expression-lab' ),
+			'Find in scratchpad...'                       => __( 'Find in scratchpad...', 'expression-lab' ),
+			'Invalid regex'                               => __( 'Invalid regex', 'expression-lab' ),
+			'No results'                                  => __( 'No results', 'expression-lab' ),
+			'Match Case (Alt+C)'                          => __( 'Match Case (Alt+C)', 'expression-lab' ),
+			'Match Whole Word (Alt+W)'                    => __( 'Match Whole Word (Alt+W)', 'expression-lab' ),
+			'Use Regular Expression (Alt+R)'              => __( 'Use Regular Expression (Alt+R)', 'expression-lab' ),
+			'Previous Match (Shift+Enter)'                => __( 'Previous Match (Shift+Enter)', 'expression-lab' ),
+			'Next Match (Enter)'                          => __( 'Next Match (Enter)', 'expression-lab' ),
+			'Close (Esc)'                                 => __( 'Close (Esc)', 'expression-lab' ),
+			'Replace with...'                             => __( 'Replace with...', 'expression-lab' ),
+			'Replace (Enter)'                             => __( 'Replace (Enter)', 'expression-lab' ),
+			'Replace All (Shift+Enter)'                   => __( 'Replace All (Shift+Enter)', 'expression-lab' ),
+
+			// Console Sidebar, Tab Bar & Workspace Toolbar.
+			'Symbols'                                     => __( 'Symbols', 'expression-lab' ),
+			'Outline'                                     => __( 'Outline', 'expression-lab' ),
+			'New Notebook tab'                            => __( 'New Notebook tab', 'expression-lab' ),
+			'Encrypted Notebook'                          => __( 'Encrypted Notebook', 'expression-lab' ),
+			'Evaluation'                                  => __( 'Evaluation', 'expression-lab' ),
+			'Notebook'                                    => __( 'Notebook', 'expression-lab' ),
+			'New'                                         => __( 'New', 'expression-lab' ),
+			'Replace'                                     => __( 'Replace', 'expression-lab' ),
+			'Format Code'                                 => __( 'Format Code', 'expression-lab' ),
+			'Expression Lab'                              => __( 'Expression Lab', 'expression-lab' ),
+			'Community Edition'                           => __( 'Community Edition', 'expression-lab' ),
+			'Open Notebook (.elab)... (Ctrl+O / Cmd+O)'   => __( 'Open Notebook (.elab)... (Ctrl+O / Cmd+O)', 'expression-lab' ),
+			'Clear all cell outputs'                      => __( 'Clear all cell outputs', 'expression-lab' ),
+			'Format all code cells (Shift+Alt+F)'         => __( 'Format all code cells (Shift+Alt+F)', 'expression-lab' ),
+			'Open tools'                                  => __( 'Open tools', 'expression-lab' ),
+			'Tools'                                       => __( 'Tools', 'expression-lab' ),
+			'Run all cells (Ctrl+R)'                      => __( 'Run all cells (Ctrl+R)', 'expression-lab' ),
+			'Run expression (Enter)'                      => __( 'Run expression (Enter)', 'expression-lab' ),
+			'Notebook is Read-Only (Ctrl+S / Cmd+S)'      => __( 'Notebook is Read-Only (Ctrl+S / Cmd+S)', 'expression-lab' ),
+			'Save Notebook (.elab) (Ctrl+S / Cmd+S)'      => __( 'Save Notebook (.elab) (Ctrl+S / Cmd+S)', 'expression-lab' ),
+			'Save snippet to Library (Ctrl+S / Cmd+S)'    => __( 'Save snippet to Library (Ctrl+S / Cmd+S)', 'expression-lab' ),
+			'Unsaved Changes'                             => __( 'Unsaved Changes', 'expression-lab' ),
+			/* translators: %d: number of unsaved notebooks */
+			'%d notebooks have unsaved changes. Discard changes and close all?' => __( '%d notebooks have unsaved changes. Discard changes and close all?', 'expression-lab' ),
+			/* translators: %s: notebook title */
+			'"%s" has unsaved changes. Discard changes and close?' => __( '"%s" has unsaved changes. Discard changes and close?', 'expression-lab' ),
+			'Searching...'                                => __( 'Searching...', 'expression-lab' ),
+
+			// Settings Modal (Tab Layout Cards).
+			'Single expression evaluation with instant output.' => __( 'Single expression evaluation with instant output.', 'expression-lab' ),
+			'Multi-line script editor with dedicated output.' => __( 'Multi-line script editor with dedicated output.', 'expression-lab' ),
+			'Interactive cells with Markdown and code blocks.' => __( 'Interactive cells with Markdown and code blocks.', 'expression-lab' ),
+
+			// Output Panels & Visualizations.
+			'Image'                                       => __( 'Image', 'expression-lab' ),
+			'File'                                        => __( 'File', 'expression-lab' ),
+			'Output Messages'                             => __( 'Output Messages', 'expression-lab' ),
+			'Data Preview'                                => __( 'Data Preview', 'expression-lab' ),
+			'Raw Output'                                  => __( 'Raw Output', 'expression-lab' ),
+			'Collapse'                                    => __( 'Collapse', 'expression-lab' ),
+			/* translators: 1: current match index, 2: total match count */
+			'%1$d of %2$d'                                => __( '%1$d of %2$d', 'expression-lab' ),
+			'Search in file...'                           => __( 'Search in file...', 'expression-lab' ),
+			'Previous match (Shift+Enter)'                => __( 'Previous match (Shift+Enter)', 'expression-lab' ),
+			'Next match (Enter)'                          => __( 'Next match (Enter)', 'expression-lab' ),
+			/* translators: %d: number of lines */
+			'%d lines'                                    => __( '%d lines', 'expression-lab' ),
+			'Toggle word wrap'                            => __( 'Toggle word wrap', 'expression-lab' ),
+			'Failed to load or decode image.'             => __( 'Failed to load or decode image.', 'expression-lab' ),
+			'No image data available.'                    => __( 'No image data available.', 'expression-lab' ),
+			'Click or drag to navigate'                   => __( 'Click or drag to navigate', 'expression-lab' ),
+			'Zoom to fit'                                 => __( 'Zoom to fit', 'expression-lab' ),
+			'Zoom out'                                    => __( 'Zoom out', 'expression-lab' ),
+			'Click to reset zoom to 100%'                 => __( 'Click to reset zoom to 100%', 'expression-lab' ),
+			'Zoom in'                                     => __( 'Zoom in', 'expression-lab' ),
+
+			// Shared Builders & Read-Only Guards.
+			'Reset'                                       => __( 'Reset', 'expression-lab' ),
+			'Conditions'                                  => __( 'Conditions', 'expression-lab' ),
+			'Options'                                     => __( 'Options', 'expression-lab' ),
+			'Code Preview'                                => __( 'Code Preview', 'expression-lab' ),
+			'OR'                                          => __( 'OR', 'expression-lab' ),
+			'Column'                                      => __( 'Column', 'expression-lab' ),
+			'Operator'                                    => __( 'Operator', 'expression-lab' ),
+			'Value'                                       => __( 'Value', 'expression-lab' ),
+			'Column name'                                 => __( 'Column name', 'expression-lab' ),
+			'and'                                         => __( 'and', 'expression-lab' ),
+			'Min value'                                   => __( 'Min value', 'expression-lab' ),
+			'Max value'                                   => __( 'Max value', 'expression-lab' ),
+			'Value type: '                                => __( 'Value type: ', 'expression-lab' ),
+			'Normal text'                                 => __( 'Normal text', 'expression-lab' ),
+			'Datetime'                                    => __( 'Datetime', 'expression-lab' ),
+			'Timestamp'                                   => __( 'Timestamp', 'expression-lab' ),
+			'1, 2, 3 or \'draft\', \'publish\''           => __( '1, 2, 3 or \'draft\', \'publish\'', 'expression-lab' ),
+			'Edit items in bulk (multiline list)'         => __( 'Edit items in bulk (multiline list)', 'expression-lab' ),
+			'Remove row'                                  => __( 'Remove row', 'expression-lab' ),
+			'Duplicate column detected. Conditions on the same column in an AND group overwrite each other. Use IN / NOT IN, BETWEEN, or add an OR Group instead.' => __( 'Duplicate column detected. Conditions on the same column in an AND group overwrite each other. Use IN / NOT IN, BETWEEN, or add an OR Group instead.', 'expression-lab' ),
+			'Remove condition group'                      => __( 'Remove condition group', 'expression-lab' ),
+			'Remove Group'                                => __( 'Remove Group', 'expression-lab' ),
+			'Add Filter'                                  => __( 'Add Filter', 'expression-lab' ),
+			'Add OR Group'                                => __( 'Add OR Group', 'expression-lab' ),
+			'Offset'                                      => __( 'Offset', 'expression-lab' ),
+			'SQL Query'                                   => __( 'SQL Query', 'expression-lab' ),
+			'Format SQL'                                  => __( 'Format SQL', 'expression-lab' ),
+			'Generated Expression'                        => __( 'Generated Expression', 'expression-lab' ),
+			'Copy Code'                                   => __( 'Copy Code', 'expression-lab' ),
+			'Notebook is in Read-Only mode'               => __( 'Notebook is in Read-Only mode', 'expression-lab' ),
+			'Edit Values List'                            => __( 'Edit Values List', 'expression-lab' ),
+			'Enter or paste one value per line. Values with commas will be automatically handled.' => __( 'Enter or paste one value per line. Values with commas will be automatically handled.', 'expression-lab' ),
+			'Trim whitespace'                             => __( 'Trim whitespace', 'expression-lab' ),
+			'Remove duplicates'                           => __( 'Remove duplicates', 'expression-lab' ),
+			'item'                                        => __( 'item', 'expression-lab' ),
+			'items'                                       => __( 'items', 'expression-lab' ),
+			'Apply'                                       => __( 'Apply', 'expression-lab' ),
+
+			// Database Query Builder Modal.
+			'The database query configuration is empty. Specify a table name to generate a valid database expression.' => __( 'The database query configuration is empty. Specify a table name to generate a valid database expression.', 'expression-lab' ),
+			'The SQL query is empty. Provide a valid SQLite query to generate a valid database expression.' => __( 'The SQL query is empty. Provide a valid SQLite query to generate a valid database expression.', 'expression-lab' ),
+			'Reset Query Builder?'                        => __( 'Reset Query Builder?', 'expression-lab' ),
+			'This will clear all configured tables, filters, and options, restoring the builder to its default state. Are you sure?' => __( 'This will clear all configured tables, filters, and options, restoring the builder to its default state. Are you sure?', 'expression-lab' ),
+			'Database Query Builder'                      => __( 'Database Query Builder', 'expression-lab' ),
+			'Operation Mode:'                             => __( 'Operation Mode:', 'expression-lab' ),
+			'Mirror (Database.mirror)'                    => __( 'Mirror (Database.mirror)', 'expression-lab' ),
+			'Count (Database.count)'                      => __( 'Count (Database.count)', 'expression-lab' ),
+			'Scroll pipeline left'                        => __( 'Scroll pipeline left', 'expression-lab' ),
+			'Remove step'                                 => __( 'Remove step', 'expression-lab' ),
+			'Add In-site Join Step'                       => __( 'Add In-site Join Step', 'expression-lab' ),
+			'Add table'                                   => __( 'Add table', 'expression-lab' ),
+			'Scroll pipeline right'                       => __( 'Scroll pipeline right', 'expression-lab' ),
+			'Buffer Safety'                               => __( 'Buffer Safety', 'expression-lab' ),
+			'Result & SQL'                                => __( 'Result & SQL', 'expression-lab' ),
+			'Duplicate table detected. Calling mirror() twice on the same table overwrites it in SQLite unless a custom alias (\'as\') is assigned.' => __( 'Duplicate table detected. Calling mirror() twice on the same table overwrites it in SQLite unless a custom alias (\'as\') is assigned.', 'expression-lab' ),
+			'Table Name'                                  => __( 'Table Name', 'expression-lab' ),
+			'Enter the table name (e.g. \'posts\', \'users\', or a custom table).' => __( 'Enter the table name (e.g. \'posts\', \'users\', or a custom table).', 'expression-lab' ),
+			'SQLite Table Alias (\'as\')'                 => __( 'SQLite Table Alias (\'as\')', 'expression-lab' ),
+			'default'                                     => __( 'default', 'expression-lab' ),
+			'Optional. Defaults to the table name in SQLite so queries can reference it directly.' => __( 'Optional. Defaults to the table name in SQLite so queries can reference it directly.', 'expression-lab' ),
+			'Optional. Useful when mirroring the same table more than once, or to simplify your SQL queries.' => __( 'Optional. Useful when mirroring the same table more than once, or to simplify your SQL queries.', 'expression-lab' ),
+			'Table Prefix'                                => __( 'Table Prefix', 'expression-lab' ),
+			'Prefix disabled'                             => __( 'Prefix disabled', 'expression-lab' ),
+			'Default ($wpdb->prefix)'                     => __( 'Default ($wpdb->prefix)', 'expression-lab' ),
+			'Prefix is disabled for this table.'          => __( 'Prefix is disabled for this table.', 'expression-lab' ),
+			'Optional. Override table prefix for multisite or external tables.' => __( 'Optional. Override table prefix for multisite or external tables.', 'expression-lab' ),
+			'Prefix'                                      => __( 'Prefix', 'expression-lab' ),
+			'Disable table prefix'                        => __( 'Disable table prefix', 'expression-lab' ),
+			'Queries the exact table name in MySQL without prepending the WordPress database prefix.' => __( 'Queries the exact table name in MySQL without prepending the WordPress database prefix.', 'expression-lab' ),
+			'e.g. ID, post_author'                        => __( 'e.g. ID, post_author', 'expression-lab' ),
+			'No value required (checks nullability)'      => __( 'No value required (checks nullability)', 'expression-lab' ),
+			'Select Columns'                              => __( 'Select Columns', 'expression-lab' ),
+			'Leave blank or * to retrieve all columns.'   => __( 'Leave blank or * to retrieve all columns.', 'expression-lab' ),
+			'Prefix disabled by table setting'            => __( 'Prefix disabled by table setting', 'expression-lab' ),
+			'Prefix is disabled for this table in Table.' => __( 'Prefix is disabled for this table in Table.', 'expression-lab' ),
+			'Limit (Max rows)'                            => __( 'Limit (Max rows)', 'expression-lab' ),
+			'Default is capped to in-memory buffer limit (1,000).' => __( 'Default is capped to in-memory buffer limit (1,000).', 'expression-lab' ),
+			'Number of rows to skip for pagination.'      => __( 'Number of rows to skip for pagination.', 'expression-lab' ),
+			'Order By Column'                             => __( 'Order By Column', 'expression-lab' ),
+			'Order Direction'                             => __( 'Order Direction', 'expression-lab' ),
+			'Queries are limited to 1,000 rows by default to protect server memory. Expand the buffer below to process larger datasets.' => __( 'Queries are limited to 1,000 rows by default to protect server memory. Expand the buffer below to process larger datasets.', 'expression-lab' ),
+			'Custom Buffer Size'                          => __( 'Custom Buffer Size', 'expression-lab' ),
+			'Auto-enabled (limit exceeds 1,000)'          => __( 'Auto-enabled (limit exceeds 1,000)', 'expression-lab' ),
+			'Max Total Rows'                              => __( 'Max Total Rows', 'expression-lab' ),
+			'Cumulative rows allowed in RAM across all mirrored tables.' => __( 'Cumulative rows allowed in RAM across all mirrored tables.', 'expression-lab' ),
+			'Max Memory Limit (MB)'                       => __( 'Max Memory Limit (MB)', 'expression-lab' ),
+			'Estimated PHP RAM usage guard in Megabytes.' => __( 'Estimated PHP RAM usage guard in Megabytes.', 'expression-lab' ),
+			'PHP Overhead Factor'                         => __( 'PHP Overhead Factor', 'expression-lab' ),
+			'Multiplier heuristic for PHP in-memory structures.' => __( 'Multiplier heuristic for PHP in-memory structures.', 'expression-lab' ),
+			'Result Action'                               => __( 'Result Action', 'expression-lab' ),
+			'Keep data in memory'                         => __( 'Keep data in memory', 'expression-lab' ),
+			'Free memory after retrieval'                 => __( 'Free memory after retrieval', 'expression-lab' ),
+			'Execute custom SQLite query'                 => __( 'Execute custom SQLite query', 'expression-lab' ),
+
+			// Entity Query Builder Modal.
+			'The SQL query is empty. Provide a valid SQLite query to generate a valid entity expression.' => __( 'The SQL query is empty. Provide a valid SQLite query to generate a valid entity expression.', 'expression-lab' ),
+			'The SQL query contains syntax errors. Fix the errors to generate a valid entity expression.' => __( 'The SQL query contains syntax errors. Fix the errors to generate a valid entity expression.', 'expression-lab' ),
+			'One or more filter conditions are incomplete. Specify all required values or remove empty filters.' => __( 'One or more filter conditions are incomplete. Specify all required values or remove empty filters.', 'expression-lab' ),
+			'The entity query configuration is empty or incomplete. Complete the required inputs to generate a valid expression.' => __( 'The entity query configuration is empty or incomplete. Complete the required inputs to generate a valid expression.', 'expression-lab' ),
+			'Datetime (datetime-local)'                   => __( 'Datetime (datetime-local)', 'expression-lab' ),
+			'Timestamp (UNIX)'                            => __( 'Timestamp (UNIX)', 'expression-lab' ),
+			'Reset Entity Query Builder?'                 => __( 'Reset Entity Query Builder?', 'expression-lab' ),
+			'This will clear all configured filters, sorting, and options for the current entity, restoring it to defaults. Are you sure?' => __( 'This will clear all configured filters, sorting, and options for the current entity, restoring it to defaults. Are you sure?', 'expression-lab' ),
+			'Entity Query Builder'                        => __( 'Entity Query Builder', 'expression-lab' ),
+			'Target Entity'                               => __( 'Target Entity', 'expression-lab' ),
+			'More entities...'                            => __( 'More entities...', 'expression-lab' ),
+			'More...'                                     => __( 'More...', 'expression-lab' ),
+			'No additional entities'                      => __( 'No additional entities', 'expression-lab' ),
+			'Sorting & Pagination'                        => __( 'Sorting & Pagination', 'expression-lab' ),
+			'Terminal Action'                             => __( 'Terminal Action', 'expression-lab' ),
+			'Ordering'                                    => __( 'Ordering', 'expression-lab' ),
+			'Direction'                                   => __( 'Direction', 'expression-lab' ),
+			'Ascending (ASC)'                             => __( 'Ascending (ASC)', 'expression-lab' ),
+			'Descending (DESC)'                           => __( 'Descending (DESC)', 'expression-lab' ),
+			'Delete sorting clause'                       => __( 'Delete sorting clause', 'expression-lab' ),
+			'Duplicate column detected in sorting clauses. Multiple order_by calls on the same column overwrite each other.' => __( 'Duplicate column detected in sorting clauses. Multiple order_by calls on the same column overwrite each other.', 'expression-lab' ),
+			'Add Sorting Clause'                          => __( 'Add Sorting Clause', 'expression-lab' ),
+			'Pagination'                                  => __( 'Pagination', 'expression-lab' ),
+			'Limit'                                       => __( 'Limit', 'expression-lab' ),
+			'Maximum number of records to return.'        => __( 'Maximum number of records to return.', 'expression-lab' ),
+			'Number of records to skip.'                  => __( 'Number of records to skip.', 'expression-lab' ),
+			'Query Execution Method'                      => __( 'Query Execution Method', 'expression-lab' ),
+			'Retrieve records array.'                     => __( 'Retrieve records array.', 'expression-lab' ),
+			'Count matching records.'                     => __( 'Count matching records.', 'expression-lab' ),
+			'Compile parameterized SQL.'                  => __( 'Compile parameterized SQL.', 'expression-lab' ),
+			'Execute custom SQL query.'                   => __( 'Execute custom SQL query.', 'expression-lab' ),
+			'Compile as SELECT COUNT(*)'                  => __( 'Compile as SELECT COUNT(*)', 'expression-lab' ),
+			'Generates a query to count matching rows directly in MySQL instead of compiling full column selection.' => __( 'Generates a query to count matching rows directly in MySQL instead of compiling full column selection.', 'expression-lab' ),
+
+			// Filesystem Inspector Modal.
+			'Reset Filesystem Inspector?'                 => __( 'Reset Filesystem Inspector?', 'expression-lab' ),
+			'This will clear all configured file selections and parameters, restoring defaults. Are you sure?' => __( 'This will clear all configured file selections and parameters, restoring defaults. Are you sure?', 'expression-lab' ),
+			'Filesystem Inspector'                        => __( 'Filesystem Inspector', 'expression-lab' ),
+			'Presets'                                     => __( 'Presets', 'expression-lab' ),
+			'Selected target is from Presets'             => __( 'Selected target is from Presets', 'expression-lab' ),
+			'File Tree'                                   => __( 'File Tree', 'expression-lab' ),
+			'Selected target is from File Tree'           => __( 'Selected target is from File Tree', 'expression-lab' ),
+			'Custom Path'                                 => __( 'Custom Path', 'expression-lab' ),
+			'Selected target is from Custom Path'         => __( 'Selected target is from Custom Path', 'expression-lab' ),
+			'Target'                                      => __( 'Target', 'expression-lab' ),
+			'Operation'                                   => __( 'Operation', 'expression-lab' ),
+			'Common System Files & Shortcuts'             => __( 'Common System Files & Shortcuts', 'expression-lab' ),
+			'Loading filesystem metadata...'              => __( 'Loading filesystem metadata...', 'expression-lab' ),
+			'Retry'                                       => __( 'Retry', 'expression-lab' ),
+			'Not found'                                   => __( 'Not found', 'expression-lab' ),
+			'WordPress Filesystem Tree'                   => __( 'WordPress Filesystem Tree', 'expression-lab' ),
+			'Filter files and folders...'                 => __( 'Filter files and folders...', 'expression-lab' ),
+			'Name'                                        => __( 'Name', 'expression-lab' ),
+			'Size'                                        => __( 'Size', 'expression-lab' ),
+			'User:Group'                                  => __( 'User:Group', 'expression-lab' ),
+			'Perms'                                       => __( 'Perms', 'expression-lab' ),
+			'Scanning filesystem tree...'                 => __( 'Scanning filesystem tree...', 'expression-lab' ),
+			'No matching files or directories found.'     => __( 'No matching files or directories found.', 'expression-lab' ),
+			'Manual Relative Path'                        => __( 'Manual Relative Path', 'expression-lab' ),
+			'Relative Path'                               => __( 'Relative Path', 'expression-lab' ),
+			'e.g. wp-content/debug.log or wp-content/plugins/my-plugin/config.json' => __( 'e.g. wp-content/debug.log or wp-content/plugins/my-plugin/config.json', 'expression-lab' ),
+			'Enter any path relative to WordPress root (ABSPATH).' => __( 'Enter any path relative to WordPress root (ABSPATH).', 'expression-lab' ),
+			'Target Type'                                 => __( 'Target Type', 'expression-lab' ),
+			'Enables file operations.'                    => __( 'Enables file operations.', 'expression-lab' ),
+			'Directory'                                   => __( 'Directory', 'expression-lab' ),
+			'Enables directory operations.'               => __( 'Enables directory operations.', 'expression-lab' ),
+			'Applicable Operations'                       => __( 'Applicable Operations', 'expression-lab' ),
+			'Parameters'                                  => __( 'Parameters', 'expression-lab' ),
+			'Lines to Tail'                               => __( 'Lines to Tail', 'expression-lab' ),
+			'Number of lines from end of file (1 - 500).' => __( 'Number of lines from end of file (1 - 500).', 'expression-lab' ),
+			'Maximum Kilobytes to Read'                   => __( 'Maximum Kilobytes to Read', 'expression-lab' ),
+			'Maximum kilobytes to read into memory (1 - 256 KB).' => __( 'Maximum kilobytes to read into memory (1 - 256 KB).', 'expression-lab' ),
+			'Full Array'                                  => __( 'Full Array', 'expression-lab' ),
+			'Byte count and formatted size string.'       => __( 'Byte count and formatted size string.', 'expression-lab' ),
+			'Human-Readable String'                       => __( 'Human-Readable String', 'expression-lab' ),
+			'Formatted size string with binary units.'    => __( 'Formatted size string with binary units.', 'expression-lab' ),
+			'Raw Bytes Count'                             => __( 'Raw Bytes Count', 'expression-lab' ),
+			'Numeric file size in raw bytes.'             => __( 'Numeric file size in raw bytes.', 'expression-lab' ),
+			'Unix timestamp and formatted UTC date.'      => __( 'Unix timestamp and formatted UTC date.', 'expression-lab' ),
+			'Formatted UTC String'                        => __( 'Formatted UTC String', 'expression-lab' ),
+			'Human-readable UTC date and time.'           => __( 'Human-readable UTC date and time.', 'expression-lab' ),
+			'Unix Epoch Timestamp'                        => __( 'Unix Epoch Timestamp', 'expression-lab' ),
+			'Numeric seconds since unix epoch.'           => __( 'Numeric seconds since unix epoch.', 'expression-lab' ),
+			'Full Details'                                => __( 'Full Details', 'expression-lab' ),
+			'Unix permissions and ownership.'             => __( 'Unix permissions and ownership.', 'expression-lab' ),
+			'Octal Permissions'                           => __( 'Octal Permissions', 'expression-lab' ),
+			'Canonical octal permissions string.'         => __( 'Canonical octal permissions string.', 'expression-lab' ),
+			'Symbolic Mode'                               => __( 'Symbolic Mode', 'expression-lab' ),
+			'Standard Unix style permissions string.'     => __( 'Standard Unix style permissions string.', 'expression-lab' ),
+			'Owner Username'                              => __( 'Owner Username', 'expression-lab' ),
+			'Unix user name of the file owner.'           => __( 'Unix user name of the file owner.', 'expression-lab' ),
+			'Group Name'                                  => __( 'Group Name', 'expression-lab' ),
+			'Unix group name of the file.'                => __( 'Unix group name of the file.', 'expression-lab' ),
+			'Full Summary with Charts'                    => __( 'Full Summary with Charts', 'expression-lab' ),
+			'Interactive summary and charts.'             => __( 'Interactive summary and charts.', 'expression-lab' ),
+			'Total Size String'                           => __( 'Total Size String', 'expression-lab' ),
+			'Human-readable total size.'                  => __( 'Human-readable total size.', 'expression-lab' ),
+			'Total File Count'                            => __( 'Total File Count', 'expression-lab' ),
+			'Total number of files.'                      => __( 'Total number of files.', 'expression-lab' ),
+			'Total Subdirectories Count'                  => __( 'Total Subdirectories Count', 'expression-lab' ),
+			'Number of subdirectories.'                   => __( 'Number of subdirectories.', 'expression-lab' ),
+			'Please select a file or directory to preview the generated expression.' => __( 'Please select a file or directory to preview the generated expression.', 'expression-lab' ),
+			'Copy expression to clipboard'                => __( 'Copy expression to clipboard', 'expression-lab' ),
+			'Copy code'                                   => __( 'Copy code', 'expression-lab' ),
+
+			// HTTP Request Builder Modal.
+			'Reset Request Builder?'                      => __( 'Reset Request Builder?', 'expression-lab' ),
+			'This will clear all configured URL, parameters, headers, and options, restoring the builder to its default state. Are you sure?' => __( 'This will clear all configured URL, parameters, headers, and options, restoring the builder to its default state. Are you sure?', 'expression-lab' ),
+			'HTTP Request Builder'                        => __( 'HTTP Request Builder', 'expression-lab' ),
+			'Select HTTP Method'                          => __( 'Select HTTP Method', 'expression-lab' ),
+			'Params'                                      => __( 'Params', 'expression-lab' ),
+			'Authorization'                               => __( 'Authorization', 'expression-lab' ),
+			'Headers'                                     => __( 'Headers', 'expression-lab' ),
+			'Body'                                        => __( 'Body', 'expression-lab' ),
+			'Query Parameters'                            => __( 'Query Parameters', 'expression-lab' ),
+			'Key'                                         => __( 'Key', 'expression-lab' ),
+			'Remove'                                      => __( 'Remove', 'expression-lab' ),
+			'Add Parameter'                               => __( 'Add Parameter', 'expression-lab' ),
+			'Type'                                        => __( 'Type', 'expression-lab' ),
+			'No Auth'                                     => __( 'No Auth', 'expression-lab' ),
+			'Bearer Token'                                => __( 'Bearer Token', 'expression-lab' ),
+			'Basic Auth'                                  => __( 'Basic Auth', 'expression-lab' ),
+			'API Key'                                     => __( 'API Key', 'expression-lab' ),
+			'This request does not use any authorization headers.' => __( 'This request does not use any authorization headers.', 'expression-lab' ),
+			'Token'                                       => __( 'Token', 'expression-lab' ),
+			'Example:'                                    => __( 'Example:', 'expression-lab' ),
+			'Username'                                    => __( 'Username', 'expression-lab' ),
+			'Password'                                    => __( 'Password', 'expression-lab' ),
+			'Key Name'                                    => __( 'Key Name', 'expression-lab' ),
+			'Add to'                                      => __( 'Add to', 'expression-lab' ),
+			'Header'                                      => __( 'Header', 'expression-lab' ),
+			'Query Params'                                => __( 'Query Params', 'expression-lab' ),
+			'Request Headers'                             => __( 'Request Headers', 'expression-lab' ),
+			'Header name'                                 => __( 'Header name', 'expression-lab' ),
+			'Header value'                                => __( 'Header value', 'expression-lab' ),
+			'Add Header'                                  => __( 'Add Header', 'expression-lab' ),
+			'Body payload is only supported for POST requests. Select POST in the method dropdown above to configure a request body.' => __( 'Body payload is only supported for POST requests. Select POST in the method dropdown above to configure a request body.', 'expression-lab' ),
+			'None'                                        => __( 'None', 'expression-lab' ),
+			'JSON'                                        => __( 'JSON', 'expression-lab' ),
+			'x-www-form-urlencoded'                       => __( 'x-www-form-urlencoded', 'expression-lab' ),
+			'This request does not have a body.'          => __( 'This request does not have a body.', 'expression-lab' ),
+			'Format JSON'                                 => __( 'Format JSON', 'expression-lab' ),
+			'Form Fields'                                 => __( 'Form Fields', 'expression-lab' ),
+			'Add Field'                                   => __( 'Add Field', 'expression-lab' ),
+			'Content-Type:'                               => __( 'Content-Type:', 'expression-lab' ),
+			'Transport Settings'                          => __( 'Transport Settings', 'expression-lab' ),
+			'Timeout (seconds)'                           => __( 'Timeout (seconds)', 'expression-lab' ),
+			'Default: 10 seconds.'                        => __( 'Default: 10 seconds.', 'expression-lab' ),
+			'HTTP Version'                                => __( 'HTTP Version', 'expression-lab' ),
+			'Custom User-Agent'                           => __( 'Custom User-Agent', 'expression-lab' ),
+			'Blocking request'                            => __( 'Blocking request', 'expression-lab' ),
+			'Compress request'                            => __( 'Compress request', 'expression-lab' ),
+			'Decompress response'                         => __( 'Decompress response', 'expression-lab' ),
+			'Cookies'                                     => __( 'Cookies', 'expression-lab' ),
+			'Cookie name'                                 => __( 'Cookie name', 'expression-lab' ),
+			'Cookie value'                                => __( 'Cookie value', 'expression-lab' ),
+			'Add Cookie'                                  => __( 'Add Cookie', 'expression-lab' ),
+			'The request configuration is empty. Enter a request URL to generate a valid HTTP expression.' => __( 'The request configuration is empty. Enter a request URL to generate a valid HTTP expression.', 'expression-lab' ),
 		);
 	}
 
@@ -681,7 +1039,7 @@ class Console extends AdminPage {
 	/**
 	 * AJAX endpoint to retrieve bounded filesystem metadata and presets asynchronously.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @return void
@@ -730,7 +1088,7 @@ class Console extends AdminPage {
 	 * The signature covers the query string on GET requests and the raw body on
 	 * POST requests, so parameters are read only from the matching superglobal.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @return array{0: string, 1: string} Challenge nonce and timestamp.
@@ -811,7 +1169,7 @@ class Console extends AdminPage {
 	 * This allows registering it as a shutdown function (status `aborted`) to
 	 * capture fatal errors and timeouts without duplicating regular records.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string   $expression      The evaluated expression (hashed by the logger, never stored).
@@ -845,7 +1203,313 @@ class Console extends AdminPage {
 	}
 
 	/**
-	 * Evaluates an expression string sent via AJAX and returns the output.
+	 * Formats an exception thrown during expression evaluation into a user-facing message.
+	 *
+	 * @since 1.0.0
+	 * @internal
+	 *
+	 * @param \Throwable $e          The caught exception or error.
+	 * @param string     $expression The expression that triggered the exception.
+	 * @return string Formatted error message.
+	 */
+	private function format_evaluation_error( \Throwable $e, string $expression ): string {
+		if ( $e instanceof \Symfony\Component\ExpressionLanguage\SyntaxError ) {
+			$msg = $e->getMessage();
+			// Symfony converts newlines to spaces during lexing. We restore the original multiline expression and remove trailing dot.
+			if ( preg_match( '/^(.*?\baround position \d+)(?: for expression `.*`)?(\.?\s*Did you mean "[^"]*"\??)?[.?\s]*$/s', $msg, $matches ) ) {
+				$suggestion = ! empty( $matches[2] ) ? '. ' . ltrim( str_replace( '`', '\`', $matches[2] ), '. ' ) : '';
+				$details    = str_replace( '`', '\`', $matches[1] );
+				/* translators: 1: syntax error details, 2: expression code span, 3: suggestion */
+				return sprintf( __( 'Syntax error: %1$s for expression %2$s%3$s', 'expression-lab' ), $details, Helper::format_markdown_code_span( $expression ), $suggestion );
+			}
+
+			/* translators: %s: syntax error details */
+			return sprintf( __( 'Syntax error: %s', 'expression-lab' ), rtrim( str_replace( '`', '\`', $msg ), '.' ) );
+		}
+
+		if ( ! empty( $e->getMessage() ) ) {
+			return $e->getMessage();
+		}
+
+		/* translators: %s: exception class name */
+		return sprintf( __( 'Expression error: %s', 'expression-lab' ), get_class( $e ) );
+	}
+
+	/**
+	 * Formats an evaluated result value and captured PHP output for JSON serialization.
+	 *
+	 * @since 1.0.0
+	 * @internal
+	 *
+	 * @param mixed       $result Evaluated expression result.
+	 * @param string|null $output Captured stdout buffer.
+	 * @param array       $errors Captured non-fatal PHP notices/warnings.
+	 * @return array{result: mixed, captured_output: string|null} Formatted result and output.
+	 */
+	private function format_evaluation_output( $result, ?string $output, array $errors ): array {
+		$wp_debug_enabled     = defined( 'WP_DEBUG' ) && WP_DEBUG;
+		$full_captured_output = null;
+
+		if ( $wp_debug_enabled ) {
+			$full_captured_output = $output;
+			if ( ! empty( $errors ) ) {
+				$full_captured_output .= ( $full_captured_output ? "\n" : '' ) . implode( "\n", $errors );
+			}
+		}
+
+		if ( is_string( $result ) && ! is_numeric( $result ) ) {
+			if ( false !== strpos( $result, '\'' ) && false === strpos( $result, '"' ) ) {
+				$result = '"' . $result . '"';
+			} elseif ( false !== strpos( $result, '\'' ) && false !== strpos( $result, '"' ) ) {
+				$result = '"' . addcslashes( $result, '"\\' ) . '"';
+			} else {
+				$result = '\'' . $result . '\'';
+			}
+		}
+
+		if ( is_float( $result ) && ( is_nan( $result ) || is_infinite( $result ) ) ) {
+			$result = (string) $result; // Prevent JSON encoding issues.
+		}
+
+		return array(
+			'result'          => $result,
+			'captured_output' => $full_captured_output,
+		);
+	}
+
+	/**
+	 * Evaluates a sequential batch of expressions sent via AJAX and returns per-cell outputs.
+	 *
+	 * @since 1.0.0
+	 * @internal
+	 *
+	 * @param mixed    $raw_expressions Raw `expressions` POST parameter (JSON string or array).
+	 * @param int      $actor_id        Authenticated user ID.
+	 * @param int|null $user_id         Execution-context user ID.
+	 * @param int|null $site_id         Execution-context site ID.
+	 * @param string   $challenge_nonce Challenge nonce from request.
+	 * @param string   $timestamp       Challenge timestamp from request.
+	 * @param float    $start_time      Request start timestamp.
+	 * @return void
+	 */
+	private function evaluate_batch( $raw_expressions, int $actor_id, ?int $user_id, ?int $site_id, string $challenge_nonce, string $timestamp, float $start_time ): void {
+		$decoded = is_string( $raw_expressions ) ? json_decode( $raw_expressions, true ) : $raw_expressions;
+
+		if ( ! is_array( $decoded ) || empty( $decoded ) ) {
+			wp_send_json_error( array( 'message' => __( 'No expressions provided', 'expression-lab' ) ), 400 );
+			return;
+		}
+
+		if ( array_values( $decoded ) !== $decoded ) {
+			wp_send_json_error( array( 'message' => __( 'Expressions must be provided as a sequential list.', 'expression-lab' ) ), 400 );
+			return;
+		}
+
+		if ( count( $decoded ) > LanguageEngine::MAX_BATCH_EXPRESSIONS ) {
+			wp_send_json_error(
+				array(
+					'message' => sprintf(
+						/* translators: %d: maximum number of expressions per batch */
+						__( 'Batch size exceeds the maximum limit of %d expressions.', 'expression-lab' ),
+						LanguageEngine::MAX_BATCH_EXPRESSIONS
+					),
+				),
+				400
+			);
+			return;
+		}
+
+		$normalized_items   = array();
+		$audit_concat_parts = array();
+
+		foreach ( $decoded as $index => $item ) {
+			$cell_id   = 'cell_' . ( $index + 1 );
+			$cell_expr = '';
+
+			if ( is_string( $item ) ) {
+				$cell_expr = $item;
+			} elseif ( is_array( $item ) ) {
+				if ( isset( $item['id'] ) && is_scalar( $item['id'] ) ) {
+					$sanitized_id = substr( sanitize_text_field( (string) $item['id'] ), 0, self::MAX_BATCH_CELL_ID_LENGTH );
+					if ( '' !== $sanitized_id ) {
+						$cell_id = $sanitized_id;
+					}
+				}
+				if ( isset( $item['expression'] ) && is_string( $item['expression'] ) ) {
+					$cell_expr = $item['expression'];
+				}
+			}
+
+			if ( 0 === strlen( $cell_expr ) ) {
+				wp_send_json_error( array( 'message' => __( 'No expression provided', 'expression-lab' ) ), 400 );
+				return;
+			}
+
+			$normalized_items[]   = array(
+				'id'         => $cell_id,
+				'expression' => $cell_expr,
+			);
+			$audit_concat_parts[] = $cell_expr;
+		}
+
+		$new_challenge = $this->verify_and_rotate_challenge( $challenge_nonce, $timestamp );
+		if ( ! $new_challenge ) {
+			wp_send_json_error(
+				array(
+					'code'    => 'challenge_required',
+					'message' => __( 'Invalid or expired challenge.', 'expression-lab' ),
+				),
+				403
+			);
+			return;
+		}
+
+		$record_audit = self::create_audit_recorder( implode( "\n", $audit_concat_parts ), $actor_id, $user_id, $site_id, $start_time );
+		register_shutdown_function( $record_audit, 'aborted' );
+
+		$engine = LanguageEngine::get()
+			->set_user_id( $user_id )
+			->set_site_id( $site_id );
+
+		$results            = array();
+		$had_errors         = false;
+		$total              = count( $normalized_items );
+		$batch_binary_bytes = 0;
+
+		try {
+			for ( $i = 0; $i < $total; $i++ ) {
+				$cell_id   = $normalized_items[ $i ]['id'];
+				$cell_expr = $normalized_items[ $i ]['expression'];
+
+				if ( function_exists( 'set_time_limit' ) ) {
+					// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged
+					@set_time_limit( (int) EXPRESSION_LAB_MAX_EXECUTION_LIMIT + 5 );
+				}
+
+				// The embedded binary budget spans the whole batch response, not each cell.
+				$engine->set_binary_bytes_baseline( $batch_binary_bytes );
+				$cell_start = microtime( true );
+
+				try {
+					$evaluation          = $engine->evaluate( $cell_expr );
+					$batch_binary_bytes += $engine->get_accumulated_binary_bytes();
+					$duration_ms         = (int) round( ( microtime( true ) - $cell_start ) * 1000 );
+					$formatted           = $this->format_evaluation_output(
+						$evaluation['result'],
+						$evaluation['output'],
+						$evaluation['errors']
+					);
+
+					$results[] = array(
+						'id'              => $cell_id,
+						'status'          => 'success',
+						'duration_ms'     => $duration_ms,
+						'result'          => $formatted['result'],
+						'object_type'     => $evaluation['object_type'],
+						'captured_output' => $formatted['captured_output'],
+						'messages'        => $evaluation['messages'],
+						'visualizations'  => $evaluation['visualizations'],
+					);
+				} catch ( \Throwable $e ) {
+					$duration_ms = (int) round( ( microtime( true ) - $cell_start ) * 1000 );
+					$had_errors  = true;
+
+					$results[] = array(
+						'id'          => $cell_id,
+						'status'      => 'error',
+						'duration_ms' => $duration_ms,
+						'message'     => $this->format_evaluation_error( $e, $cell_expr ),
+						'messages'    => $engine->get_messages(),
+					);
+
+					// Mark remaining cells as skipped (fail-fast preserving previous results).
+					for ( $j = $i + 1; $j < $total; $j++ ) {
+						$results[] = array(
+							'id'     => $normalized_items[ $j ]['id'],
+							'status' => 'skipped',
+						);
+					}
+					break;
+				}
+			}
+		} finally {
+			$engine->set_binary_bytes_baseline( 0 );
+		}
+
+		$record_audit( $had_errors ? 'error' : 'success' );
+
+		$response = $this->enforce_batch_payload_limit(
+			array(
+				'format'    => 'batch_json',
+				'challenge' => $new_challenge,
+				'results'   => $results,
+			)
+		);
+
+		wp_send_json_success( $response );
+	}
+
+	/**
+	 * Drops visualizations from the heaviest cells until the batch response fits the payload ceiling.
+	 *
+	 * Cells are trimmed in descending order of their encoded visualization size, so lightweight
+	 * visualizations of other cells survive whenever a single heavy cell causes the overflow.
+	 *
+	 * @since 1.0.0
+	 * @internal
+	 *
+	 * @param array $response Batch response data (`format`, `challenge`, `results`).
+	 * @return array Batch response data with oversized visualizations removed.
+	 */
+	private function enforce_batch_payload_limit( array $response ): array {
+		$encoded = wp_json_encode(
+			array(
+				'success' => true,
+				'data'    => $response,
+			)
+		);
+
+		if ( false !== $encoded && strlen( $encoded ) <= LanguageEngine::MAX_PAYLOAD_BYTES ) {
+			return $response;
+		}
+
+		$warning_msg = false === $encoded
+			? 'Response visualizations omitted: payload could not be JSON-encoded.'
+			: 'Response visualizations omitted: total JSON payload exceeded the 5 MB limit.';
+
+		$weights = array();
+		foreach ( $response['results'] as $index => $cell_res ) {
+			if ( ! empty( $cell_res['visualizations'] ) ) {
+				$cell_json         = wp_json_encode( $cell_res['visualizations'] );
+				$weights[ $index ] = false === $cell_json ? PHP_INT_MAX : strlen( $cell_json );
+			}
+		}
+		arsort( $weights );
+
+		foreach ( array_keys( $weights ) as $index ) {
+			$response['results'][ $index ]['visualizations'] = array();
+			$response['results'][ $index ]['messages'][]     = array(
+				'type' => 'warning',
+				'text' => $warning_msg,
+			);
+
+			$encoded = wp_json_encode(
+				array(
+					'success' => true,
+					'data'    => $response,
+				)
+			);
+
+			if ( false !== $encoded && strlen( $encoded ) <= LanguageEngine::MAX_PAYLOAD_BYTES ) {
+				break;
+			}
+		}
+
+		return $response;
+	}
+
+	/**
+	 * Evaluates an expression string (or sequential batch of expressions) sent via AJAX and returns the output.
 	 *
 	 * @since 0.0.1
 	 * @internal
@@ -863,6 +1527,7 @@ class Console extends AdminPage {
 
 		$actor_id        = get_current_user_id();
 		$expression      = isset( $_POST['expression'] ) ? wp_unslash( $_POST['expression'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$expressions     = isset( $_POST['expressions'] ) ? wp_unslash( $_POST['expressions'] ) : null; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$challenge_nonce = isset( $_POST['challenge_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['challenge_nonce'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$timestamp       = isset( $_POST['timestamp'] ) ? sanitize_text_field( wp_unslash( $_POST['timestamp'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$user_id         = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : null; // phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -874,6 +1539,11 @@ class Console extends AdminPage {
 
 		if ( is_multisite() && null === $site_id ) {
 			$site_id = get_current_blog_id();
+		}
+
+		if ( null !== $expressions ) {
+			$this->evaluate_batch( $expressions, $actor_id, $user_id, $site_id, $challenge_nonce, $timestamp, $start_time );
+			return;
 		}
 
 		if ( 0 === strlen( $expression ?? '' ) ) {
@@ -913,62 +1583,20 @@ class Console extends AdminPage {
 			// The exception message is deliberately never logged: Symfony embeds the raw expression in it.
 			$record_audit( 'error' );
 
-			$error_message = '';
-
-			if ( $e instanceof \Symfony\Component\ExpressionLanguage\SyntaxError ) {
-				$msg = $e->getMessage();
-				// Symfony converts newlines to spaces during lexing. We restore the original multiline expression and remove trailing dot.
-				if ( preg_match( '/^(.*?\baround position \d+)(?: for expression `.*`)?(\.?\s*Did you mean "[^"]*"\??)?[.?\s]*$/s', $msg, $matches ) ) {
-					$suggestion = ! empty( $matches[2] ) ? '. ' . ltrim( str_replace( '`', '\`', $matches[2] ), '. ' ) : '';
-					$details    = str_replace( '`', '\`', $matches[1] );
-					/* translators: 1: syntax error details, 2: expression code span, 3: suggestion */
-					$error_message = sprintf( __( 'Syntax error: %1$s for expression %2$s%3$s', 'expression-lab' ), $details, Helper::format_markdown_code_span( $expression ), $suggestion );
-				} else {
-					/* translators: %s: syntax error details */
-					$error_message = sprintf( __( 'Syntax error: %s', 'expression-lab' ), rtrim( str_replace( '`', '\`', $msg ), '.' ) );
-				}
-			} elseif ( ! empty( $e->getMessage() ) ) {
-				$error_message = $e->getMessage();
-			} else {
-				/* translators: %s: exception class name */
-				$error_message = sprintf( __( 'Expression error: %s', 'expression-lab' ), get_class( $e ) );
-			}
+			$error_message = $this->format_evaluation_error( $e, $expression );
 
 			wp_send_json_error( array( 'message' => $error_message ), 400 );
 			return;
 		}
 
-		// Formatting result...
-		$wp_debug_enabled     = defined( 'WP_DEBUG' ) && WP_DEBUG;
-		$full_captured_output = null;
-
-		if ( $wp_debug_enabled ) {
-			$full_captured_output = $output;
-			if ( ! empty( $errors ) ) {
-				$full_captured_output .= ( $full_captured_output ? "\n" : '' ) . implode( "\n", $errors );
-			}
-		}
-
-		if ( is_string( $result ) && ! is_numeric( $result ) ) {
-			if ( false !== strpos( $result, '\'' ) && false === strpos( $result, '"' ) ) {
-				$result = '"' . $result . '"';
-			} elseif ( false !== strpos( $result, '\'' ) && false !== strpos( $result, '"' ) ) {
-				$result = '"' . addcslashes( $result, '"\\' ) . '"';
-			} else {
-				$result = '\'' . $result . '\'';
-			}
-		}
-
-		if ( is_float( $result ) && ( is_nan( $result ) || is_infinite( $result ) ) ) {
-			$result = (string) $result; // Prevent JSON encoding issues.
-		}
+		$formatted = $this->format_evaluation_output( $result, $output, $errors );
 
 		$response = array(
 			'format'          => 'json',
 			'challenge'       => $new_challenge,
-			'result'          => $result,
+			'result'          => $formatted['result'],
 			'object_type'     => $object_type,
-			'captured_output' => $full_captured_output,
+			'captured_output' => $formatted['captured_output'],
 			'messages'        => LanguageEngine::get()->get_messages(),
 			'visualizations'  => LanguageEngine::get()->get_visualizations(),
 		);
@@ -1214,7 +1842,7 @@ class Console extends AdminPage {
 	 * Enforces boundary containment within ABSPATH using Helper::resolve_safe_path().
 	 * Returns null if the path is invalid or resolves outside ABSPATH.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $full_path  Absolute or relative path.
@@ -1245,7 +1873,7 @@ class Console extends AdminPage {
 	/**
 	 * Builds quick-access presets for critical WordPress system files.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 * @return array
 	 */
@@ -1486,7 +2114,7 @@ class Console extends AdminPage {
 	 * while strictly excluding uploads. Every emitted node, file or directory, counts toward the
 	 * global cap of 200 items; once reached, scanning stops and the accumulated tree is returned.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @return array Indexed array of tree nodes.
@@ -1567,7 +2195,7 @@ class Console extends AdminPage {
 	 * Only the directories matching `WP_PLUGIN_DIR`, `get_theme_root()` and `WPMU_PLUGIN_DIR`
 	 * are expanded. Every other subdirectory, including uploads, is returned as an opaque node.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $safe_content  Resolved absolute path of the wp-content directory.
@@ -1623,7 +2251,7 @@ class Console extends AdminPage {
 	/**
 	 * Builds the plugins list (depth 1 inside plugins directory).
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $name          Directory name.
@@ -1672,7 +2300,7 @@ class Console extends AdminPage {
 	/**
 	 * Builds themes tree with a bounded scan of the active theme and opaque entries for other themes.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $name          Directory name.
@@ -1735,7 +2363,7 @@ class Console extends AdminPage {
 	/**
 	 * Builds the mu-plugins tree.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $name          Directory name.
@@ -1758,7 +2386,7 @@ class Console extends AdminPage {
 	 * caller limits a subtree to N items by passing `min( $max_items, $total_scanned + N )`.
 	 * Entries of a level are collected before descending, so shallow items take precedence.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $dir           Absolute directory path to scan.
@@ -1839,7 +2467,7 @@ class Console extends AdminPage {
 	 * Entries resolving outside ABSPATH, dangling symlinks and symlinked directories
 	 * (loop and escape prevention) are skipped.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param \SplFileInfo $item Directory entry.
@@ -1864,7 +2492,7 @@ class Console extends AdminPage {
 	/**
 	 * Builds a directory tree node.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $name     Display name.
@@ -1890,7 +2518,7 @@ class Console extends AdminPage {
 	/**
 	 * Builds a file tree node.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $name  File name.
@@ -1916,7 +2544,7 @@ class Console extends AdminPage {
 	/**
 	 * Sorts tree nodes with directories first, then by case-insensitive name.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param array $nodes Tree nodes.
@@ -1939,7 +2567,7 @@ class Console extends AdminPage {
 	/**
 	 * Formats octal permission string (e.g. '0755', '0644') for a given path.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $path Target filesystem path.
@@ -1954,7 +2582,7 @@ class Console extends AdminPage {
 	/**
 	 * Resolves Unix owner name or returns numeric UID.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $path Target filesystem path.
@@ -1979,7 +2607,7 @@ class Console extends AdminPage {
 	/**
 	 * Resolves Unix group name or returns numeric GID.
 	 *
-	 * @since 0.3.0
+	 * @since 1.0.0
 	 * @internal
 	 *
 	 * @param string $path Target filesystem path.

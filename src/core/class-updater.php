@@ -75,7 +75,7 @@ class Updater {
 	 *
 	 * @var string
 	 */
-	const DEFAULT_REQUIRES_PHP = '8.2';
+	const DEFAULT_REQUIRES_PHP = '8.4';
 
 	/**
 	 * Default tested WordPress version.
@@ -449,6 +449,33 @@ class Updater {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Retrieves the cached update status from the transient without performing remote HTTP requests.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array{has_update: bool, latest_version: string} Cached update status.
+	 */
+	public function get_cached_update_status(): array {
+		$current_version = $this->get_plugin_version();
+		$cached          = get_site_transient( $this->get_transient_key() );
+
+		if ( is_array( $cached ) && ! empty( $cached['version'] ) && is_string( $cached['version'] ) ) {
+			$latest_version = $cached['version'];
+			$has_update     = version_compare( $latest_version, $current_version, '>' );
+
+			return array(
+				'has_update'     => $has_update,
+				'latest_version' => $has_update ? $latest_version : $current_version,
+			);
+		}
+
+		return array(
+			'has_update'     => false,
+			'latest_version' => $current_version,
+		);
 	}
 
 	/**

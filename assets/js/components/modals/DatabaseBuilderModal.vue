@@ -36,6 +36,8 @@ defineProps({
 const uiStore = useUiStore();
 const tabsStore = useTabsStore();
 const isScratchpad = computed(() => tabsStore.activeTab?.mode === 'scratchpad');
+const canReplace = computed(() => isScratchpad.value || tabsStore.activeTab?.mode === 'notebook');
+const isTargetReadOnly = computed(() => Boolean(tabsStore.isCurrentTabReadOnly));
 const isOpen = computed(() => uiStore.activeModal === 'database-builder');
 
 const OPERATORS = [
@@ -1148,7 +1150,7 @@ const handleReset = async () => {
 };
 
 const handleInsert = () => {
-  if (isEmpty.value) return;
+  if (isEmpty.value || isTargetReadOnly.value) return;
   const code = generatedCode.value;
   uiStore.triggerSnippetInsert({
     code,
@@ -1158,7 +1160,7 @@ const handleInsert = () => {
 };
 
 const handleReplace = () => {
-  if (isEmpty.value) return;
+  if (isEmpty.value || isTargetReadOnly.value) return;
   const code = generatedCode.value;
   uiStore.triggerSnippetInsert({
     code,
@@ -2255,17 +2257,19 @@ onBeforeUnmount(() => {
           <button
             type="button"
             class="btn fw-80px insert-btn"
-            :class="isScratchpad ? 'btn-default' : 'btn-primary'"
-            :disabled="isEmpty"
+            :class="canReplace ? 'btn-default' : 'btn-primary'"
+            :disabled="isEmpty || isTargetReadOnly"
+            :title="isTargetReadOnly ? __('Notebook is in Read-Only mode') : __('Insert')"
             @click="handleInsert"
           >
             {{ __('Insert') }}
           </button>
           <button
-            v-if="isScratchpad"
+            v-if="canReplace"
             type="button"
             class="btn btn-primary fw-80px replace-btn"
-            :disabled="isEmpty"
+            :disabled="isEmpty || isTargetReadOnly"
+            :title="isTargetReadOnly ? __('Notebook is in Read-Only mode') : __('Replace')"
             @click="handleReplace"
           >
             {{ __('Replace') }}

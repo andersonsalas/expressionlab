@@ -727,6 +727,62 @@ describe('FilesystemInspectorModal.vue', () => {
     );
   });
 
+  it('triggers insert / replace when active tab is in notebook mode', async () => {
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'filesystem-inspector' },
+        tabs: {
+          tabs: [{ id: 'tab1', mode: 'notebook' }],
+          activeTabId: 'tab1',
+        },
+      },
+    });
+
+    const wrapper = mount(FilesystemInspectorModal, {
+      global: {
+        plugins: [pinia],
+        mocks: {
+          __: (str) => str,
+        },
+      },
+    });
+
+    const uiStore = useUiStore();
+
+    // Select a preset card first so button is enabled
+    const presetCards = wrapper.findAll('.preset-card');
+    await presetCards[0].trigger('click');
+
+    const insertBtn = wrapper.find('.insert-btn');
+    const replaceBtn = wrapper.find('.replace-btn');
+
+    expect(insertBtn.exists()).toBe(true);
+    expect(insertBtn.text()).toBe('Insert');
+    expect(insertBtn.classes()).toContain('btn-default');
+    expect(insertBtn.attributes('disabled')).toBeUndefined();
+
+    expect(replaceBtn.exists()).toBe(true);
+    expect(replaceBtn.text()).toBe('Replace');
+    expect(replaceBtn.classes()).toContain('btn-primary');
+    expect(replaceBtn.attributes('disabled')).toBeUndefined();
+
+    // Clicking Insert sends mode 'insert'
+    await insertBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'insert',
+      })
+    );
+
+    // Clicking Replace sends mode 'replace'
+    await replaceBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'replace',
+      })
+    );
+  });
+
   it('closes cleanly when cancel or close button is clicked', async () => {
     const pinia = createTestingPinia({
       initialState: {
@@ -988,6 +1044,57 @@ describe('FilesystemInspectorModal.vue', () => {
     expect(pills[1].find('.tab-active-dot').exists()).toBe(false);
     expect(wrapper.find('.live-expression-bar .builder-notice.notice-info').exists()).toBe(true);
     expect(wrapper.find('.insert-btn').attributes('disabled')).toBeDefined();
+  });
+
+  it('disables Insert and Replace buttons when active tab is a locked read-only notebook', async () => {
+    const pinia = createTestingPinia({
+      initialState: {
+        ui: { activeModal: 'filesystem-inspector' },
+        tabs: {
+          activeTabId: 'tab_locked_nb',
+          tabs: [
+            {
+              id: 'tab_locked_nb',
+              mode: 'notebook',
+              notebookFileHandleId: 'handle-locked',
+              notebookMeta: { meta: { isReadOnly: true } },
+              notebookUnlockedForEditing: false,
+              notebookPersistedReadOnly: true,
+            },
+          ],
+        },
+      },
+    });
+
+    const wrapper = mount(FilesystemInspectorModal, {
+      global: {
+        plugins: [pinia],
+        mocks: {
+          __: (str) => str,
+        },
+      },
+    });
+
+    const presetCards = wrapper.findAll('.preset-card');
+    await presetCards[0].trigger('click');
+    await flushPromises();
+
+    const insertBtn = wrapper.find('.footer-actions-right .insert-btn');
+    const replaceBtn = wrapper.find('.footer-actions-right .replace-btn');
+
+    expect(insertBtn.exists()).toBe(true);
+    expect(replaceBtn.exists()).toBe(true);
+    expect(insertBtn.attributes('disabled')).toBeDefined();
+    expect(replaceBtn.attributes('disabled')).toBeDefined();
+    expect(insertBtn.attributes('title')).toBe('Notebook is in Read-Only mode');
+    expect(replaceBtn.attributes('title')).toBe('Notebook is in Read-Only mode');
+
+    const uiStore = useUiStore();
+    await insertBtn.trigger('click');
+    await replaceBtn.trigger('click');
+    expect(uiStore.triggerSnippetInsert).not.toHaveBeenCalled();
+
+    wrapper.unmount();
   });
 });
 

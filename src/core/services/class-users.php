@@ -45,7 +45,7 @@ final class Users {
 	 * Users.current
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/users#userscurrent
+	 * @see https://docs.expressionlab.io/api-reference/users#userscurrent
 	 * @var User|null
 	 */
 	public $current;
@@ -152,7 +152,7 @@ final class Users {
 	 *     .get()
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/users#usersget
+	 * @see https://docs.expressionlab.io/api-reference/users#usersget
 	 *
 	 * @param int|string|null $identifier Optional. Numeric user ID, email address, username slug, or `null` to execute query builder. Default `null`.
 	 * @return User|array|null A `User` model instance if resolved, an array of row objects if executing query builder, or `null` if not found.
@@ -188,7 +188,7 @@ final class Users {
 	 *     .save()
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/users#usersbuild
+	 * @see https://docs.expressionlab.io/api-reference/users#usersbuild
 	 * @return User A new, unsaved `User` model instance.
 	 */
 	public function build() {
@@ -219,7 +219,7 @@ final class Users {
 	 * )
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/users#userslist
+	 * @see https://docs.expressionlab.io/api-reference/users#userslist
 	 *
 	 * @param array $where   Optional. Associative array or object defining filter conditions against `wp_users` columns. Default empty array.
 	 * @param array $options Optional. Associative array or object controlling sorting, limit, and offset. Default empty array.

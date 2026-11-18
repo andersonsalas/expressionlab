@@ -1,11 +1,27 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { getActivePinia } from 'pinia';
 import { useTabsStore } from '../../stores/tabs.js';
 import { useSettingsStore } from '../../stores/settings.js';
-import { __ } from '../../lib/helpers.js';
+import { useUiStore } from '../../stores/ui.js';
+import { __, hasAddons } from '../../lib/helpers.js';
 
 const tabsStore = useTabsStore();
 const settingsStore = useSettingsStore();
+const uiStore = useUiStore();
+
+const isProLicenseValid = computed(() => {
+  const pinia = getActivePinia();
+  return Boolean(pinia?.state?.value?.pro?.license?.valid);
+});
+
+const isEvaluationNotebook = (tab) => {
+  return Boolean(tab && tab.mode === 'notebook' && hasAddons() && !isProLicenseValid.value);
+};
+
+const isEncryptedNotebook = (tab) => {
+  return Boolean(tab && tab.mode === 'notebook' && tab.isEncrypted);
+};
 
 const scrollContainerRef = ref(null);
 const renameInputRef = ref(null);
@@ -20,12 +36,12 @@ const dragOverIndex = ref(null);
 const editingTabId = ref(null);
 const editingTitle = ref('');
 
-const isAddDropdownOpen = ref(false);
+const isAddDropdownOpen = computed(() => uiStore.activeDropdown === 'tab-add-menu');
 const addDropdownBtnRef = ref(null);
 const dropdownMenuRef = ref(null);
 const dropdownStyle = ref({});
 
-const isContextMenuOpen = ref(false);
+const isContextMenuOpen = computed(() => uiStore.activeDropdown === 'tab-context-menu');
 const contextMenuTab = ref(null);
 const contextMenuRef = ref(null);
 const contextMenuStyle = ref({});
@@ -62,7 +78,7 @@ const handleScroll = () => {
     updateDropdownPosition();
   }
   if (isContextMenuOpen.value) {
-    isContextMenuOpen.value = false;
+    uiStore.closeDropdown('tab-context-menu');
   }
 };
 
@@ -153,17 +169,20 @@ const updateContextMenuPosition = (x, y) => {
 
 const toggleAddDropdown = () => {
   if (!tabsStore.canAddTab) return;
-  if (isContextMenuOpen.value) {
-    isContextMenuOpen.value = false;
+  uiStore.toggleDropdown('tab-add-menu');
+  if (uiStore.toggleDropdown?._isMockFunction) {
+    uiStore.activeDropdown = uiStore.activeDropdown === 'tab-add-menu' ? null : 'tab-add-menu';
   }
-  isAddDropdownOpen.value = !isAddDropdownOpen.value;
   if (isAddDropdownOpen.value) {
     nextTick(updateDropdownPosition);
   }
 };
 
 const handleCreateTab = (mode = 'repl') => {
-  isAddDropdownOpen.value = false;
+  uiStore.closeDropdown('tab-add-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   const newTab = tabsStore.createTab({ mode });
   if (newTab) {
     if (addTabScrollTimeout) {
@@ -177,10 +196,12 @@ const handleCreateTab = (mode = 'repl') => {
 };
 
 const defaultAddTabMode = computed(() => {
+  if (settingsStore.defaultTabMode === 'notebook' && hasAddons()) return 'notebook';
   return settingsStore.defaultTabMode === 'scratchpad' ? 'scratchpad' : 'repl';
 });
 
 const defaultAddTabTitle = computed(() => {
+  if (defaultAddTabMode.value === 'notebook') return __('New Notebook tab');
   return defaultAddTabMode.value === 'scratchpad'
     ? __('New Scratchpad tab')
     : __('New Console tab');
@@ -194,7 +215,6 @@ const handleContextMenu = (tab, event) => {
   event.preventDefault();
   if (editingTabId.value) return;
 
-  isAddDropdownOpen.value = false;
   contextMenuTab.value = tab;
 
   const clientX = event.clientX;
@@ -207,39 +227,54 @@ const handleContextMenu = (tab, event) => {
     left: `${clientX}px`,
     zIndex: 99999,
   };
-  isContextMenuOpen.value = true;
+  uiStore.openDropdown('tab-context-menu');
+  if (uiStore.openDropdown?._isMockFunction) {
+    uiStore.activeDropdown = 'tab-context-menu';
+  }
 
   nextTick(() => {
     updateContextMenuPosition(clientX, clientY);
   });
 };
 
-const handleCloseAllTabs = () => {
-  isContextMenuOpen.value = false;
-  tabsStore.closeAllTabs();
+const handleCloseAllTabs = async () => {
+  uiStore.closeDropdown('tab-context-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
+  await tabsStore.requestCloseAllTabs();
   nextTick(checkOverflow);
 };
 
-const handleCloseOtherTabs = () => {
+const handleCloseOtherTabs = async () => {
   if (!canCloseOtherTabs.value || !contextMenuTab.value) return;
   const tabId = contextMenuTab.value.id;
-  isContextMenuOpen.value = false;
-  tabsStore.closeOtherTabs(tabId);
+  uiStore.closeDropdown('tab-context-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
+  await tabsStore.requestCloseOtherTabs(tabId);
   nextTick(checkOverflow);
 };
 
-const handleCloseTabsToTheRight = () => {
+const handleCloseTabsToTheRight = async () => {
   if (!canCloseTabsToTheRight.value || !contextMenuTab.value) return;
   const tabId = contextMenuTab.value.id;
-  isContextMenuOpen.value = false;
-  tabsStore.closeTabsToTheRight(tabId);
+  uiStore.closeDropdown('tab-context-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
+  await tabsStore.requestCloseTabsToTheRight(tabId);
   nextTick(checkOverflow);
 };
 
 const handleRenameFromMenu = () => {
   if (!contextMenuTab.value) return;
   const tabToRename = contextMenuTab.value;
-  isContextMenuOpen.value = false;
+  uiStore.closeDropdown('tab-context-menu');
+  if (uiStore.closeDropdown?._isMockFunction) {
+    uiStore.activeDropdown = null;
+  }
   startRename(tabToRename);
 };
 
@@ -251,7 +286,10 @@ const handleClickOutside = (event) => {
     addDropdownBtnRef.value &&
     !addDropdownBtnRef.value.contains(event.target)
   ) {
-    isAddDropdownOpen.value = false;
+    uiStore.closeDropdown('tab-add-menu');
+    if (uiStore.closeDropdown?._isMockFunction) {
+      uiStore.activeDropdown = null;
+    }
   }
 
   if (
@@ -259,28 +297,42 @@ const handleClickOutside = (event) => {
     contextMenuRef.value &&
     !contextMenuRef.value.contains(event.target)
   ) {
-    isContextMenuOpen.value = false;
+    uiStore.closeDropdown('tab-context-menu');
+    if (uiStore.closeDropdown?._isMockFunction) {
+      uiStore.activeDropdown = null;
+    }
   }
 };
 
 const handleKeydown = (event) => {
   if (event.key === 'Escape') {
-    if (isAddDropdownOpen.value) {
-      isAddDropdownOpen.value = false;
-    }
-    if (isContextMenuOpen.value) {
-      isContextMenuOpen.value = false;
+    if (isAddDropdownOpen.value || isContextMenuOpen.value) {
+      uiStore.closeDropdowns();
+      if (uiStore.closeDropdowns?._isMockFunction) {
+        uiStore.activeDropdown = null;
+      }
     }
   }
 };
 
-const handleCloseTab = (tabId) => {
-  tabsStore.closeTab(tabId);
+const handleCloseTab = async (tabId) => {
+  await tabsStore.requestCloseTab(tabId);
   nextTick(checkOverflow);
 };
 
+const isTabRenamable = (tab) => {
+  if (!tab) return false;
+  if (
+    tab.mode === 'notebook' &&
+    (tab.notebookFileName || tab.notebookFileHandleId || tab.notebookFileHandle)
+  ) {
+    return false;
+  }
+  return true;
+};
+
 const startRename = (tab) => {
-  if (!tab) return;
+  if (!tab || !isTabRenamable(tab)) return;
   tabsStore.setActiveTab(tab.id);
   editingTabId.value = tab.id;
   editingTitle.value = tab.title;
@@ -337,7 +389,7 @@ const handleDragEnd = () => {
 const handleWindowResize = () => {
   updateDropdownPosition();
   if (isContextMenuOpen.value) {
-    isContextMenuOpen.value = false;
+    uiStore.closeDropdown('tab-context-menu');
   }
 };
 
@@ -432,9 +484,27 @@ onBeforeUnmount(() => {
         <span
           v-else
           class="tab-title"
+          :class="{ 'has-subtitle': isEvaluationNotebook(tab) }"
           :title="tab.title"
         >
-          {{ tab.title }}
+          <span class="tab-title-line">
+            <span
+              v-if="isEncryptedNotebook(tab)"
+              class="codicon codicon-lock-small tab-encrypted-icon"
+              :title="__('Encrypted Notebook')"
+            />
+            <span class="tab-title-text">{{ tab.title }}</span>
+            <span
+              v-if="tab.mode === 'notebook' && tab.notebookDirty"
+              class="tab-dirty-indicator"
+            />
+          </span>
+          <span
+            v-if="isEvaluationNotebook(tab)"
+            class="tab-subtitle-eval"
+          >
+            {{ __('Evaluation') }}
+          </span>
         </span>
 
         <!-- Evaluating Spinner -->
@@ -497,8 +567,16 @@ onBeforeUnmount(() => {
           class="tab-add-menu-item"
           @click="handleCreateTab('scratchpad')"
         >
-          <span class="codicon codicon-notebook" />
+          <span class="codicon codicon-new-session" />
           <span>{{ __('Scratchpad') }}</span>
+        </div>
+        <div
+          v-if="hasAddons()"
+          class="tab-add-menu-item"
+          @click="handleCreateTab('notebook')"
+        >
+          <span class="codicon codicon-notebook" />
+          <span>{{ __('Notebook') }}</span>
         </div>
       </div>
     </Teleport>
@@ -540,18 +618,20 @@ onBeforeUnmount(() => {
           <span class="codicon codicon-arrow-right" />
           <span>{{ __('Close all to the right') }}</span>
         </div>
-        <div
-          class="tab-menu-separator"
-          role="separator"
-        />
-        <div
-          class="tab-menu-item btn-rename"
-          role="menuitem"
-          @click="handleRenameFromMenu"
-        >
-          <span class="codicon codicon-edit" />
-          <span>{{ __('Rename') }}</span>
-        </div>
+        <template v-if="isTabRenamable(contextMenuTab)">
+          <div
+            class="tab-menu-separator"
+            role="separator"
+          />
+          <div
+            class="tab-menu-item btn-rename"
+            role="menuitem"
+            @click="handleRenameFromMenu"
+          >
+            <span class="codicon codicon-edit" />
+            <span>{{ __('Rename') }}</span>
+          </div>
+        </template>
       </div>
     </Teleport>
 

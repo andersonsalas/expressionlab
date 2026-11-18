@@ -1091,7 +1091,7 @@ final class Graph implements ServiceInterface {
 	 * ```
 	 *
 	 * @see https://vega.github.io/vega-lite/docs/
-	 * @see https://expressionlab.io/docs/api-reference/graph#graphrender
+	 * @see https://docs.expressionlab.io/api-reference/graph#graphrender
 	 *
 	 * @param array|object|string $payload Vega-Lite specification structure or JSON string.
 	 * @param string              $title   Tab title for the visualization panel. Default `'Graph'`.
@@ -1198,7 +1198,7 @@ final class Graph implements ServiceInterface {
 	 * ```
 	 *
 	 * @see https://vega.github.io/vega-lite/docs/bar.html
-	 * @see https://expressionlab.io/docs/api-reference/graph#graphbars
+	 * @see https://docs.expressionlab.io/api-reference/graph#graphbars
 	 *
 	 * @param mixed $data    List of associative records or key-value dictionary.
 	 * @param array $options Optional chart settings:
@@ -1331,7 +1331,7 @@ final class Graph implements ServiceInterface {
 	 * ```
 	 *
 	 * @see https://vega.github.io/vega-lite/docs/line.html
-	 * @see https://expressionlab.io/docs/api-reference/graph#graphlines
+	 * @see https://docs.expressionlab.io/api-reference/graph#graphlines
 	 *
 	 * @param mixed $data    List of associative records.
 	 * @param array $options Optional chart settings:
@@ -1452,7 +1452,7 @@ final class Graph implements ServiceInterface {
 	 * ```
 	 *
 	 * @see https://vega.github.io/vega-lite/docs/arc.html
-	 * @see https://expressionlab.io/docs/api-reference/graph#graphpie
+	 * @see https://docs.expressionlab.io/api-reference/graph#graphpie
 	 *
 	 * @param mixed $data    List of associative records or key-value dictionary.
 	 * @param array $options Optional chart settings:
@@ -1547,7 +1547,7 @@ final class Graph implements ServiceInterface {
 	 *
 	 * @see https://vega.github.io/vega-lite/docs/projection.html
 	 * @see https://vega.github.io/vega-lite/docs/geoshape.html
-	 * @see https://expressionlab.io/docs/api-reference/graph#graphworldmap
+	 * @see https://docs.expressionlab.io/api-reference/graph#graphworldmap
 	 *
 	 * @param mixed $data    List of associative records or key-value dictionary mapping country codes to values.
 	 * @param array $options Optional map settings:
@@ -1803,7 +1803,7 @@ final class Graph implements ServiceInterface {
 	 *
 	 * @see https://vega.github.io/vega-lite/docs/projection.html
 	 * @see https://vega.github.io/vega-lite/docs/geoshape.html
-	 * @see https://expressionlab.io/docs/api-reference/graph#graphusa
+	 * @see https://docs.expressionlab.io/api-reference/graph#graphusa
 	 *
 	 * @param mixed $data    List of associative records or dictionary mapping state identifiers to values.
 	 * @param array $options Optional map settings:
@@ -2034,7 +2034,7 @@ final class Graph implements ServiceInterface {
 	 * ```
 	 *
 	 * @see https://vega.github.io/vega-lite/docs/boxplot.html
-	 * @see https://expressionlab.io/docs/api-reference/graph#graphboxplot
+	 * @see https://docs.expressionlab.io/api-reference/graph#graphboxplot
 	 *
 	 * @param mixed $data    List of associative records.
 	 * @param array $options Optional chart settings:
@@ -2150,7 +2150,7 @@ final class Graph implements ServiceInterface {
 	 * ```
 	 *
 	 * @see https://vega.github.io/vega-lite/docs/point.html
-	 * @see https://expressionlab.io/docs/api-reference/graph#graphscatter
+	 * @see https://docs.expressionlab.io/api-reference/graph#graphscatter
 	 *
 	 * @param mixed $data    List of associative records.
 	 * @param array $options Optional chart settings:
@@ -2324,7 +2324,7 @@ final class Graph implements ServiceInterface {
 	 * ```
 	 *
 	 * @see https://vega.github.io/vega-lite/docs/
-	 * @see https://expressionlab.io/docs/api-reference/graph#graphheatmap
+	 * @see https://docs.expressionlab.io/api-reference/graph#graphheatmap
 	 *
 	 * @param mixed $data    List of associative records.
 	 * @param array $options Optional chart settings:
@@ -2508,7 +2508,7 @@ final class Graph implements ServiceInterface {
 	 * ```
 	 *
 	 * @see https://vega.github.io/vega-lite/docs/
-	 * @see https://expressionlab.io/docs/api-reference/graph#graphhistogram
+	 * @see https://docs.expressionlab.io/api-reference/graph#graphhistogram
 	 *
 	 * @param mixed $data    List of scalar numbers or associative records.
 	 * @param array $options Optional chart settings:
@@ -2668,7 +2668,7 @@ final class Graph implements ServiceInterface {
 	 * ```
 	 *
 	 * @see https://vega.github.io/vega-lite/docs/
-	 * @see https://expressionlab.io/docs/api-reference/graph#grapharea
+	 * @see https://docs.expressionlab.io/api-reference/graph#grapharea
 	 *
 	 * @param mixed $data    List of associative records.
 	 * @param array $options Optional chart settings:
@@ -2787,7 +2787,7 @@ final class Graph implements ServiceInterface {
 	 * ```
 	 *
 	 * @see https://vega.github.io/vega-lite/docs/
-	 * @see https://expressionlab.io/docs/api-reference/graph#graphtimeline
+	 * @see https://docs.expressionlab.io/api-reference/graph#graphtimeline
 	 *
 	 * @param mixed $data    List of associative records containing task, start, and end definitions.
 	 * @param array $options Optional chart settings:

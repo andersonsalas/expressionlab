@@ -8,13 +8,6 @@ sidebar_position: 1
 
 Save, organize, export, and re-run your favorite expressions, diagnostic routines, and database queries inside the console.
 
-<div className="desktop-window">
-  <img 
-    src="/img/0.2.0/snippetlibrary.png" 
-    alt="Expression Lab snippet library modal" 
-  />
-</div>
-
 The Snippet Library modal contains the following key components:
 
 ### Snippet List & Search

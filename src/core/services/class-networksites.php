@@ -51,7 +51,7 @@ final class NetworkSites {
 	 * ```
 	 *
 	 * @var Site|null
-	 * @see https://expressionlab.io/docs/api-reference/sites#networksitescurrent
+	 * @see https://docs.expressionlab.io/api-reference/sites#networksitescurrent
 	 */
 	public $current;
 
@@ -158,7 +158,7 @@ final class NetworkSites {
 	 * NetworkSites.get('shop.example.com')
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/sites#networksitesget
+	 * @see https://docs.expressionlab.io/api-reference/sites#networksitesget
 	 *
 	 * @param int|string $identifier The numeric blog ID, domain, domain/path, or URL of the site to retrieve.
 	 * @return Site|null A `Site` model instance if resolved, or `null` if not found.
@@ -193,7 +193,7 @@ final class NetworkSites {
 	 *     .save()
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/sites#networksitesbuild
+	 * @see https://docs.expressionlab.io/api-reference/sites#networksitesbuild
 	 *
 	 * @return Site A new, unsaved `Site` model instance.
 	 * @throws \Exception If accessed in a non-multisite installation.
@@ -223,7 +223,7 @@ final class NetworkSites {
 	 * NetworkSites.list(20, 40)
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/sites#networksiteslist
+	 * @see https://docs.expressionlab.io/api-reference/sites#networksiteslist
 	 *
 	 * @param int|null $limit  Optional. Maximum number of sites to return (capped at 1000). Default `100`.
 	 * @param int      $offset Optional. Number of sites to skip for pagination. Default `0`.

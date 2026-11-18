@@ -1,7 +1,14 @@
 import { mount } from '@vue/test-utils';
 import OnboardView from '../../views/OnboardView.vue';
 import { deriveKey } from '../../lib/helpers.js';
+import { handleLocalStorage } from '../../lib/api/client.js';
 import { ed25519 } from '@noble/curves/ed25519.js';
+import {
+  STORAGE_ENC_PREFIX,
+  initStorageCryptoFromSeed,
+  decryptStorageValue,
+  clearStorageCrypto,
+} from '../../lib/storage-crypto.js';
 
 jest.mock('../../lib/helpers.js', () => {
   const actual = jest.requireActual('../../lib/helpers.js');
@@ -11,14 +18,22 @@ jest.mock('../../lib/helpers.js', () => {
   };
 });
 
-jest.mock('@noble/curves/ed25519.js', () => ({
-  ed25519: {
-    getPublicKey: jest.fn(() => new Uint8Array(32).fill(2)),
-  },
-}));
+jest.mock('@noble/curves/ed25519.js', () => {
+  const actual = jest.requireActual('@noble/curves/ed25519.js');
+  return {
+    ed25519: {
+      ...actual.ed25519,
+      getPublicKey: jest.fn(() => new Uint8Array(32).fill(2)),
+    },
+  };
+});
 
-const { setImmediate: realSetImmediate } = jest.requireActual('timers');
+const VALID_PRO_EMAIL = 'admin@example.com';
+const VALID_PRO_KEY = 'stub-license-key';
+
+const { setImmediate: realSetImmediate, setTimeout: realSetTimeout } = jest.requireActual('timers');
 const flushPromises = () => new Promise((resolve) => realSetImmediate(resolve));
+const waitForCrypto = () => new Promise((resolve) => realSetTimeout(resolve, 20));
 
 const PASSPHRASE = 'correct horse battery';
 
@@ -32,12 +47,23 @@ const createElSettings = (overrides = {}) => ({
 let derivedSeeds;
 let originalCrypto;
 
-const mountView = () => mount(OnboardView, {
+const mountView = ({ validateLicense = jest.fn(() => ({ valid: true })) } = {}) => mount(OnboardView, {
   attachTo: document.body,
   global: {
+    provide: {
+      elCore: {
+        addons: {
+          validateLicense,
+        },
+      },
+    },
     stubs: {
       KeyGenGrid: { template: '<div class="keygen-grid-stub" />' },
       ExpressionLabIcon: true,
+      ProEulaModal: {
+        emits: ['close'],
+        template: '<div id="pro-eula-modal"><button class="btn-close-eula" @click="$emit(\'close\')">Close</button></div>',
+      },
     },
   },
 });
@@ -68,6 +94,10 @@ const runKeyGeneration = async (wrapper) => {
 
 const goToSettings = async (wrapper) => {
   await wrapper.find('#el-onboard-agreement').setValue(true);
+  const eulaCheckbox = wrapper.find('#el-onboard-eula');
+  if (eulaCheckbox.exists()) {
+    await eulaCheckbox.setValue(true);
+  }
   await clickNext(wrapper); // -> 2
   await clickNext(wrapper); // -> 3
 };
@@ -137,6 +167,54 @@ describe('OnboardView.vue', () => {
       const wrapper = mountView();
       expect(wrapper.find('.step-item.active').attributes('aria-current')).toBe('step');
       expect(wrapper.findAll('[aria-current="step"]')).toHaveLength(1);
+    });
+
+    it('renders Community footer and omits EULA checkbox when addons are disabled', () => {
+      const prevAddons = global.__WITH_ADDONS__;
+      global.__WITH_ADDONS__ = false;
+
+      const wrapper = mountView();
+      expect(wrapper.find('#el-onboard-eula').exists()).toBe(false);
+      expect(wrapper.find('.onboard-footer').text()).toBe(
+        'Expression Lab is a free, open-source plugin by Anderson Salas and contributors.'
+      );
+
+      global.__WITH_ADDONS__ = prevAddons;
+    });
+
+    it('requires both agreement and EULA checkboxes and opens EULA modal in Professional Edition', async () => {
+      const prevAddons = global.__WITH_ADDONS__;
+      global.__WITH_ADDONS__ = true;
+
+      const wrapper = mountView();
+      expect(wrapper.find('#el-onboard-eula').exists()).toBe(true);
+      expect(wrapper.find('.onboard-footer').text()).toBe(
+        'Expression Lab Professional Edition by Anderson Salas. Built on the open-source Expression Lab core.'
+      );
+
+      // Clicking the EULA link opens ProEulaModal without toggling the checkbox
+      const eulaLink = wrapper.find('.onboard-eula-link');
+      expect(eulaLink.exists()).toBe(true);
+      await eulaLink.trigger('click');
+      expect(wrapper.find('#el-onboard-eula').element.checked).toBe(false);
+      expect(wrapper.find('#pro-eula-modal').exists()).toBe(true);
+
+      // Emitting close from ProEulaModal closes the modal
+      await wrapper.find('#pro-eula-modal .btn-close-eula').trigger('click');
+      expect(wrapper.find('#pro-eula-modal').exists()).toBe(false);
+
+      // Only checking first checkbox is not enough in Pro mode
+      await wrapper.find('#el-onboard-agreement').setValue(true);
+      expect(primaryButton(wrapper).attributes('disabled')).toBeDefined();
+
+      // Checking EULA checkbox enables proceeding
+      await wrapper.find('#el-onboard-eula').setValue(true);
+      expect(primaryButton(wrapper).attributes('disabled')).toBeUndefined();
+
+      await clickNext(wrapper);
+      expect(activeStepLabel(wrapper)).toBe('System Requirements');
+
+      global.__WITH_ADDONS__ = prevAddons;
     });
   });
 
@@ -544,6 +622,238 @@ describe('OnboardView.vue', () => {
       await goToKeyGeneration(wrapper);
       expect(wrapper.find('.keygen-cached-notice').exists()).toBe(false);
       expect(primaryButton(wrapper).attributes('disabled')).toBeDefined();
+    });
+  });
+
+  describe('Step 3 & 4: Encrypted license localStorage persistence', () => {
+    let prevAddons;
+
+    beforeEach(() => {
+      prevAddons = global.__WITH_ADDONS__;
+      global.__WITH_ADDONS__ = true;
+      window.localStorage.clear();
+      clearStorageCrypto();
+    });
+
+    afterEach(() => {
+      global.__WITH_ADDONS__ = prevAddons;
+      window.localStorage.clear();
+      clearStorageCrypto();
+    });
+
+    it('hides the License section in Step 3 when addons are disabled (Community Edition)', async () => {
+      global.__WITH_ADDONS__ = false;
+      const wrapper = mountView();
+      await goToSettings(wrapper);
+
+      expect(wrapper.find('#el-onboard-license-email').exists()).toBe(false);
+      expect(wrapper.find('#el-onboard-license-key').exists()).toBe(false);
+      expect(primaryButton(wrapper).attributes('disabled')).toBeUndefined();
+    });
+    it('keeps license in volatile Vue memory during Step 3 and encrypts it into localStorage on Step 4 completion', async () => {
+      const wrapper = mountView();
+      await goToSettings(wrapper);
+
+      await wrapper.find('#el-onboard-license-email').setValue(VALID_PRO_EMAIL);
+      await wrapper.find('#el-onboard-license-key').setValue(VALID_PRO_KEY);
+      await clickNext(wrapper);
+
+      // Before completing Step 4, nothing is written to localStorage
+      expect(window.localStorage.getItem('el_license')).toBeNull();
+
+      await generateKeysWith(wrapper);
+      await waitForCrypto();
+      expect(activeStepLabel(wrapper)).toBe('Verification');
+
+      const rawStored = window.localStorage.getItem('el_license');
+      expect(rawStored).toBeTruthy();
+      expect(rawStored.startsWith(STORAGE_ENC_PREFIX)).toBe(true);
+      expect(rawStored).not.toContain(VALID_PRO_EMAIL);
+      expect(rawStored).not.toContain(VALID_PRO_KEY);
+
+      // Extract salt & public key from the generated snippet and verify the console can decrypt it on unlock
+      const lines = snippetLines(wrapper);
+      const pubKeyMatch = lines[1].match(/'EXPRESSION_LAB_ADMIN_PUBLIC_KEY', '([^']+)'/);
+      const saltMatch = lines[2].match(/'EXPRESSION_LAB_ADMIN_SALT', '([^']+)'/);
+      expect(pubKeyMatch).toBeTruthy();
+      expect(saltMatch).toBeTruthy();
+
+      await initStorageCryptoFromSeed(new Uint8Array(32).fill(7), saltMatch[1], pubKeyMatch[1], 7);
+      const decrypted = await decryptStorageValue('el_license', rawStored);
+      expect(JSON.parse(decrypted)).toEqual({
+        email: VALID_PRO_EMAIL,
+        key: VALID_PRO_KEY,
+      });
+    });
+
+    it('encrypts or removes the license when reusing cached keys in Step 4 after editing Step 3', async () => {
+      const wrapper = mountView();
+      await goToVerification(wrapper);
+      await waitForCrypto();
+      expect(window.localStorage.getItem('el_license')).toBeNull();
+
+      // Navigate back 5 -> 4 -> 3, add license, then 3 -> 4 -> 5 reusing cached keys
+      await clickBack(wrapper);
+      await clickBack(wrapper);
+      await wrapper.find('#el-onboard-license-email').setValue(VALID_PRO_EMAIL);
+      await wrapper.find('#el-onboard-license-key').setValue(VALID_PRO_KEY);
+      await clickNext(wrapper);
+      expect(primaryButton(wrapper).text()).toBe('Continue');
+      await clickNext(wrapper);
+      await waitForCrypto();
+
+      expect(activeStepLabel(wrapper)).toBe('Verification');
+      const storedAfterReuse = window.localStorage.getItem('el_license');
+      expect(storedAfterReuse).toBeTruthy();
+      expect(storedAfterReuse.startsWith(STORAGE_ENC_PREFIX)).toBe(true);
+
+      // Navigate back 5 -> 4 -> 3, clear license fields, then 3 -> 4 -> 5
+      await clickBack(wrapper);
+      await clickBack(wrapper);
+      await wrapper.find('#el-onboard-license-email').setValue('');
+      await wrapper.find('#el-onboard-license-key').setValue('');
+      await clickNext(wrapper);
+      await clickNext(wrapper);
+      await waitForCrypto();
+
+      expect(window.localStorage.getItem('el_license')).toBeNull();
+    });
+
+    const readSnippetCredentials = (wrapper) => {
+      const lines = snippetLines(wrapper);
+      return {
+        publicKey: lines[1].match(/'EXPRESSION_LAB_ADMIN_PUBLIC_KEY', '([^']+)'/)[1],
+        salt: lines[2].match(/'EXPRESSION_LAB_ADMIN_SALT', '([^']+)'/)[1],
+      };
+    };
+
+    const enterLicense = async (wrapper, email = VALID_PRO_EMAIL, key = VALID_PRO_KEY) => {
+      await wrapper.find('#el-onboard-license-email').setValue(email);
+      await wrapper.find('#el-onboard-license-key').setValue(key);
+    };
+
+    const useDistinctSeeds = () => {
+      let call = 0;
+      deriveKey.mockImplementation(async () => {
+        call += 1;
+        const seed = new Uint8Array(32).fill(call === 1 ? 7 : 8);
+        derivedSeeds.push(seed);
+        return seed;
+      });
+    };
+
+    it('re-encrypts the license under Key Pair B when a new passphrase regenerates the keys', async () => {
+      useDistinctSeeds();
+      const wrapper = mountView();
+      await goToSettings(wrapper);
+      await enterLicense(wrapper);
+      await clickNext(wrapper);
+      await generateKeysWith(wrapper);
+      await waitForCrypto();
+      const envelopeA = window.localStorage.getItem('el_license');
+      const credsA = readSnippetCredentials(wrapper);
+
+      await clickBack(wrapper);
+      await generateKeysWith(wrapper, 'another strong passphrase');
+      await waitForCrypto();
+      const envelopeB = window.localStorage.getItem('el_license');
+      const credsB = readSnippetCredentials(wrapper);
+
+      expect(credsB.salt).not.toBe(credsA.salt);
+      expect(envelopeB).toBeTruthy();
+      expect(envelopeB).not.toBe(envelopeA);
+      expect(derivedSeeds.every((seed) => seed.every((b) => b === 0))).toBe(true);
+
+      await initStorageCryptoFromSeed(new Uint8Array(32).fill(7), credsA.salt, credsA.publicKey, 7);
+      expect(await decryptStorageValue('el_license', envelopeB)).toBeNull();
+
+      await initStorageCryptoFromSeed(new Uint8Array(32).fill(8), credsB.salt, credsB.publicKey, 7);
+      expect(JSON.parse(await decryptStorageValue('el_license', envelopeB))).toEqual({
+        email: VALID_PRO_EMAIL,
+        key: VALID_PRO_KEY,
+      });
+    });
+
+    it('removes the Key Pair A license when it is cleared before regenerating Key Pair B', async () => {
+      useDistinctSeeds();
+      const wrapper = mountView();
+      await goToSettings(wrapper);
+      await enterLicense(wrapper);
+      await clickNext(wrapper);
+      await generateKeysWith(wrapper);
+      await waitForCrypto();
+      expect(window.localStorage.getItem('el_license')).toBeTruthy();
+
+      await clickBack(wrapper);
+      await clickBack(wrapper);
+      await enterLicense(wrapper, '', '');
+      await clickNext(wrapper);
+      await generateKeysWith(wrapper, 'another strong passphrase');
+      await waitForCrypto();
+
+      expect(activeStepLabel(wrapper)).toBe('Verification');
+      expect(window.localStorage.getItem('el_license')).toBeNull();
+    });
+
+    it('does not touch a pre-existing license entry when no license is provided in this session', async () => {
+      window.localStorage.setItem('el_license', `${STORAGE_ENC_PREFIX}seed:previous-session`);
+      const wrapper = mountView();
+      await goToVerification(wrapper);
+      await waitForCrypto();
+      expect(window.localStorage.getItem('el_license')).toBe(`${STORAGE_ENC_PREFIX}seed:previous-session`);
+    });
+
+    it('persists a dev envelope when sandboxing is disabled and upgrades it to seed on Console unlock', async () => {
+      window.el_settings = createElSettings({ settings: { enable_sandbox: false, debug_mode: false } });
+      const wrapper = mountView();
+      await goToSettings(wrapper);
+      await enterLicense(wrapper);
+      await clickNext(wrapper);
+      await generateKeysWith(wrapper);
+      await waitForCrypto();
+
+      const devEnvelope = window.localStorage.getItem('el_license');
+      expect(devEnvelope.startsWith(`${STORAGE_ENC_PREFIX}dev:`)).toBe(true);
+      const creds = readSnippetCredentials(wrapper);
+      const expected = JSON.stringify({ email: VALID_PRO_EMAIL, key: VALID_PRO_KEY });
+
+      // Console with sandbox still disabled: dev context derived from the pasted constants.
+      window.el_settings = { user_id: 7, public_key: creds.publicKey, salt: creds.salt, settings: { enable_sandbox: false, debug_mode: false } };
+      clearStorageCrypto();
+      expect(await handleLocalStorage('getItem', 'el_license')).toBe(expected);
+
+      // Console with passphrase lock enabled: unlock in seed mode and upgrade transparently.
+      window.el_settings = { ...window.el_settings, settings: { enable_sandbox: false, debug_mode: true } };
+      clearStorageCrypto();
+      expect(await handleLocalStorage('getItem', 'el_license')).toBeNull();
+      await initStorageCryptoFromSeed(new Uint8Array(32).fill(7), creds.salt, creds.publicKey, 7);
+      expect(await handleLocalStorage('getItem', 'el_license')).toBe(expected);
+      expect(window.localStorage.getItem('el_license').startsWith(`${STORAGE_ENC_PREFIX}seed:`)).toBe(true);
+    });
+
+    it.each([
+      ['email_mismatch', 'This license key does not match the provided email address.'],
+      ['email_required', 'Please enter the email address associated with your license key.'],
+      ['invalid', 'Invalid or corrupted license key.'],
+      [undefined, 'Invalid or corrupted license key.'],
+    ])('maps the add-on rejection reason "%s" to its Step 3 message and blocks Next', async (reason, message) => {
+      const validateLicense = jest.fn(() => ({ valid: false, reason }));
+      const wrapper = mountView({ validateLicense });
+      await goToSettings(wrapper);
+      await enterLicense(wrapper);
+
+      expect(validateLicense).toHaveBeenCalledWith(VALID_PRO_EMAIL, VALID_PRO_KEY);
+      expect(wrapper.find('.settings-error').text()).toBe(message);
+      expect(primaryButton(wrapper).attributes('disabled')).toBeDefined();
+    });
+
+    it('ignores numeric add-on error codes and relies only on the semantic reason', async () => {
+      const validateLicense = jest.fn(() => ({ valid: false, error_code: 11 }));
+      const wrapper = mountView({ validateLicense });
+      await goToSettings(wrapper);
+      await enterLicense(wrapper);
+
+      expect(wrapper.find('.settings-error').text()).toBe('Invalid or corrupted license key.');
     });
   });
 });

@@ -126,7 +126,7 @@ final class IPLookup implements ServiceInterface {
 	 * IPLookup.to_country('8.8.8.8') in ['US', 'CA', 'MX']
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/ip-lookup#iplookupto_country
+	 * @see https://docs.expressionlab.io/api-reference/ip-lookup#iplookupto_country
 	 * @see https://www.maxmind.com
 	 *
 	 * @param string $ip Valid IPv4 or IPv6 address string.

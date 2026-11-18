@@ -26,6 +26,9 @@ class LanguageEngineTest extends WP_UnitTestCase {
         
         $reflectionFunctions = new \ReflectionProperty($this->language, 'functions');
         $this->defined_functions = $reflectionFunctions->getValue($this->language);
+
+        // Reset again after get_context() inspection (which instantiates services like NetworkSites that tick() in Multisite).
+        $this->engine->reset();
     }
 
 
@@ -223,11 +226,11 @@ class LanguageEngineTest extends WP_UnitTestCase {
 
         $this->assertArrayHasKey('NetworkSites', $outline['objects']);
         $this->assertNotNull($outline['objects']['NetworkSites']['properties']['current'] ?? null);
-        $this->assertContains('https://expressionlab.io/docs/api-reference/sites#networksitescurrent', $outline['objects']['NetworkSites']['properties']['current']['doc']['see'] ?? array());
+        $this->assertContains('https://docs.expressionlab.io/api-reference/sites#networksitescurrent', $outline['objects']['NetworkSites']['properties']['current']['doc']['see'] ?? array());
 
         $this->assertArrayHasKey('Database', $outline['objects']);
         $this->assertNotNull($outline['objects']['Database']['methods']['mirror'] ?? null);
-        $this->assertContains('https://expressionlab.io/docs/api-reference/database#databasemirror', $outline['objects']['Database']['methods']['mirror']['doc']['see'] ?? array());
+        $this->assertContains('https://docs.expressionlab.io/api-reference/database#databasemirror', $outline['objects']['Database']['methods']['mirror']['doc']['see'] ?? array());
 
         $this->assertArrayHasKey('EXPRESSION_LAB_VERSION', $outline['constants']);
         $this->assertNotNull($outline['constants']['EXPRESSION_LAB_VERSION'] ?? null);
@@ -382,5 +385,40 @@ class LanguageEngineTest extends WP_UnitTestCase {
 
         $nullsafe_result = $this->engine->evaluate( "ExpressionLab?.loopback('world')" );
         $this->assertSame( 'world', $nullsafe_result['result'] );
+    }
+
+    public function test_sequential_batch_evaluation_persists_variables_and_isolates_messages_and_visualizations() {
+        $first = $this->engine->evaluate( "prog[ Console.log('cell 1 log'), show[ Console.table([{'col': 1}]) ], set['x', 40] ]" );
+        $this->assertSame( 40, $first['result'] );
+        $this->assertNotEmpty( $first['messages'] );
+        $this->assertNotEmpty( $first['visualizations'] );
+
+        $second = $this->engine->evaluate( 'var.x + 2 === 42' );
+        $this->assertTrue( $second['result'] );
+        $this->assertSame( array(), $second['messages'] );
+        $this->assertSame( array(), $second['visualizations'] );
+    }
+
+    public function test_sequential_evaluations_reset_operations_counter_per_expression() {
+        $this->engine->tick( $remaining, LanguageEngine::MAX_OPERATIONS );
+        $result = $this->engine->evaluate( '1 + 1' );
+        $this->assertSame( 2, $result['result'] );
+    }
+
+    public function test_binary_bytes_baseline_is_preserved_across_evaluations_and_cleared_by_reset() {
+        $this->engine->set_binary_bytes_baseline( LanguageEngine::MAX_EMBEDDED_BINARY_BYTES - 10 );
+        $this->engine->evaluate( '1 + 1' );
+
+        $this->assertTrue( $this->engine->can_allocate_binary( 10 ) );
+        $this->assertFalse( $this->engine->can_allocate_binary( 11 ) );
+
+        $this->engine->reset();
+        $this->assertTrue( $this->engine->can_allocate_binary( LanguageEngine::MAX_EMBEDDED_BINARY_BYTES ) );
+    }
+
+    public function test_binary_bytes_baseline_clamps_negative_values() {
+        $this->engine->set_binary_bytes_baseline( -500 );
+        $this->assertTrue( $this->engine->can_allocate_binary( LanguageEngine::MAX_EMBEDDED_BINARY_BYTES ) );
+        $this->assertFalse( $this->engine->can_allocate_binary( LanguageEngine::MAX_EMBEDDED_BINARY_BYTES + 1 ) );
     }
 }

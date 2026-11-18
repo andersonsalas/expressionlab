@@ -84,7 +84,7 @@ final class Console {
 	 * })
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/console#consolelog
+	 * @see https://docs.expressionlab.io/api-reference/console#consolelog
 	 *
 	 * @param mixed $message The message payload to output (scalar, array, or object).
 	 * @return void
@@ -113,7 +113,7 @@ final class Console {
 	 * })
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/console#consolewarning
+	 * @see https://docs.expressionlab.io/api-reference/console#consolewarning
 	 *
 	 * @param mixed $message The warning message payload to output (scalar, array, or object).
 	 * @return void
@@ -141,7 +141,7 @@ final class Console {
 	 * })
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/console#consoleerror
+	 * @see https://docs.expressionlab.io/api-reference/console#consoleerror
 	 *
 	 * @param mixed $message The error message payload to output (scalar, array, or object).
 	 * @return void
@@ -168,7 +168,7 @@ final class Console {
 	 * })
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/console#consolesuccess
+	 * @see https://docs.expressionlab.io/api-reference/console#consolesuccess
 	 *
 	 * @param mixed $message The success message payload to output (scalar, array, or object).
 	 * @return void
@@ -242,7 +242,7 @@ final class Console {
 	 * )
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/console#consoletable
+	 * @see https://docs.expressionlab.io/api-reference/console#consoletable
 	 *
 	 * @param array        $arg1  Array of associative records/objects (associative format) or indexed array of column header names (positional format).
 	 * @param array|string $arg2  Table title string (associative format) or two-dimensional array of row values (positional format). Default empty array.

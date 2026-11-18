@@ -125,7 +125,7 @@ final class Media {
 	 *     .get()
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/media#mediaget
+	 * @see https://docs.expressionlab.io/api-reference/media#mediaget
 	 *
 	 * @param int|string|null $identifier Optional. Attachment ID, slug, title, URL/path, or `null` to execute query builder. Default `null`.
 	 * @param bool            $auto_show  Optional. Whether to automatically generate an image visualization for single attachment. Default true.
@@ -229,7 +229,7 @@ final class Media {
 	 * Media.show('https://example.com/wp-content/uploads/2026/08/hero-banner.jpg')
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/media#mediashow
+	 * @see https://docs.expressionlab.io/api-reference/media#mediashow
 	 *
 	 * @param int|string $identifier Attachment ID, slug, title, or URL.
 	 * @param string     $size       Optional. Image size name ('medium', 'thumbnail', 'large', 'full'). Default `'medium'`.
@@ -400,7 +400,7 @@ final class Media {
 	 * Media.delete('https://example.com/wp-content/uploads/2026/08/obsolete-photo-300x200.jpg', true)
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/media#mediadelete
+	 * @see https://docs.expressionlab.io/api-reference/media#mediadelete
 	 *
 	 * @param int|string $identifier Attachment ID, slug, title, or URL.
 	 * @param bool       $force      Optional. Whether to bypass trash and force permanent file deletion. Default `false`.
@@ -438,7 +438,7 @@ final class Media {
 	 * Media.mime_types()
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/media#mediamime_types
+	 * @see https://docs.expressionlab.io/api-reference/media#mediamime_types
 	 * @return array<string> An indexed array of unique MIME type strings.
 	 */
 	public function mime_types(): array {
@@ -475,7 +475,7 @@ final class Media {
 	 * ```
 	 *
 	 * @param int $limit Optional. Maximum number of unattached attachments to return. Default `50`.
-	 * @see https://expressionlab.io/docs/api-reference/media#mediaunattached
+	 * @see https://docs.expressionlab.io/api-reference/media#mediaunattached
 	 * @return array<Attachment> An array of `Attachment` model instances representing unattached items.
 	 */
 	public function unattached( int $limit = 50 ): array {
@@ -515,7 +515,7 @@ final class Media {
 	 * Media.stats()
 	 * ```
 	 *
-	 * @see https://expressionlab.io/docs/api-reference/media#mediastats
+	 * @see https://docs.expressionlab.io/api-reference/media#mediastats
 	 * @return array Aggregated list of MIME type distribution records, or empty array if no attachments found.
 	 */
 	public function stats(): array {
