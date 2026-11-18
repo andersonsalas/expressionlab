@@ -8,11 +8,8 @@ sidebar_position: 1
 
 Expression Lab proporciona una consola interactiva REPL para evaluar expresiones, consultar estructuras de datos de WordPress e inspeccionar archivos. Dado que las consultas de diagnóstico y la inspección interna constituyen operaciones privilegiadas, la arquitectura del plugin incorpora múltiples capas de seguridad y restricciones operativas.
 
-:::danger Entorno previsto y estado de seguridad
-* **Estado**: Prototipo / Versión Alpha.
-* **Auditoría independiente**: Esta base de código **no ha sido auditada** por una firma externa de ciberseguridad. Aunque se aplican prácticas de ingeniería defensiva (aislamiento de AST, derivación de claves con Argon2id/Ed25519 y opciones por defecto de solo lectura), aún pueden existir vulnerabilidades.
-* **Casos de uso prohibidos**: Expression Lab **no está destinado ni resulta apto** para sitios activos en producción, tiendas de comercio electrónico que procesen datos de titulares de tarjetas o información personal identificable (PII), ni infraestructuras gubernamentales, militares o críticas para la seguridad.
-* **Responsabilidad**: Distribuido bajo la licencia GNU GPL v2.0+ sin garantía de ningún tipo, explícita o implícita.
+:::note Auditoría de seguridad independiente
+Expression Lab aún no ha sido sometido a una auditoría formal de seguridad por parte de una firma externa independiente. Aunque la arquitectura aplica prácticas de ingeniería defensiva (como el aislamiento mediante AST, criptografía Argon2id/Ed25519 en el cliente y configuraciones de solo lectura por defecto), se recomienda evaluar si cumple con los requisitos de cumplimiento y riesgo de su entorno antes de desplegarlo.
 :::
 
 ---
@@ -130,4 +127,4 @@ Si descubre algún fallo de seguridad o vulnerabilidad en Expression Lab, por fa
 
 Su reporte se revisará a la brevedad para coordinar una corrección y publicar un parche.
 
-Al ser un proyecto independiente de código abierto impulsado por la comunidad, Expression Lab no ofrece recompensas económicas (*bug bounties*). No obstante, los reportes válidos son muy apreciados y se le otorgará el debido crédito en las notas de la versión y en el registro de cambios (a menos que prefiera mantener el anonimato).
+Al ser un proyecto independiente, Expression Lab no ofrece recompensas económicas (*bug bounties*). No obstante, los reportes válidos son muy apreciados y se le otorgará el debido crédito en las notas de la versión y en el registro de cambios (a menos que prefiera mantener el anonimato).

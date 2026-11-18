@@ -6,21 +6,21 @@ sidebar_position: 2
 
 # Quick Start
 
-This guide walks you through the initial setup wizard, server configuration, and everyday usage of the Expression Lab console.
+This guide walks you through the initial setup wizard, server configuration, and everyday usage of the Expression Lab workspace.
 
 :::important One-Time Setup Required
-Before accessing the console, you must complete the onboarding wizard and add the generated configuration constants to your `wp-config.php` file.
+Before accessing Expression Lab, you must complete the onboarding wizard and add the generated configuration constants to your `wp-config.php` file.
 :::
 
 ## Onboarding Wizard (Initial Setup)
 
-Navigate to **Tools** > **Console** (or **Network Admin** > **Settings** > **Console** in WordPress Multisite). 
+Navigate to **Tools** > **Expression Lab** (or **Network Admin** > **Settings** > **Console** in WordPress Multisite).
 
 If the plugin is not yet configured, the onboarding wizard will launch automatically.
 
 <div className="desktop-window">
   <img 
-    src="/img/onboarding.png" 
+    src="/img/1.0.0/onboarding.png" 
     alt="Expression Lab onboarding wizard" 
   />
 </div>
@@ -28,19 +28,24 @@ If the plugin is not yet configured, the onboarding wizard will launch automatic
 ```mermaid
 graph LR
     A["1. Welcome"] --> B["2. System Requirements"]
-    B --> C["3. Key Generation"]
-    C --> D["4. Verification "]
+    B --> C["3. Settings"]
+    C --> D["4. Key Generation"]
+    D --> E["5. Verification"]
 ```
 
-### Welcome & Acknowledgement
+### 1. Welcome & Acknowledgement
 
-Review the terms of use and check the confirmation box.
+Review the operational notice, check the acknowledgement box (and the End-User License Agreement checkbox in Professional Edition), and click **Begin install**.
 
-### System Requirements Check
+### 2. System Requirements Check
 
-The wizard automatically checks your server and browser environment. If any required requirement is marked as **Missing**, resolve it in your server configuration (see [Requirements](./installation.md#requirements)) before continuing.
+The wizard automatically checks your server and browser environment. If any required dependency is marked as **Missing**, resolve it in your server configuration (see [Requirements](./installation.md#requirements)) before continuing.
 
-### Key Generation & Passphrase
+### 3. Settings
+
+Configure initial environment limits and defaults—such as read-only locks for Database, Filesystem, Network, and Hooks, execution time limits, signature validity duration, and optional license or MaxMind API credentials.
+
+### 4. Key Generation & Passphrase
 
 Enter a strong passphrase (minimum 8 characters):
 
@@ -51,7 +56,7 @@ Enter a strong passphrase (minimum 8 characters):
 Because the passphrase is never stored on the server, there is no way to recover or reset a forgotten passphrase. If you lose your passphrase, you must delete the configuration constants from `wp-config.php` and complete the onboarding wizard again.
 :::
 
-### Server Ownership Verification
+### 5. Server Ownership Verification
 
 The wizard generates three PHP constants that must be added to your `wp-config.php` file:
 
@@ -65,35 +70,21 @@ define( 'EXPRESSION_LAB_ADMIN_SALT', 'your-base64-salt...' );
 2. Paste the three lines before the `/* That's all, stop editing! Happy publishing. */` comment.
 3. Save the file and reload the Expression Lab admin page.
 
-Once WordPress detects all three constants, the plugin completes installation and unlocks access to the console.
+Once WordPress detects all three constants, the plugin completes installation and unlocks access to the workspace.
 
 ---
 
-## Accessing the REPL Console
+## Accessing Expression Lab
 
 ### Single Administrator Restriction
 
-Access to the interactive console is restricted to the administrator whose ID matches `EXPRESSION_LAB_ADMIN_USER_ID`. 
+Access to Expression Lab is restricted to the administrator whose ID matches `EXPRESSION_LAB_ADMIN_USER_ID`.
 
-Other users can see the plugin entry in the WordPress admin menu, but accessing the page will display an **Access Restricted** notice and prevent any console operations or evaluations.
-
-<div className="desktop-window">
-  <img 
-    src="/img/other-admin.png" 
-    alt="Expression Lab admin access restricted" 
-  />
-</div>
+Other users can see the plugin entry in the WordPress admin menu, but accessing the page will display an **Access Restricted** notice and prevent any operations or evaluations.
 
 ### Unlocking Your Session
 
-When accessing **Tools** > **Console**, you will be prompted with a lock screen:
-
-<div className="desktop-window">
-  <img 
-    src="/img/password.png" 
-    alt="Expression Lab unlock screen" 
-  />
-</div>
+When accessing **Tools** > **Expression Lab**, you will be prompted with a lock screen:
 
 1. Enter the passphrase you chose during the onboarding process.
 2. Click **Unlock** (or press <kbd>Enter</kbd>).
@@ -101,96 +92,70 @@ When accessing **Tools** > **Console**, you will be prompted with a lock screen:
 
 ---
 
-## Using the REPL Console
+## Using the Workspace
 
-The Expression Lab console provides an interactive development environment designed for real-time expression evaluation and data inspection.
+Expression Lab opens in a **Jupyter-like Notebook** workspace by default, while also supporting **Scratchpad** and **Console (REPL)** tabs for different diagnostic workflows.
 
 <div className="desktop-window">
   <img 
-    src="/img/0.2.0/console.png" 
-    alt="Expression Lab console" 
+    src="/img/1.0.0/console.png" 
+    alt="Expression Lab workspace" 
   />
 </div>
 
-### 1. Editor and Expression Buffer
+### 1. Notebook Cells & Editor
 
-* **Input Prompt**: Type your DSL expression in the editor at the bottom of the console buffer.
-* **Execution**: Press <kbd>Enter</kbd> to evaluate the expression.
-* **Multiline Mode**: Press <kbd>Shift</kbd> + <kbd>Enter</kbd> to insert a newline without evaluating.
-* **History Navigation**: Use <kbd>Alt</kbd> + <kbd>↑</kbd> and <kbd>Alt</kbd> + <kbd>↓</kbd> to cycle through previous commands.
-* **Re-evaluating / Editing**: In the output buffer, click **Edit input** on any previous entry to load it back into the editor, or click **Run code** to re-evaluate it immediately.
+* **Code & Markdown Cells**: Add interactive DSL **Code** cells or rich **Markdown** documentation cells using the **+ Code** and **+ Markdown** buttons below a cell.
+* **Cell Toolbar**: Each code cell provides a **Run** button, execution counter (`[1]`), and actions to format code (`{}`), save to the Snippet Library, move up/down, duplicate, or delete the cell.
+* **Per-Cell Results (`Raw` / `Output`)**: Evaluated cells display results inline below the editor with **`Raw`** (raw DSL/JSON value) and **`Output`** (rich tables, trees, and Vega-Lite visualizations) tabs, along with copy, wrap, expand, and clear controls.
+* **Other Tab Modes**: In **Scratchpad** tabs, a single full-height editor pairs with a toggleable bottom output panel; in **Console (REPL)** tabs, expressions execute line-by-line with <kbd>Enter</kbd> (<kbd>Shift</kbd> + <kbd>Enter</kbd> for newlines, <kbd>Alt</kbd> + <kbd>↑</kbd>/<kbd>↓</kbd> for history).
 
-### 2. Toolbar Controls
+### 2. Top Toolbar Controls
 
-* **New Tab Actions**: Create a new REPL Console tab or a new Scratchpad tab directly from the toolbar buttons.
-* **Scratchpad Controls**: When working in Scratchpad mode, execute expressions (<kbd>Ctrl</kbd> + <kbd>Enter</kbd> / <kbd>Cmd</kbd> + <kbd>Enter</kbd> / <kbd>Ctrl</kbd> + <kbd>R</kbd>) or save the code directly to the Snippet Library.
-* **Clear Session**: Clears the active console session output history and resets the editor prompt.
-* **Format Code (`{}`)**: Formats DSL and JSON expressions with clean indentation (<kbd>Shift</kbd> + <kbd>Alt</kbd> + <kbd>F</kbd>).
-* **User Context Switcher (`User`)**: Allows evaluating expressions in the context of another WordPress user account (changing the current user).
-* **Site Switcher (`Site`)**: (*Multisite only*) Switches the execution context to target a specific subsite in the network.
-* **Snippet Library (`Library`)**: Opens the snippet manager to save, organize, tag, load, import, or export reusable code snippets. Supports local disk storage via the browser's [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API).
-* **Settings (`Gear`)**: Opens the configuration modal to customize console behavior, appearance, and execution settings.
-* **Right Controls**:
-  * **Toggle Output Panel**: (*Scratchpad only*) Toggles the visibility of the bottom output panel.
-  * **Toggle Sidebar**: Shows or hides the outline documentation explorer sidebar.
-  * **About Expression Lab (`Info`)**: Displays version information, licenses, and repository links.
+* **Expression Lab Menu**: Application menu for file operations, settings, and version information.
+* **Notebook File Actions**: Open and save `.elab` notebook files with optional password encryption (Professional Edition).
+* **Run, Clear & Format**: Execute all cells in the active notebook (or run the current Scratchpad), clear cell outputs/session history, and format DSL/JSON code (<kbd>Shift</kbd> + <kbd>Alt</kbd> + <kbd>F</kbd>).
+* **User Context Switcher**: Evaluate expressions in the context of another WordPress user account.
+* **Site Switcher**: (*Multisite only*) Switch the execution context to target a specific subsite in the network.
+* **Tools**: Quick access to visual builders and inspectors (**HTTP Request Builder**, **Database Query Builder**, **Entity Query Builder**, and **Filesystem Inspector**).
+* **Library**: Opens the [Snippet Library](../features/snippet-library.md) to save, tag, load, import, or export reusable expressions (with optional local filesystem sync via the browser's [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API)).
+* **Panel Toggles**: Toggle the bottom output panel (Scratchpad mode) and show or hide the right sidebar.
 
 ### 3. Tabs Bar
 
-The tabs bar enables multi-session workflows and distinct execution modes:
+* **Multiple Tabs**: Keep multiple notebooks, scratchpads, and REPL console sessions open simultaneously.
+* **New Tab**: Click `+` or its dropdown arrow to open a new **Notebook**, **Scratchpad**, or **Console** tab.
+* **Tab Management**: Close tabs (`×`), double-click a tab title to rename it, or drag and drop tabs to reorder your workspace.
 
-* **Multiple Tabs**: Work across multiple independent sessions without losing command history or execution state.
-* **Session Modes**:
-  * **Console (REPL)**: Standard interactive shell with prompt evaluation and scrolling log.
-  * **Scratchpad**: Full-height code editor designed for writing, editing, and executing complex multiline scripts.
-* **Tab Operations**:
-  * **Add Tab (`+` / Dropdown)**: Click the `+` button or dropdown arrow to create a new Console or Scratchpad tab.
-  * **Close Tab (`×`)**: Closes active or background tabs.
-  * **Rename Tab**: Double-click any tab title to rename it for better organization during troubleshooting.
-  * **Reorder Tabs**: Drag and drop tabs to reorganize your workspace.
+### 4. Right Sidebar
 
-### 4. Sidebar Outline Explorer
+* **`Symbols` Tab**: Searchable explorer listing available **Objects** (`Cache`, `Console`, `Database`, `Files`, `Graph`, `Http`, `IPLookup`, `Media`, `NetworkOptions`, `NetworkSites`, `Options`, `Posts`, `Users`), **Functions**, and **Constants**. Click any symbol to insert it into the active editor.
+* **`Outline` Tab**: Displays the active notebook's cells and Markdown headings for quick navigation across large notebooks.
 
-The collapsible sidebar on the right provides real-time documentation and code completion resources:
+### 5. Status Bar
 
-* **Objects**: Available global objects and classes.
-* **Functions**: Available functions, parameters, and signatures.
-* **Constants**: Available system and WordPress constants.
-* **Click to Insert**: Clicking any item or function in the sidebar inserts its template into the editor prompt.
-
-### 5. Status Bar (Footer)
-
-The footer bar provides immediate visibility into your current runtime environment:
-
-* **Sensitive Info Toggle** (`Eye icon`): Masks or reveals server and client IP addresses.
-* **Runtime Info**: Displays active PHP version, WordPress version, and `WP_DEBUG` status.
-* **Read-Only Status Indicators**: Shows whether write operations are restricted for the **Database**, **Filesystem**, and **Network** (e.g., `Database: Locked`).
-* **Signature Status**: Displays the remaining validity countdown for the current cryptographic session challenge.
+* **Sensitive Info Toggle** (`Eye` / connection icon): Masks or reveals `Server` and `User` IP addresses.
+* **Runtime Info**: Displays active `PHP` and `WP` versions along with `Debug` mode status.
+* **Read-Only Status Indicators**: Shows whether **Database**, **Files**, and **Network** write operations are `Locked` or `Unlocked`.
+* **Signature Status**: Displays the remaining validity countdown (`Signed MM:SS`) for the active cryptographic session challenge.
 
 ---
 
 ## Your First Expression
 
-Once unlocked, verify that the console is operating properly by evaluating basic expressions:
+Once unlocked, test the workspace by typing a basic expression into the first code cell:
 
 ```elscript
 2 + 2 * 10
 ```
 
-Press <kbd>Enter</kbd>. The result will appear in the output log:
+Click the cell's Run button (or press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> / <kbd>Cmd</kbd> + <kbd>Enter</kbd>). The result appears in the cell's output panel:
 
 ```elscript
 22
 ```
 
-<div className="desktop-window">
-  <img 
-    src="/img/0.2.0/console-input.png" 
-    alt="Expression Lab console input" 
-  />
-</div>
-
-That's it! You can now use the console to evaluate expressions and inspect your WordPress environment.
+That's it! You can now build interactive notebooks, evaluate DSL expressions, and inspect your WordPress environment.
 
 ---
 
@@ -206,7 +171,7 @@ If you need to change your passphrase or designate a different administrator:
    // define( 'EXPRESSION_LAB_ADMIN_SALT', '...' );
    ```
 3. Save `wp-config.php`.
-4. Return to your WordPress admin dashboard and navigate to **Tools** > **Console** to restart the onboarding wizard.
+4. Return to your WordPress admin dashboard and navigate to **Tools** > **Expression Lab** to restart the onboarding wizard.
 
 ---
 

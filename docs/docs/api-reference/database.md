@@ -835,13 +835,6 @@ Database.table_list(): array
 Database.table_list()
 ```
 
-<div className="desktop-window">
-  <img 
-    src="/img/0.2.0/database-table-list.png" 
-    alt="Expression Lab table list" 
-  />
-</div>
-
 <VegaLite spec={{
   "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
   "title": "Tables by Row Count",

@@ -8,11 +8,8 @@ sidebar_position: 1
 
 Expression Lab provides an interactive REPL console to evaluate expressions, query WordPress data structures, and inspect files. Because diagnostic queries and internal inspection are privileged operations, the plugin architecture incorporates multiple security layers and operational constraints.
 
-:::danger Intended Environment & Security Status
-* **Status**: Prototype / Alpha release.
-* **Independent Audit**: This codebase **has not been audited** by an independent third-party cybersecurity firm. While it adheres to defensive engineering practices (AST sandboxing, Argon2id/Ed25519 key derivation, read-only defaults), vulnerabilities may still exist.
-* **Prohibited Use Cases**: Expression Lab is **not intended or suitable** for live production sites, e-commerce stores handling cardholder/PII data, or governmental, military, and safety-critical infrastructures.
-* **Liability**: Distributed under the GNU GPL v2.0+ license without warranty of any kind, explicit or implied.
+:::note Independent Security Audit
+Expression Lab has not yet undergone a formal security audit by an independent third-party firm. While the architecture applies defensive engineering practices (such as AST sandboxing, client-side Argon2id/Ed25519 cryptography, and read-only operational defaults), you should evaluate whether it meets the compliance and risk requirements of your environment before deployment.
 :::
 
 ---
@@ -130,4 +127,4 @@ If you discover a potential security bug or vulnerability in Expression Lab, ple
 
 We will review your report promptly, coordinate a fix, and release an update.
 
-As an independent, community-driven, open-source project, Expression Lab does not offer monetary bug bounties. However, valid disclosures are deeply appreciated, and we will gladly credit you in the release notes and changelog (unless you prefer to remain anonymous).
+As an independent project, Expression Lab does not offer monetary bug bounties. However, valid disclosures are deeply appreciated, and we will gladly credit you in the release notes and changelog (unless you prefer to remain anonymous).

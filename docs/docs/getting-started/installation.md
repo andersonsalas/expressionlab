@@ -8,11 +8,7 @@ import DownloadButton from '@site/src/components/DownloadButton';
 
 # Installation
 
-You can install and activate Expression Lab like any other WordPress plugin. 
-
-:::warning Experimental Alpha Software
-Expression Lab is currently an unaudited **alpha prototype** intended for local development, testing, and staging inspection. It is **not suitable for live production environments**, e-commerce stores handling sensitive customer data, or critical infrastructure. For detailed operational boundaries and prohibited use cases, review the [Security Model](../security/security-and-environment.md).
-:::
+You can install and activate Expression Lab like any other WordPress plugin.
 
 ## Requirements
 
